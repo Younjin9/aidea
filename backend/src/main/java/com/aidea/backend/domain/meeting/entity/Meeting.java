@@ -17,5 +17,9 @@ public class Meeting {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // TODO: Add fields
+    // Location
+    private Double latitude;
+    private Double longitude;
+
+    // TODO: Add other fields (title, description, etc)
 }

@@ -1,4 +1,4 @@
-package com.aidea.backend.domain.user.entity;
+package com.aidea.backend.domain.notification.entity;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -11,15 +11,11 @@ import lombok.NoArgsConstructor;
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class User {
+public class Notification {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+  @Id
+  @GeneratedValue(strategy = GenerationType.IDENTITY)
+  private Long id;
 
-    // Location
-    private Double latitude;
-    private Double longitude;
-
-    // TODO: Add other fields
+  // TODO: Add fields (userId, message, type, isRead)
 }
