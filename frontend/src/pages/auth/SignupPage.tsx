@@ -10,9 +10,8 @@ const SignupPage: React.FC = () => {
 
   const handleSignup = () => {
     // 회원가입 로직
-    // 성공 시 완료 페이지 또는 로그인 페이지로 이동
-    // alert('회원가입 완료! (로직 구현 필요)');
-    navigate('/onboarding/interest');
+    // 성공 시 완료 페이지로 이동 (이름 전달)
+    navigate('/signup/complete', { state: { name: '박영선' } });
   };
 
   return (

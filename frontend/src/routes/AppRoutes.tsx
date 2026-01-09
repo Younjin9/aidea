@@ -5,6 +5,7 @@ import MainLayout from '@/shared/components/layout/MainLayout';
 import LoginPage from '@/pages/auth/LoginPage';
 import EmailLoginPage from '@/pages/auth/EmailLoginPage';
 import SignupPage from '@/pages/auth/SignupPage';
+import SignupCompletePage from '@/pages/auth/SignupCompletePage';
 import FindIdPage from '@/pages/auth/FindIdPage';
 import FindPwPage from '@/pages/auth/FindPwPage';
 import InterestPage from '@/pages/onboarding/InterestPage';
@@ -21,6 +22,7 @@ const AppRoutes: React.FC = () => {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/login/email" element={<EmailLoginPage />} />
         <Route path="/signup" element={<SignupPage />} />
+        <Route path="/signup/complete" element={<SignupCompletePage />} />
         <Route path="/find-id" element={<FindIdPage />} />
         <Route path="/find-pw" element={<FindPwPage />} />
         
