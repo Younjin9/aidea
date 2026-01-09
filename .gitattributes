@@ -1,0 +1,79 @@
+# Auto detect text files and perform LF normalization
+* text=auto
+
+# Gradle wrapper (실행 파일이므로 LF 필수)
+/gradlew text eol=lf
+gradlew text eol=lf
+gradle/wrapper/gradle-wrapper.properties text eol=lf
+
+# Windows batch files (CRLF 필수)
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Shell scripts (LF 필수)
+*.sh text eol=lf
+
+# Source code (LF로 통일)
+*.java text eol=lf
+*.js text eol=lf
+*.jsx text eol=lf
+*.ts text eol=lf
+*.tsx text eol=lf
+*.css text eol=lf
+*.scss text eol=lf
+*.html text eol=lf
+*.xml text eol=lf
+*.json text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.md text eol=lf
+*.txt text eol=lf
+
+# Configuration files
+*.properties text eol=lf
+*.conf text eol=lf
+*.ini text eol=lf
+
+# Docker files
+Dockerfile text eol=lf
+docker-compose*.yml text eol=lf
+
+# Binary files (수정되면 안되는 파일들)
+*.jar binary
+*.war binary
+*.ear binary
+*.zip binary
+*.tar.gz binary
+*.7z binary
+
+# Images
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.svg binary
+
+# Fonts
+*.woff binary
+*.woff2 binary
+*.eot binary
+*.ttf binary
+*.otf binary
+
+# Documents
+*.pdf binary
+*.doc binary
+*.docx binary
+
+# Certificates and keys
+*.p12 binary
+*.jks binary
+*.pem binary
+*.key binary
+*.crt binary
+
+# Other binaries
+*.so binary
+*.dll binary
+*.exe binary
