@@ -9,9 +9,11 @@ import FindIdPage from '@/pages/auth/FindIdPage';
 import FindPwPage from '@/pages/auth/FindPwPage';
 import InterestPage from '@/pages/onboarding/InterestPage';
 import ShortsPage from '@/pages/recommendation/ShortsPage';
-import MeetingListPage from '@/pages/meeting/MeetingListPage';
+// import MeetingListPage from '@/features/meeting/MeetingListPage';
+import MeetingListPage from '@/features/meeting/components/MeetingListPage';
 import ChatListPage from '@/pages/chat/ChatListPage';
-import MyPage from '@/pages/mypage/MyPage';
+// import MyPage from '@/pages/mypage/MyPage';
+import MyPage from '@/features/mypage/components/MyPageView';
 
 const AppRoutes: React.FC = () => {
   return (

@@ -1,13 +1,12 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { Film, Users, MessageCircle, User } from 'lucide-react';
+import { Film, List, User } from 'lucide-react';
 
 const BottomNavigation: React.FC = () => {
   const navItems = [
     { path: '/shorts', label: 'Shorts', icon: Film },
-    { path: '/meetings', label: '모임', icon: Users },
-    { path: '/chat', label: '채팅', icon: MessageCircle },
-    { path: '/mypage', label: '마이', icon: User },
+    { path: '/meetings', label: '모임목록', icon: List },
+    { path: '/mypage', label: '마이페이지', icon: User },
   ];
 
   return (
