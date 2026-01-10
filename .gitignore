@@ -1,0 +1,114 @@
+# Build artifacts
+HELP.md
+.gradle
+build/
+node_modules/
+!gradle/wrapper/gradle-wrapper.jar
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+### STS ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+bin/
+!**/src/main/**/bin/
+!**/src/test/**/bin/
+
+### IntelliJ IDEA ###
+.idea
+*.iws
+*.iml
+*.ipr
+out/
+!**/src/main/**/out/
+!**/src/test/**/out/
+
+### NetBeans ###
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+
+### VS Code ###
+.vscode/
+
+### Claude Code ###
+claude/
+
+### Backend ###
+backend/build/
+backend/.gradle/
+backend/out/
+backend/bin/
+backend/logs/
+backend/docs/
+
+### Frontend ###
+frontend/node_modules/
+frontend/dist/
+frontend/build/
+frontend/.next/
+frontend/coverage/
+frontend/.env.local
+frontend/.env.development.local
+frontend/.env.production.local
+.eslintcache
+
+### Environment Variables ###
+.env
+.env.local
+.env.dev
+.env.prod
+
+### Docker ###
+mysql_data/
+redis_data/
+postgres_data/
+docker-compose.override.yml
+
+### Security & Credentials ###
+*.pem
+*.key
+*.crt
+*.p12
+*.jks
+secrets/
+private/
+
+### OS ###
+.DS_Store
+Thumbs.db
+
+### Logs ###
+*.log
+logs/
+
+### Database ###
+*.sql.bak
+dump.sql
+*.db
+*.mv.db
+*.trace.db
+
+### Development Tools ###
+coverage/
+*.lcov
+*.prof
+*.hprof
+*.bak
+*.backup
+*.swp
+*.tmp
+
+### Documentation ###
+EDITUS_CONTEXT.md
+
+### Temporary Files ###
+uploads/temp/
+temp/
