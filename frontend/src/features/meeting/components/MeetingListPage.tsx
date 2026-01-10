@@ -1,3 +1,12 @@
+<<<<<<< HEAD
+import React from 'react';
+
+const MeetingListPage: React.FC = () => {
+  return (
+    <div className="p-4">
+      <h1 className="text-xl font-bold">모임 목록</h1>
+      <p className="mt-4 text-gray-500">모임 목록 페이지 준비중...</p>
+=======
 import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, Plus } from 'lucide-react';
@@ -119,8 +128,13 @@ const MeetingListPage: React.FC = () => {
           </button>
         </div>
       </div>
+>>>>>>> origin/frontend/yukyung
     </div>
   );
 };
 
+<<<<<<< HEAD
 export default MeetingListPage;
+=======
+export default MeetingListPage;
+>>>>>>> origin/frontend/yukyung

@@ -12,12 +12,12 @@ const AuthLayout: React.FC<AuthLayoutProps> = ({ children, title, showBackButton
   return (
     <div className="flex flex-col items-center px-6 pt-6 h-full flex-1 relative">
       {/* Header Area (Back Button) */}
-      <div className="w-full flex items-center h-12 mb-4 relative">
+      <div className="w-full flex items-center h-12 mb-4 relative flex-shrink-0">
         {showBackButton && <BackButton className="absolute left-0" />}
       </div>
 
       {/* Logo Area */}
-      <div className="mb-10 text-center">
+      <div className={`text-center ${!title ? 'flex-1 flex flex-col justify-center pb-24' : 'mb-10'}`}>
         <div className="flex justify-center mb-4">
           <img src={logo} alt="AIMO" className="w-32 h-32 object-contain" />
         </div>
@@ -30,7 +30,7 @@ const AuthLayout: React.FC<AuthLayoutProps> = ({ children, title, showBackButton
       </div>
 
       {/* Content */}
-      <div className="w-full flex-1 flex flex-col">
+      <div className={`w-full flex flex-col ${title ? 'flex-1' : ''}`}>
         {children}
       </div>
     </div>

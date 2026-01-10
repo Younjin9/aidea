@@ -2,18 +2,17 @@ import React from 'react';
 import { Route, Routes, Navigate } from 'react-router-dom';
 import MobileLayout from '@/shared/components/layout/MobileLayout';
 import MainLayout from '@/shared/components/layout/MainLayout';
-import LoginPage from '@/pages/auth/LoginPage';
-import EmailLoginPage from '@/pages/auth/EmailLoginPage';
-import SignupPage from '@/pages/auth/SignupPage';
-import FindIdPage from '@/pages/auth/FindIdPage';
-import FindPwPage from '@/pages/auth/FindPwPage';
-import InterestPage from '@/pages/onboarding/InterestPage';
-import ShortsPage from '@/pages/recommendation/ShortsPage';
-// import MeetingListPage from '@/features/meeting/MeetingListPage';
+import LoginPage from '@/features/auth/components/LoginPage';
+import EmailLoginPage from '@/features/auth/components/EmailLoginPage';
+import SignupPage from '@/features/auth/components/SignupPage';
+import SignupCompletePage from '@/features/auth/components/SignupCompletePage';
+import FindIdPage from '@/features/auth/components/FindIdPage';
+import FindPwPage from '@/features/auth/components/FindPwPage';
+import InterestPage from '@/features/onboarding/components/InterestPage';
+import ShortsPage from '@/features/recommendation/components/ShortsPage';
 import MeetingListPage from '@/features/meeting/components/MeetingListPage';
-import ChatListPage from '@/pages/chat/ChatListPage';
-// import MyPage from '@/pages/mypage/MyPage';
-import MyPage from '@/features/mypage/components/MyPageView';
+import ChatListPage from '@/features/chat/components/ChatListPage';
+import MyPage from '@/features/mypage/components/MyPage';
 
 const AppRoutes: React.FC = () => {
   return (
@@ -23,6 +22,7 @@ const AppRoutes: React.FC = () => {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/login/email" element={<EmailLoginPage />} />
         <Route path="/signup" element={<SignupPage />} />
+        <Route path="/signup/complete" element={<SignupCompletePage />} />
         <Route path="/find-id" element={<FindIdPage />} />
         <Route path="/find-pw" element={<FindPwPage />} />
         

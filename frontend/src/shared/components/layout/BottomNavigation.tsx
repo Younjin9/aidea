@@ -1,12 +1,12 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { Film, List, User } from 'lucide-react';
+import { Search, AlignJustify, User } from 'lucide-react';
 
 const BottomNavigation: React.FC = () => {
   const navItems = [
-    { path: '/shorts', label: 'Shorts', icon: Film },
-    { path: '/meetings', label: '모임목록', icon: List },
-    { path: '/mypage', label: '마이페이지', icon: User },
+    { path: '/shorts', label: 'Shorts', icon: Search },
+    { path: '/meetings', label: '모임목록', icon: AlignJustify },
+    { path: '/mypage', label: 'MyPage', icon: User },
   ];
 
   return (
@@ -17,16 +17,16 @@ const BottomNavigation: React.FC = () => {
           to={item.path}
           className={({ isActive }) =>
             `flex flex-col items-center justify-center w-full h-full gap-1 transition-colors ${
-              isActive ? 'text-gray-dark' : 'text-gray-light'
+              isActive ? 'text-black' : 'text-gray-400'
             }`
           }
         >
           {({ isActive }) => (
             <>
               <item.icon 
-                size={24} 
+                size={28} 
                 strokeWidth={isActive ? 2.5 : 2} 
-                className={isActive ? 'text-gray-dark' : 'text-gray-light'}
+                className={isActive ? 'text-black' : 'text-gray-400'}
               />
               <span className="text-[10px] font-medium">{item.label}</span>
             </>
