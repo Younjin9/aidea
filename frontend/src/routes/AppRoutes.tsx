@@ -12,7 +12,7 @@ import InterestPage from '@/features/onboarding/components/InterestPage';
 import ShortsPage from '@/features/recommendation/components/ShortsPage';
 import MeetingListPage from '@/features/meeting/components/MeetingListPage';
 import ChatListPage from '@/features/chat/components/ChatListPage';
-import MyPage from '@/features/mypage/components/MyPage';
+import MyPageView from '@/features/mypage/components/MyPageView';
 
 const AppRoutes: React.FC = () => {
   return (
@@ -35,7 +35,7 @@ const AppRoutes: React.FC = () => {
         <Route path="/shorts" element={<ShortsPage />} />
         <Route path="/meetings" element={<MeetingListPage />} />
         <Route path="/chat" element={<ChatListPage />} />
-        <Route path="/mypage" element={<MyPage />} />
+        <Route path="/mypage" element={<MyPageView />} />
       </Route>
         
       {/* Default Redirect */}
