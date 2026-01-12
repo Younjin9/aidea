@@ -1,21 +1,23 @@
 package com.aidea.backend.domain.user.entity;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
-import java.time.LocalDateTime;
-import lombok.AccessLevel;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import com.aidea.backend.domain.user.enums.Provider;
+import jakarta.persistence.*;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+
+import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
+
+@Builder
 @Entity
 @Table(name = "users")
 @Getter
+@Setter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor(access = AccessLevel.PROTECTED)
+@ToString(exclude = {"password"})
 public class User {
 
     @Id
@@ -26,17 +28,26 @@ public class User {
     @Column(nullable = false, unique = true, length = 100)
     private String email;
 
-    @Column(length = 100)
+    @Column(nullable = false, length = 100)
     private String password;
 
-    @Column(length = 50)
+    @Column(nullable = false, length = 50)
     private String nickname;
 
     @Column(name = "phone_number", length = 20)
     private String phoneNumber;
 
+    @Column(name = "birth_date")
+    private LocalDate birthDate;
+
+    @Column(length = 50)
+    private String gender;
+
     @Column(name = "profile_image", length = 500)
     private String profileImage;
+
+    @Column(length = 100)
+    private String location;
 
     @Column(name = "latitude")
     private Double latitude;
@@ -44,29 +55,29 @@ public class User {
     @Column(name = "longitude")
     private Double longitude;
 
+    @Enumerated(EnumType.STRING)
     @Column(length = 20)
-    private String provider;
+    @Builder.Default
+    private Provider provider = Provider.LOCAL;
 
     @Column(length = 100)
     private String providerId;
 
-    @Builder
-    public User(String email, String password, String nickname, 
-                String phoneNumber, String profileImage, Double latitude, 
-                Double longitude, String provider, String providerId) {
-        this.email = email;
-        this.password = password;
-        this.nickname = nickname;
-        this.phoneNumber = phoneNumber;
-        this.profileImage = profileImage;
-        this.latitude = latitude;
-        this.longitude = longitude;
-        this.provider = provider;
-        this.providerId = providerId;
-    }
+    @Column(name = "location_updated_at")
+    private LocalDateTime locationUpdatedAt;
 
+    @CreationTimestamp
+    @Column(name = "created_at")
     private LocalDateTime createdAt;
 
+    @UpdateTimestamp
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+
+    public User update(String nickname, String profileImage) {
+        this.nickname = nickname;
+        this.profileImage = profileImage;
+        return this;
+    }
+
 }
