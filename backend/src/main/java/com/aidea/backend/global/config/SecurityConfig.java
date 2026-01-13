@@ -1,51 +1,72 @@
 package com.aidea.backend.global.config;
 
+import com.aidea.backend.global.secret.jwt.JwtAuthenticationFilter;
+import com.aidea.backend.global.secret.oauth.CustomOAuth2UserService;
+import com.aidea.backend.global.secret.oauth.OAuth2SuccessHandler;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
+@Slf4j
 @Configuration
 @EnableWebSecurity
+@RequiredArgsConstructor
 public class SecurityConfig {
 
-        @Bean
-        public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-                http
-                                // Disable CSRF (using JWT)
-                                .csrf(AbstractHttpConfigurer::disable)
+    private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final CustomOAuth2UserService customOAuth2UserService;
+    private final OAuth2SuccessHandler oAuth2SuccessHandler;
 
-                                // Stateless Session
-                                .sessionManagement(session -> session
-                                                .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
+    }
 
-                                // Public Endpoints
-                                .authorizeHttpRequests(auth -> auth
-                                                .requestMatchers(
-                                                                "/v3/api-docs/**",
-                                                                "/swagger-ui/**",
-                                                                "/swagger-ui.html")
-                                                .permitAll()
-                                                .anyRequest().authenticated());
+    @Bean
+    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+        http
+                // Disable CSRF (using JWT)
+                .csrf(AbstractHttpConfigurer::disable)
 
-                return http.build();
-        }
+                // ✅ OAuth2를 위한 세션 허용 (가장 중요한 수정!)
+                .sessionManagement(session -> session
+                        .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)  // 필요시 세션 생성
+                        .maximumSessions(1)                    // 동시 세션 1개 제한
+                        .maxSessionsPreventsLogin(false)       // 새 로그인 시 기존 세션 만료
+                )
 
-        /*
-         * post man 테스터용
-         * 
-         * @Bean
-         * public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-         * http
-         * .csrf(csrf -> csrf.disable()) // CSRF 비활성화
-         * .authorizeHttpRequests(auth -> auth
-         * .anyRequest().permitAll() // 모든 요청 허용
-         * );
-         * 
-         * return http.build();
-         * }
-         */
+                // Public Endpoints
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers(
+                                "/",                     // ✅ 메인 페이지 추가 (성공 후 리다이렉트 경로)
+                                "/home",                 // 홈 페이지
+                                "/test/login",
+                                "/test/**",
+                                "/api/v1/**",
+                                "/swagger-ui/**",
+                                "/swagger-ui.html",
+                                "/login/oauth2/**",      // OAuth2 콜백 경로
+                                "/oauth2/**",            // OAuth2 인증 경로
+                                "/error"                 // 에러 페이지
+                        ).permitAll()
+                        .anyRequest().authenticated()
+                )
+                .oauth2Login(oauth2 -> oauth2
+                        .userInfoEndpoint(userInfo -> userInfo
+                                .userService(customOAuth2UserService))
+                        .successHandler(oAuth2SuccessHandler))
+                .addFilterBefore(jwtAuthenticationFilter,
+                        UsernamePasswordAuthenticationFilter.class);
+
+        return http.build();
+    }
 }
