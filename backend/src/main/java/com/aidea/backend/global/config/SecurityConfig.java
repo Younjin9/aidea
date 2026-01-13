@@ -12,27 +12,40 @@ import org.springframework.security.web.SecurityFilterChain;
 @EnableWebSecurity
 public class SecurityConfig {
 
-    @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        http
-                // Disable CSRF (using JWT)
-                .csrf(AbstractHttpConfigurer::disable)
-                
-                // Stateless Session
-                .sessionManagement(session -> session
-                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-                )
+        @Bean
+        public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+                http
+                                // Disable CSRF (using JWT)
+                                .csrf(AbstractHttpConfigurer::disable)
 
-                // Public Endpoints
-                .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(
-                                "/v3/api-docs/**",
-                                "/swagger-ui/**",
-                                "/swagger-ui.html"
-                        ).permitAll()
-                        .anyRequest().authenticated()
-                );
+                                // Stateless Session
+                                .sessionManagement(session -> session
+                                                .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 
-        return http.build();
-    }
+                                // Public Endpoints
+                                .authorizeHttpRequests(auth -> auth
+                                                .requestMatchers(
+                                                                "/v3/api-docs/**",
+                                                                "/swagger-ui/**",
+                                                                "/swagger-ui.html")
+                                                .permitAll()
+                                                .anyRequest().authenticated());
+
+                return http.build();
+        }
+
+        /*
+         * post man 테스터용
+         * 
+         * @Bean
+         * public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+         * http
+         * .csrf(csrf -> csrf.disable()) // CSRF 비활성화
+         * .authorizeHttpRequests(auth -> auth
+         * .anyRequest().permitAll() // 모든 요청 허용
+         * );
+         * 
+         * return http.build();
+         * }
+         */
 }
