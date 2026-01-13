@@ -1,45 +1,38 @@
 import { create } from 'zustand';
-
-interface User {
-  nickname: string;
-  profileImage: string;
-  bio: string;
-  interests: string[];
-}
-
-interface Meeting {
-  id: number;
-  image: string;
-  title: string;
-  category: string;
-  location: string;
-  members: number;
-  date: string;
-}
+import type { UserProfile } from '@/shared/types/User.types';
+import type { Meeting } from '@/shared/types/Meeting.types';
 
 interface MyPageState {
-  user: User | null;
+  user: UserProfile | null;
   myMeetings: Meeting[];
   likedMeetings: Meeting[];
-  setUser: (user: User) => void;
+  setUser: (user: UserProfile) => void;
   setMyMeetings: (meetings: Meeting[]) => void;
   setLikedMeetings: (meetings: Meeting[]) => void;
-  unlikeMeeting: (id: number) => void;
+  unlikeMeeting: (groupId: string) => void;
+  clearAll: () => void;
 }
 
 export const useMyPageStore = create<MyPageState>((set) => ({
   user: null,
   myMeetings: [],
   likedMeetings: [],
-  
+
   setUser: (user) => set({ user }),
-  
+
   setMyMeetings: (meetings) => set({ myMeetings: meetings }),
-  
+
   setLikedMeetings: (meetings) => set({ likedMeetings: meetings }),
-  
-  unlikeMeeting: (id) =>
+
+  unlikeMeeting: (groupId) =>
     set((state) => ({
-      likedMeetings: state.likedMeetings.filter((meeting) => meeting.id !== id),
+      likedMeetings: state.likedMeetings.filter((meeting) => meeting.groupId !== groupId),
     })),
+
+  clearAll: () =>
+    set({
+      user: null,
+      myMeetings: [],
+      likedMeetings: [],
+    }),
 }));
