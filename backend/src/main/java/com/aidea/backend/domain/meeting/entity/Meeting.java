@@ -164,7 +164,7 @@ public class Meeting {
                 .status(this.status)
                 .isApprovalRequired(this.isApprovalRequired)
                 .creator(com.aidea.backend.domain.meeting.dto.response.CreatorDto.builder()
-                        .userId(this.creator.getId())
+                        .userId(this.creator.getUserId())
                         .nickname(this.creator.getNickname())
                         .profileImage(this.creator.getProfileImage())
                         .build())
