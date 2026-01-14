@@ -11,6 +11,8 @@ import FindPwPage from '@/features/auth/components/FindPwPage';
 import InterestPage from '@/features/onboarding/components/InterestPage';
 import ShortsPage from '@/features/recommendation/components/ShortsPage';
 import MeetingListPage from '@/features/meeting/components/MeetingListPage';
+import MeetingCreatePage from '@/features/meeting/components/MeetingCreatePage';
+import MeetingDetailPage from '@/features/meeting/components/MeetingDetailPage';
 import ChatListPage from '@/features/chat/components/ChatListPage';
 import MyPageView from '@/features/mypage/components/MyPageView';
 
@@ -36,6 +38,12 @@ const AppRoutes: React.FC = () => {
         <Route path="/meetings" element={<MeetingListPage />} />
         <Route path="/chat" element={<ChatListPage />} />
         <Route path="/mypage" element={<MyPageView />} />
+      </Route>
+
+      {/* Meeting Routes (No Bottom Navigation) */}
+      <Route element={<MobileLayout />}>
+        <Route path="/meetings/create" element={<MeetingCreatePage />} />
+        <Route path="/meetings/:meetingId" element={<MeetingDetailPage />} />
       </Route>
         
       {/* Default Redirect */}
