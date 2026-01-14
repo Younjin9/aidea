@@ -71,4 +71,70 @@ public class MeetingMember {
         .status(MemberStatus.APPROVED)
         .build();
   }
+
+  /**
+   * 일반 멤버로 생성 (참가 신청용)
+   */
+  public static MeetingMember createMember(Meeting meeting, User user, boolean isApprovalRequired) {
+    return MeetingMember.builder()
+        .meeting(meeting)
+        .user(user)
+        .role(MemberRole.MEMBER)
+        .status(isApprovalRequired ? MemberStatus.PENDING : MemberStatus.APPROVED)
+        .build();
+  }
+
+  // ========== 상태 변경 메서드 ==========
+
+  /**
+   * 참가 신청 승인
+   */
+  public void approve() {
+    this.status = MemberStatus.APPROVED;
+  }
+
+  /**
+   * 참가 신청 거절
+   */
+  public void reject() {
+    this.status = MemberStatus.REJECTED;
+  }
+
+  /**
+   * 모임 탈퇴
+   */
+  public void leave() {
+    this.status = MemberStatus.LEFT;
+  }
+
+  // ========== DTO 변환 메서드 ==========
+
+  /**
+   * MemberResponse로 변환
+   */
+  public com.aidea.backend.domain.meeting.dto.response.MemberResponse toMemberResponse() {
+    return com.aidea.backend.domain.meeting.dto.response.MemberResponse.builder()
+        .memberId(this.id)
+        .userId(this.user.getUserId())
+        .nickname(this.user.getNickname())
+        .profileImage(this.user.getProfileImage())
+        .role(this.role)
+        .status(this.status)
+        .joinedAt(this.joinedAt)
+        .build();
+  }
+
+  /**
+   * JoinRequestResponse로 변환
+   */
+  public com.aidea.backend.domain.meeting.dto.response.JoinRequestResponse toJoinRequestResponse() {
+    return com.aidea.backend.domain.meeting.dto.response.JoinRequestResponse.builder()
+        .memberId(this.id)
+        .userId(this.user.getUserId())
+        .nickname(this.user.getNickname())
+        .profileImage(this.user.getProfileImage())
+        .status(this.status)
+        .requestedAt(this.joinedAt)
+        .build();
+  }
 }

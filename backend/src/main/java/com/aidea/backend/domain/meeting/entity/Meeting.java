@@ -143,6 +143,23 @@ public class Meeting {
         this.status = newStatus;
     }
 
+    /**
+     * 모임 정보 수정
+     * - HOST만 수정 가능 (권한 검증은 Service에서 수행)
+     */
+    public void update(com.aidea.backend.domain.meeting.dto.request.UpdateMeetingRequest request) {
+        this.title = request.getTitle();
+        this.description = request.getDescription();
+        this.imageUrl = request.getImageUrl();
+        this.location = request.getLocation();
+        this.latitude = request.getLatitude();
+        this.longitude = request.getLongitude();
+        this.locationDetail = request.getLocationDetail();
+        this.maxMembers = request.getMaxMembers();
+        this.meetingDate = request.getMeetingDate();
+        this.isApprovalRequired = request.getIsApprovalRequired();
+    }
+
     // ========== DTO 변환 메서드 ==========
 
     /**

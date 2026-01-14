@@ -1,6 +1,7 @@
 package com.aidea.backend.domain.meeting.controller;
 
 import com.aidea.backend.domain.meeting.dto.request.CreateMeetingRequest;
+import com.aidea.backend.domain.meeting.dto.request.UpdateMeetingRequest;
 import com.aidea.backend.domain.meeting.dto.response.MeetingResponse;
 import com.aidea.backend.domain.meeting.dto.response.MeetingSummaryResponse;
 import com.aidea.backend.domain.meeting.service.MeetingService;
@@ -62,5 +63,119 @@ public class MeetingController {
         Pageable pageable = PageRequest.of(page, size);
         Page<MeetingSummaryResponse> response = meetingService.getAllMeetings(pageable);
         return ResponseEntity.ok(response);
+    }
+
+    /**
+     * 모임 삭제
+     */
+    @Operation(summary = "모임 삭제", description = "모임을 삭제합니다 (HOST만 가능)")
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteMeeting(@PathVariable Long id) {
+        Long userId = 1L; // TODO: 인증 구현 후 실제 userId 사용
+        meetingService.deleteMeeting(id, userId);
+        return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * 모임 수정
+     */
+    @Operation(summary = "모임 수정", description = "모임 정보를 수정합니다 (HOST만 가능)")
+    @PutMapping("/{id}")
+    public ResponseEntity<MeetingResponse> updateMeeting(
+            @PathVariable Long id,
+            @Valid @RequestBody UpdateMeetingRequest request) {
+        Long userId = 1L; // TODO: 인증 구현 후 실제 userId 사용
+        MeetingResponse response = meetingService.updateMeeting(id, userId, request);
+        return ResponseEntity.ok(response);
+    }
+
+    // ========== 참가 관리 API ==========
+
+    /**
+     * 모임 참가 신청
+     */
+    @Operation(summary = "모임 참가 신청", description = "모임에 참가 신청합니다")
+    @PostMapping("/{id}/join")
+    public ResponseEntity<com.aidea.backend.domain.meeting.dto.response.MemberResponse> joinMeeting(
+            @PathVariable Long id) {
+        Long userId = 1L; // TODO: 인증 구현 후 실제 userId 사용
+        com.aidea.backend.domain.meeting.dto.response.MemberResponse response = meetingService.joinMeeting(id, userId);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    /**
+     * 승인된 참가자 목록 조회
+     */
+    @Operation(summary = "참가자 목록 조회", description = "승인된 참가자 목록을 조회합니다")
+    @GetMapping("/{id}/members")
+    public ResponseEntity<java.util.List<com.aidea.backend.domain.meeting.dto.response.MemberResponse>> getMembers(
+            @PathVariable Long id) {
+        java.util.List<com.aidea.backend.domain.meeting.dto.response.MemberResponse> response = meetingService
+                .getMembers(id);
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * 대기 중인 참가 신청 목록 조회 (HOST 전용)
+     */
+    @Operation(summary = "참가 신청 목록 조회", description = "대기 중인 참가 신청 목록을 조회합니다 (HOST만 가능)")
+    @GetMapping("/{id}/join-requests")
+    public ResponseEntity<java.util.List<com.aidea.backend.domain.meeting.dto.response.JoinRequestResponse>> getPendingRequests(
+            @PathVariable Long id) {
+        Long userId = 1L; // TODO: 인증 구현 후 실제 userId 사용
+        java.util.List<com.aidea.backend.domain.meeting.dto.response.JoinRequestResponse> response = meetingService
+                .getPendingRequests(id, userId);
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * 참가 신청 승인 (HOST 전용)
+     */
+    @Operation(summary = "참가 신청 승인", description = "참가 신청을 승인합니다 (HOST만 가능)")
+    @PostMapping("/{id}/join-requests/{memberId}/approve")
+    public ResponseEntity<com.aidea.backend.domain.meeting.dto.response.MemberResponse> approveJoinRequest(
+            @PathVariable Long id,
+            @PathVariable Long memberId) {
+        Long userId = 1L; // TODO: 인증 구현 후 실제 userId 사용
+        com.aidea.backend.domain.meeting.dto.response.MemberResponse response = meetingService.approveJoinRequest(id,
+                memberId, userId);
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * 참가 신청 거절 (HOST 전용)
+     */
+    @Operation(summary = "참가 신청 거절", description = "참가 신청을 거절합니다 (HOST만 가능)")
+    @PostMapping("/{id}/join-requests/{memberId}/reject")
+    public ResponseEntity<Void> rejectJoinRequest(
+            @PathVariable Long id,
+            @PathVariable Long memberId) {
+        Long userId = 1L; // TODO: 인증 구현 후 실제 userId 사용
+        meetingService.rejectJoinRequest(id, memberId, userId);
+        return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * 모임 탈퇴
+     */
+    @Operation(summary = "모임 탈퇴", description = "모임에서 탈퇴합니다")
+    @DeleteMapping("/{id}/leave")
+    public ResponseEntity<Void> leaveMeeting(@PathVariable Long id) {
+        Long userId = 1L; // TODO: 인증 구현 후 실제 userId 사용
+        meetingService.leaveMeeting(id, userId);
+        return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * 참가자 강제 퇴출 (HOST 전용)
+     */
+    @Operation(summary = "참가자 강제 퇴출", description = "참가자를 강제로 퇴출합니다 (HOST만 가능)")
+    @DeleteMapping("/{id}/members/{memberId}")
+    public ResponseEntity<Void> removeMember(
+            @PathVariable Long id,
+            @PathVariable Long memberId) {
+        Long userId = 1L; // TODO: 인증 구현 후 실제 userId 사용
+        meetingService.removeMember(id, memberId, userId);
+        return ResponseEntity.noContent().build();
     }
 }
