@@ -16,13 +16,12 @@ RUN gradle dependencies --no-daemon || return 0
 # 소스 코드 복사
 COPY src ./src
 
-# 빌드 실행 (bootJar 사용 - plain.jar 생성 방지)
+# 빌드 실행
 RUN gradle clean bootJar -x test --no-daemon
 
 # 생성된 JAR 파일 확인
 RUN echo "=== Build completed ===" && \
-    ls -lah /app/build/libs/ && \
-    find /app/build/libs -name "*.jar" -type f
+    ls -lah /app/build/libs/
 
 # ========================================
 # Stage 2: 실행 스테이지
@@ -42,7 +41,6 @@ RUN apk add --no-cache \
 WORKDIR /app
 
 # 빌드 스테이지에서 JAR 파일 복사
-# Spring Boot 3.x는 기본적으로 plain.jar를 생성하지 않지만, 명시적으로 제외
 COPY --from=builder /app/build/libs/*-SNAPSHOT.jar /app/app.jar
 
 # 로그 디렉토리 생성 및 권한 설정
@@ -58,8 +56,8 @@ USER spring:spring
 # 포트 노출
 EXPOSE 8080
 
-# 헬스체크 설정
-HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+# ⭐ 헬스체크 수정 - 시작 시간 증가 및 간격 조정
+HEALTHCHECK --interval=10s --timeout=5s --start-period=60s --retries=5 \
     CMD wget --no-verbose --tries=1 --spider http://localhost:8080/actuator/health || exit 1
 
 # JVM 옵션과 함께 애플리케이션 실행
