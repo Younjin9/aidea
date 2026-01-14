@@ -46,7 +46,7 @@ services:
     container_name: aidea-backend
     restart: unless-stopped
     environment:
-      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILE:-dev}
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILE_ACTIVE:-dev}
       DB_HOST: mysql
       REDIS_HOST: redis
       DB_NAME: ${DB_NAME}
