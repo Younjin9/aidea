@@ -48,19 +48,8 @@ export interface MeetingMember {
 }
 
 // ============================================
-// MapMeeting - 지도 위치 기반 검색용
+// MapMeeting - 지도 위치 기반 검색용 (Moved to Map Types below)
 // ============================================
-
-export interface MapMeeting {
-  groupId: string;
-  title: string;
-  imageUrl?: string;
-  memberCount: number;
-  maxMembers: number;
-  location: Location;
-  distanceKm?: number;
-  isPublic: boolean;
-}
 
 export interface MeetingEvent {
   eventId: string;
