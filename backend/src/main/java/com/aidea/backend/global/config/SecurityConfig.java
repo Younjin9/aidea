@@ -56,6 +56,9 @@ public class SecurityConfig {
                                                                 "/swagger-ui.html",
                                                                 "/v3/api-docs/**", // ✅ Swagger API 문서
                                                                 "/swagger-resources/**", // ✅ Swagger 리소스
+                                                                "/ws/**", // ✅ WebSocket 연결
+                                                                "/app/**", // ✅ STOMP 메시지
+                                                                "/topic/**", // ✅ STOMP 브로드캐스트
                                                                 "/login/oauth2/**", // OAuth2 콜백 경로
                                                                 "/oauth2/**", // OAuth2 인증 경로
                                                                 "/error" // 에러 페이지
