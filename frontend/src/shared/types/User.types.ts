@@ -93,8 +93,4 @@ export interface UpdateNotificationSettingsRequest {
 
 export interface DeleteAccountRequest {
   reason?: string;
-<<<<<<< HEAD
 }
-=======
-}
->>>>>>> f2ca6a007d40d3627cfb50d35c1b5738501d6f3b

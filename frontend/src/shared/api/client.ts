@@ -93,22 +93,14 @@ apiClient.interceptors.response.use(
  */
 export const buildQueryString = (params: Record<string, any>): string => {
   const query = new URLSearchParams();
-<<<<<<< HEAD
 
-=======
-  
->>>>>>> f2ca6a007d40d3627cfb50d35c1b5738501d6f3b
   Object.keys(params).forEach((key) => {
     const value = params[key];
     if (value !== null && value !== undefined && value !== '') {
       query.append(key, String(value));
     }
   });
-<<<<<<< HEAD
 
-=======
-  
->>>>>>> f2ca6a007d40d3627cfb50d35c1b5738501d6f3b
   return query.toString();
 };
 
@@ -117,17 +109,9 @@ export const buildQueryString = (params: Record<string, any>): string => {
  */
 export const createFormData = (data: Record<string, any>): FormData => {
   const formData = new FormData();
-<<<<<<< HEAD
 
   Object.keys(data).forEach((key) => {
     const value = data[key];
-
-=======
-  
-  Object.keys(data).forEach((key) => {
-    const value = data[key];
-    
->>>>>>> f2ca6a007d40d3627cfb50d35c1b5738501d6f3b
     if (value instanceof File) {
       formData.append(key, value);
     } else if (Array.isArray(value)) {
@@ -138,16 +122,8 @@ export const createFormData = (data: Record<string, any>): FormData => {
       formData.append(key, String(value));
     }
   });
-<<<<<<< HEAD
 
   return formData;
 };
 
 export default apiClient;
-=======
-  
-  return formData;
-};
-
-export default apiClient;
->>>>>>> f2ca6a007d40d3627cfb50d35c1b5738501d6f3b
