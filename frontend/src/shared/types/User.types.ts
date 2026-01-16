@@ -4,6 +4,7 @@
 // ============================================
 
 import type { Provider, Gender, Location } from './common.types';
+import type { Meeting } from './Meeting.types';
 
 // ============================================
 // User Types
@@ -63,6 +64,7 @@ export interface UserStats {
   eventCount: number;
   attendanceRate: number;
   activityScore: number;
+  reviewCount: number;
 }
 
 export interface UserReputation {
@@ -91,4 +93,8 @@ export interface UpdateNotificationSettingsRequest {
 
 export interface DeleteAccountRequest {
   reason?: string;
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> f2ca6a007d40d3627cfb50d35c1b5738501d6f3b
