@@ -1,0 +1,134 @@
+import React, { useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import BackButton from '@/shared/components/ui/BackButton';
+import MeetingCard from '@/shared/components/ui/MeetingCard';
+import { useMyPage, transformMeetingsToUI } from '../hooks/useMyPage';
+import type { MeetingUI } from '@/shared/types/Meeting.types';
+
+type TabType = 'my' | 'liked';
+
+const MyMeetingsPage: React.FC = () => {
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const initialTab = searchParams.get('tab') === 'liked' ? 'liked' : 'my';
+  const [activeTab, setActiveTab] = useState<TabType>(initialTab);
+
+  const { myMeetings, likedMeetings, isLoading, unlikeMeeting } = useMyPage();
+
+  // Meeting 타입을 MeetingUI로 변환
+  const myMeetingsUI = React.useMemo(() => transformMeetingsToUI(myMeetings), [myMeetings]);
+  const likedMeetingsUI = React.useMemo(() => transformMeetingsToUI(likedMeetings).map(m => ({ ...m, isLiked: true })), [likedMeetings]);
+
+  // 찜 목록 로컬 state (1초 딜레이용)
+  const [displayedLikedMeetings, setDisplayedLikedMeetings] = useState<MeetingUI[]>([]);
+  const timeoutRef = React.useRef<number | null>(null);
+  const isInitializedRef = React.useRef(false);
+
+  React.useEffect(() => {
+    if (!isInitializedRef.current && likedMeetingsUI.length > 0) {
+      setDisplayedLikedMeetings(likedMeetingsUI);
+      isInitializedRef.current = true;
+    } else if (isInitializedRef.current) {
+      setDisplayedLikedMeetings(likedMeetingsUI);
+    }
+  }, [likedMeetingsUI]);
+
+  React.useEffect(() => {
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, []);
+
+  const handleUnlike = (id: number) => {
+    // 먼저 하트를 빈 하트로 변경
+    setDisplayedLikedMeetings((prev) =>
+      prev.map((meeting) => (meeting.id === id ? { ...meeting, isLiked: false } : meeting))
+    );
+
+    // 1초 후에 목록에서 제거 및 API 호출
+    timeoutRef.current = window.setTimeout(() => {
+      const originalMeeting = likedMeetings.find(m => parseInt(m.groupId, 10) === id);
+      if (originalMeeting) {
+        unlikeMeeting(originalMeeting.groupId);
+      }
+      setDisplayedLikedMeetings((prev) => prev.filter((meeting) => meeting.id !== id));
+    }, 1000);
+  };
+
+  const currentMeetings = activeTab === 'my' ? myMeetingsUI : displayedLikedMeetings;
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="text-sm text-gray-500">로딩 중...</div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-white flex flex-col">
+      {/* Header */}
+      <div className="sticky top-0 bg-white z-10">
+        <div className="flex items-center justify-center p-4 relative">
+          <div className="absolute left-4">
+            <BackButton />
+          </div>
+          <h1 className="font-semibold text-base">나의 모임</h1>
+        </div>
+      </div>
+
+      {/* Tabs */}
+      <div className="px-4 py-2">
+        <div className="flex gap-2">
+          <button
+            onClick={() => setActiveTab('my')}
+            className={`px-4 py-2 rounded-full text-sm font-medium transition ${
+              activeTab === 'my'
+                ? 'bg-primary text-white'
+                : 'bg-gray-100 text-gray-500'
+            }`}
+          >
+            내 모임
+          </button>
+          <button
+            onClick={() => setActiveTab('liked')}
+            className={`px-4 py-2 rounded-full text-sm font-medium transition ${
+              activeTab === 'liked'
+                ? 'bg-primary text-white'
+                : 'bg-gray-100 text-gray-500'
+            }`}
+          >
+            찜 모임
+          </button>
+        </div>
+      </div>
+
+      {/* Meeting List */}
+      <div className="flex-1 overflow-y-auto px-4 py-4">
+        {currentMeetings.length > 0 ? (
+          <div className="space-y-4">
+            {currentMeetings.map((meeting) => (
+              <MeetingCard
+                key={meeting.id}
+                meeting={meeting}
+                onClick={() => navigate(`/meetings/${meeting.id}`)}
+                onLike={activeTab === 'liked' ? () => handleUnlike(meeting.id) : undefined}
+                showLikeButton={activeTab === 'liked'}
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="flex items-center justify-center h-64">
+            <p className="text-sm text-gray-400">
+              {activeTab === 'my' ? '참여 중인 모임이 없습니다' : '찜한 모임이 없습니다'}
+            </p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default MyMeetingsPage;

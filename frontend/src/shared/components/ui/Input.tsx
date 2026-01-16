@@ -23,7 +23,7 @@ const Input: React.FC<InputProps> = ({
       <div className="relative flex items-center">
         <input
           className={`
-            w-full bg-gray-50 border border-gray-100 rounded-lg px-4 py-3 text-gray-dark placeholder-gray-light focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all
+            w-full bg-gray-50 border border-gray-100 rounded-lg px-4 py-3 text-gray-dark placeholder-gray-light focus:outline-none
             ${error ? 'border-red-500 focus:ring-red-200 focus:border-red-500' : ''}
             ${className}
           `}
