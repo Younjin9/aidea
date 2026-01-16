@@ -38,7 +38,7 @@ export interface MeetingDetail extends Meeting {
 }
 
 // ============================================
-// MapMeeting - 지도 위치 기반 검색용
+// MapMeeting - 지도 위치 기반 검색용 (Moved to Map Types below)
 // ============================================
 
 export interface MapMeeting {
