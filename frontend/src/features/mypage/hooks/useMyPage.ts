@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import mypageApi from '@/shared/api/mypageApi';
+import mypageApi from '@/shared/api/user/userApi';
 import { useMyPageStore } from '../store/myPageStore';
 import type { Meeting, MeetingUI } from '@/shared/types/Meeting.types';
 import type { UpdateProfileRequest } from '@/shared/types/User.types';

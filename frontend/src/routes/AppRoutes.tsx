@@ -1,7 +1,18 @@
-import React from 'react';
-import { Route, Routes, Navigate } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { Route, Routes, Navigate, useLocation } from 'react-router-dom';
 import MobileLayout from '@/shared/components/layout/MobileLayout';
 import MainLayout from '@/shared/components/layout/MainLayout';
+
+// 페이지 이동 시 스크롤을 맨 위로 이동
+const ScrollToTop: React.FC = () => {
+  const { pathname } = useLocation();
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
+
+  return null;
+};
 import LoginPage from '@/features/auth/components/LoginPage';
 import EmailLoginPage from '@/features/auth/components/EmailLoginPage';
 import SignupPage from '@/features/auth/components/SignupPage';
@@ -13,12 +24,19 @@ import ShortsPage from '@/features/recommendation/components/ShortsPage';
 import MeetingListPage from '@/features/meeting/components/MeetingListPage';
 import MeetingCreatePage from '@/features/meeting/components/MeetingCreatePage';
 import MeetingDetailPage from '@/features/meeting/components/MeetingDetailPage';
+import MeetingSearchPage from '@/features/meeting/components/MeetingSearchPage';
+import MemberManagePage from '@/features/meeting/components/MemberManagePage';
+import EventCreatePage from '@/features/meeting/components/EventCreatePage';
 import ChatListPage from '@/features/chat/components/ChatListPage';
 import MyPageView from '@/features/mypage/components/MyPageView';
+import ProfileEditPage from '@/features/mypage/components/ProfileEditPage';
+import MyMeetingsPage from '@/features/mypage/components/MyMeetingsPage';
 
 const AppRoutes: React.FC = () => {
   return (
-    <Routes>
+    <>
+      <ScrollToTop />
+      <Routes>
       <Route element={<MobileLayout />}>
         {/* Auth Routes */}
         <Route path="/login" element={<LoginPage />} />
@@ -42,13 +60,23 @@ const AppRoutes: React.FC = () => {
 
       {/* Meeting Routes (No Bottom Navigation) */}
       <Route element={<MobileLayout />}>
+        <Route path="/search" element={<MeetingSearchPage />} />
         <Route path="/meetings/create" element={<MeetingCreatePage />} />
         <Route path="/meetings/:meetingId" element={<MeetingDetailPage />} />
+        <Route path="/meetings/:meetingId/members" element={<MemberManagePage />} />
+        <Route path="/meetings/:meetingId/events/create" element={<EventCreatePage />} />
+      </Route>
+
+      {/* MyPage Routes (No Bottom Navigation) */}
+      <Route element={<MobileLayout />}>
+        <Route path="/mypage/edit" element={<ProfileEditPage />} />
+        <Route path="/my-meetings" element={<MyMeetingsPage />} />
       </Route>
         
       {/* Default Redirect */}
       <Route path="/" element={<Navigate to="/shorts" replace />} />
     </Routes>
+    </>
   );
 };
 
