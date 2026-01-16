@@ -1,5 +1,5 @@
 import { apiClient } from '@/shared/api/client';
-import { LoginRequest, AuthResponse, SignUpRequest } from '@/shared/types/auth.types';
+import type { LoginRequest, AuthResponse, SignUpRequest } from '@/shared/types/auth.types';
 
 export const authApi = {
   login: async (data: LoginRequest): Promise<AuthResponse> => {
