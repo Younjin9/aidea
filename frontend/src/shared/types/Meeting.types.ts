@@ -4,6 +4,7 @@
 // ============================================
 
 import type { Location } from './common.types';
+import type { Member } from './Member.types';
 
 export type MeetingStatus = 'RECRUITING' | 'CONFIRMED' | 'COMPLETED' | 'CANCELLED';
 
@@ -30,25 +31,14 @@ export interface Meeting {
 }
 
 export interface MeetingDetail extends Meeting {
-  members: MeetingMember[];
+  members: Member[];
   events: MeetingEvent[];
-  myRole?: 'HOST' | 'MEMBER';
+  myRole?: 'HOST' | 'USER';
   myStatus?: 'PENDING' | 'APPROVED';
 }
 
-export interface MeetingMember {
-  userId: string;
-  nickname: string;
-  profileImage?: string;
-  role: 'HOST' | 'MEMBER';
-  status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'LEFT';
-  joinedAt?: string;
-  requestMessage?: string;
-  responseMessage?: string;
-}
-
 // ============================================
-// MapMeeting - 지도 위치 기반 검색용
+// MapMeeting - 지도 위치 기반 검색용 (Moved to Map Types below)
 // ============================================
 
 export interface MapMeeting {
@@ -60,13 +50,27 @@ export interface MapMeeting {
   location: Location;
   distanceKm?: number;
   isPublic: boolean;
+  markerColor?: string;
+  clustered?: boolean;
 }
 
 export interface MeetingEvent {
   eventId: string;
   title: string;
+  description?: string;
   scheduledAt: string;
+  location?: string;
+  mapUrl?: string;
+  cost?: string;
+  maxParticipants?: number;
   participantCount: number;
+  imageUrl?: string;
+  participants?: Array<{
+    userId: string;
+    nickname: string;
+    profileImage?: string;
+    isHost?: boolean;
+  }>;
 }
 
 export interface MeetingTag {
@@ -120,15 +124,6 @@ export interface JoinMeetingRequest {
 export interface JoinMeetingResponse {
   status: 'PENDING' | 'APPROVED';
   memberId: string;
-}
-
-// ============================================
-// Map Types
-// ============================================
-
-export interface MapMeeting extends Meeting {
-  markerColor?: string;
-  clustered?: boolean;
 }
 
 // ============================================

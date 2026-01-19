@@ -28,7 +28,7 @@ const MeetingListPage: React.FC = () => {
           <img src={logo} alt="AIMO" className="w-8 h-8 object-contain" />
         </div>
         <button onClick={() => navigate('/search')}>
-          <Search size={24} className="text-gray-600" />
+          <Search size={20} className="text-gray-600" />
         </button>
       </header>
 
