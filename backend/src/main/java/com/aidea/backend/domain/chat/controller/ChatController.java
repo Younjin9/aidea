@@ -1,13 +1,81 @@
 package com.aidea.backend.domain.chat.controller;
 
+import com.aidea.backend.domain.chat.dto.request.ChatMessageRequest;
+import com.aidea.backend.domain.chat.dto.response.ChatMessageResponse;
+import com.aidea.backend.domain.chat.service.ChatService;
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.http.ResponseEntity;
+import org.springframework.messaging.handler.annotation.DestinationVariable;
+import org.springframework.messaging.handler.annotation.MessageMapping;
+import org.springframework.messaging.handler.annotation.Payload;
+import org.springframework.messaging.handler.annotation.SendTo;
+import org.springframework.messaging.simp.SimpMessageHeaderAccessor;
+import org.springframework.web.bind.annotation.*;
 
-@Tag(name = "Chat", description = "Chat API")
+import java.util.List;
+
+/**
+ * 채팅 Controller
+ * - WebSocket (STOMP) 메시지 처리
+ * - REST API (채팅 이력 조회)
+ */
+@Tag(name = "Chat", description = "채팅 API")
 @RestController
-@RequestMapping("/api/v1/chat")
+@RequestMapping("/api/chat")
 @RequiredArgsConstructor
 public class ChatController {
+
+    private final ChatService chatService;
+
+    // ========== WebSocket (STOMP) ==========
+
+    /**
+     * 채팅 메시지 전송
+     * - 클라이언트: /app/chat.send.{meetingId}
+     * - 브로드캐스트: /topic/meeting/{meetingId}
+     */
+    @MessageMapping("/chat.send.{meetingId}")
+    @SendTo("/topic/meeting/{meetingId}")
+    public ChatMessageResponse sendMessage(
+            @Payload ChatMessageRequest request,
+            @DestinationVariable Long meetingId,
+            SimpMessageHeaderAccessor headerAccessor) {
+
+        // TODO: WebSocket 인증 구현 후 실제 userId 추출
+        // Long userId = (Long) headerAccessor.getSessionAttributes().get("userId");
+        Long userId = 1L;
+
+        // meetingId 설정 (Path와 Request 일치 보장)
+        request.setMeetingId(meetingId);
+
+        // 메시지 저장 및 브로드캐스트
+        return chatService.saveMessage(request, userId);
+    }
+
+    // ========== REST API ==========
+
+    /**
+     * 채팅방 생성 (모임 생성 시 자동 호출)
+     */
+    @Operation(summary = "채팅방 생성", description = "모임에 대한 채팅방을 생성합니다")
+    @PostMapping("/rooms")
+    public ResponseEntity<Void> createChatRoom(@RequestParam Long meetingId) {
+        chatService.createChatRoomForMeeting(meetingId);
+        return ResponseEntity.ok().build();
+    }
+
+    /**
+     * 채팅 메시지 이력 조회
+     */
+    @Operation(summary = "채팅 메시지 조회", description = "채팅방의 최근 메시지를 조회합니다")
+    @GetMapping("/meetings/{meetingId}/messages")
+    public ResponseEntity<List<ChatMessageResponse>> getMessages(
+            @PathVariable Long meetingId,
+            @RequestParam(defaultValue = "50") int limit) {
+
+        List<ChatMessageResponse> messages = chatService.getRecentMessages(meetingId, limit);
+        return ResponseEntity.ok(messages);
+    }
 }
