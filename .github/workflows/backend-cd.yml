@@ -8,7 +8,6 @@ on:
       - 'docker-compose.yml'
 
 env:
-  DOCKER_IMAGE: ghcr.io/${{ github.actor }}/aidea-backend
   VERSION: ${{ github.sha }}
 
 jobs:
@@ -21,6 +20,10 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
+
+      - name: Set up Docker Image Name
+        run: |
+          echo "DOCKER_IMAGE=ghcr.io/$(echo ${{ github.actor }} | tr '[:upper:]' '[:lower:]')/aidea-backend" >> $GITHUB_ENV
 
       # 1. Java Setup & Build
       - name: Set up JDK 17
@@ -63,7 +66,7 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
             # Login to GHCR on EC2
-            echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+            echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u $(echo ${{ github.actor }} | tr '[:upper:]' '[:lower:]') --password-stdin
             
             # Pull latest image
             docker pull ${{ env.DOCKER_IMAGE }}:latest
