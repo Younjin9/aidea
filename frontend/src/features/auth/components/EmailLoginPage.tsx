@@ -1,38 +1,12 @@
 import React from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import AuthLayout from '@/features/auth/components/AuthLayout';
-import Input from '@/shared/components/ui/Input';
-import Button from '@/shared/components/ui/Button';
+import LoginForm from './LoginForm';
 
 const EmailLoginPage: React.FC = () => {
-  const navigate = useNavigate();
-
-  const handleLogin = (e: React.FormEvent) => {
-    e.preventDefault();
-    // 로그인 로직 처리 후 메인으로 이동
-    navigate('/shorts');
-  };
-
   return (
     <AuthLayout showBackButton>
-      <form onSubmit={handleLogin} className="flex flex-col gap-4 w-full mt-10">
-        <Input 
-          type="text" 
-          placeholder="아이디를 입력하세요." 
-          className="py-4 text-base"
-        />
-        <Input 
-          type="password" 
-          placeholder="비밀번호를 입력하세요." 
-          className="py-4 text-base"
-        />
-        
-        <div className="mt-6">
-          <Button type="submit" fullWidth size="lg">
-            로그인
-          </Button>
-        </div>
-      </form>
+      <LoginForm />
 
       {/* Footer Links */}
       <div className="flex justify-center items-center gap-4 text-gray-500 text-sm mt-8 mb-20">

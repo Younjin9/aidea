@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import meetingApi from '@/shared/api/meetingApi';
+import meetingApi from '@/shared/api/meeting/meetingApi';
 import { useMeetingStore } from '../store/meetingStore';
 import type { Meeting, MeetingUI, MeetingListParams } from '@/shared/types/Meeting.types';
 

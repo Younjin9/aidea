@@ -23,11 +23,9 @@ export const apiClient: AxiosInstance = axios.create({
 apiClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
     const token = localStorage.getItem('accessToken');
-    
     if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`;
     }
-    
     return config;
   },
   (error: AxiosError) => {
@@ -45,14 +43,13 @@ apiClient.interceptors.response.use(
   },
   async (error: AxiosError<ApiResponse>) => {
     const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
-
     // 401 Unauthorized - 토큰 만료
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
 
       try {
         const refreshToken = localStorage.getItem('refreshToken');
-        
+
         if (refreshToken) {
           const response = await axios.post<ApiResponse<{ accessToken: string }>>(
             `${BASE_URL}/auth/refresh`,
@@ -96,14 +93,14 @@ apiClient.interceptors.response.use(
  */
 export const buildQueryString = (params: Record<string, any>): string => {
   const query = new URLSearchParams();
-  
+
   Object.keys(params).forEach((key) => {
     const value = params[key];
     if (value !== null && value !== undefined && value !== '') {
       query.append(key, String(value));
     }
   });
-  
+
   return query.toString();
 };
 
@@ -112,10 +109,9 @@ export const buildQueryString = (params: Record<string, any>): string => {
  */
 export const createFormData = (data: Record<string, any>): FormData => {
   const formData = new FormData();
-  
+
   Object.keys(data).forEach((key) => {
     const value = data[key];
-    
     if (value instanceof File) {
       formData.append(key, value);
     } else if (Array.isArray(value)) {
@@ -126,7 +122,7 @@ export const createFormData = (data: Record<string, any>): FormData => {
       formData.append(key, String(value));
     }
   });
-  
+
   return formData;
 };
 
