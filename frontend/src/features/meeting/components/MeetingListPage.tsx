@@ -4,11 +4,13 @@ import { Search, Plus } from 'lucide-react';
 import logo from '@/assets/images/logo.png';
 import MeetingCard from '@/shared/components/ui/MeetingCard';
 import { useMeetings } from '../hooks/useMeetings';
+import { useMyPageStore } from '@/features/mypage/store/myPageStore';
 import { INTEREST_CATEGORIES } from '@/shared/config/constants';
 
 const MeetingListPage: React.FC = () => {
   const navigate = useNavigate();
   const { meetings, isLoading, groupByCategory, toggleLike } = useMeetings();
+  const toggleLikedMeeting = useMyPageStore((state) => state.toggleLikedMeeting);
 
   const groupedMeetings = groupByCategory();
 
@@ -54,8 +56,26 @@ const MeetingListPage: React.FC = () => {
                   <MeetingCard
                     key={meeting.id}
                     meeting={meeting}
-                    onClick={() => navigate(`/meetings/${meeting.id}`)}
-                    onLike={() => toggleLike(String(meeting.id), meeting.isLiked || false)}
+                    onClick={() => navigate(`/meetings/${meeting.groupId}`)}
+                    onLike={() => {
+                      toggleLike(meeting.groupId, meeting.isLiked || false);
+                      // 마이페이지 찜 목록에도 반영
+                      toggleLikedMeeting({
+                        groupId: meeting.groupId,
+                        title: meeting.title,
+                        description: '',
+                        imageUrl: meeting.image,
+                        interestCategoryId: '1',
+                        interestCategoryName: meeting.category,
+                        memberCount: meeting.members,
+                        maxMembers: 20,
+                        location: { lat: 0, lng: 0, region: meeting.location },
+                        isPublic: true,
+                        ownerUserId: 'user2',
+                        createdAt: new Date().toISOString(),
+                        updatedAt: new Date().toISOString(),
+                      });
+                    }}
                     showLikeButton={true}
                   />
                 ))}

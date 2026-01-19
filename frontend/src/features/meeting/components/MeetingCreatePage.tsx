@@ -7,10 +7,19 @@ import Button from '@/shared/components/ui/Button';
 import Input from '@/shared/components/ui/Input';
 import Modal from '@/shared/components/ui/Modal';
 import { INTEREST_CATEGORIES } from '@/shared/config/constants';
+import defaultLogo from '@/assets/images/logo.png';
+import { useMeetingStore } from '../store/meetingStore';
+import { useMyPageStore } from '@/features/mypage/store/myPageStore';
 
 const MeetingCreatePage: React.FC = () => {
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const addMeeting = useMeetingStore((state) => state.addMeeting);
+
+  // 유저 프로필 이미지 가져오기
+  const user = useMyPageStore((state) => state.user);
+  const addMyMeeting = useMyPageStore((state) => state.addMyMeeting);
+  const currentUserProfileImage = user?.profileImage;
 
   // Form State
   const [meetingImage, setMeetingImage] = useState<string>();
@@ -26,9 +35,6 @@ const MeetingCreatePage: React.FC = () => {
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
 
-  // TODO: 실제 유저 정보로 대체
-  const currentUserProfileImage: string | undefined = undefined;
-
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -43,9 +49,44 @@ const MeetingCreatePage: React.FC = () => {
       setShowProfileModal(true);
       return;
     }
+
+    const groupId = `${Date.now()}`;
+
+    // 모임 목록 Store에 추가
+    const finalImage = meetingImage || defaultLogo;
+    addMeeting({
+      image: finalImage,
+      title: meetingName,
+      category: selectedCategory,
+      location: region,
+      members: 1,
+      maxMembers: capacity,
+      description,
+      date: new Date().toISOString().split('T')[0],
+      isLiked: false,
+      ownerUserId: user?.userId,
+    });
+
+    // 내 모임 목록에도 추가
+    addMyMeeting({
+      groupId,
+      title: meetingName,
+      description,
+      imageUrl: finalImage,
+      interestCategoryId: '1',
+      interestCategoryName: selectedCategory,
+      memberCount: 1,
+      maxMembers: capacity,
+      location: { lat: 0, lng: 0, region },
+      isPublic: true,
+      ownerUserId: user?.userId || 'user1',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    });
+
     // TODO: API 호출
-    console.log({ meetingImage, meetingName, shortDescription, selectedCategory, region, description, capacity, agreeToTerms });
-    navigate(-1);
+    console.log('새 모임 생성:', { groupId, meetingName });
+    navigate('/meetings');
   };
 
   const isFormValid = meetingName && shortDescription && selectedCategory && region && description && agreeToTerms;
@@ -134,17 +175,17 @@ const MeetingCreatePage: React.FC = () => {
           <label className="text-sm font-medium text-gray-900">정원(3~300명)</label>
           <div className="flex items-center gap-4">
             <button
-              onClick={() => setCapacity(prev => Math.min(300, prev + 1))}
-              className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center"
-            >
-              <Plus size={16} className="text-gray-600" />
-            </button>
-            <span className="text-base font-medium w-8 text-center">{capacity}</span>
-            <button
               onClick={() => setCapacity(prev => Math.max(3, prev - 1))}
               className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center"
             >
               <Minus size={16} className="text-gray-600" />
+            </button>
+            <span className="text-base font-medium w-8 text-center">{capacity}</span>
+            <button
+              onClick={() => setCapacity(prev => Math.min(300, prev + 1))}
+              className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center"
+            >
+              <Plus size={16} className="text-gray-600" />
             </button>
           </div>
         </div>

@@ -146,11 +146,15 @@ export interface MeetingStats {
  */
 export interface MeetingUI {
   id: number;
+  groupId: string; // 원본 groupId (네비게이션용)
   image: string;
   title: string;
   category: string;
   location: string;
   members: number;
+  maxMembers?: number;
+  description?: string;
   date?: string;
   isLiked?: boolean;
+  ownerUserId?: string; // 모임 생성자 ID
 }

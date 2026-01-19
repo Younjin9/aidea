@@ -1,33 +1,48 @@
-// 정모 개설하기
+// 정모 수정하기
 import React, { useState, useRef } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
-import { Camera, Search, Plus, Minus, MapPin } from 'lucide-react';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
+import { Camera, Search, MapPin } from 'lucide-react';
 import BackButton from '@/shared/components/ui/BackButton';
 import Button from '@/shared/components/ui/Button';
 import Input from '@/shared/components/ui/Input';
+import Modal from '@/shared/components/ui/Modal';
 import KakaoMapModal, { type SelectedPlace } from './KakaoMapModal';
-import { useMyPageStore } from '@/features/mypage/store/myPageStore';
+import type { MeetingEvent } from '@/shared/types/Meeting.types';
 
-const EventCreatePage: React.FC = () => {
+const EventEditPage: React.FC = () => {
   const navigate = useNavigate();
-  const { meetingId } = useParams();
+  const { meetingId, eventId } = useParams();
+  const location = useLocation();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const user = useMyPageStore((state) => state.user);
+
+  // 전달받은 정모 데이터
+  const eventData = (location.state as { event?: MeetingEvent })?.event;
+
+  // 날짜/시간 파싱
+  const parseDateTime = (scheduledAt: string) => {
+    const [datePart, timePart] = scheduledAt.split(' ');
+    return { date: datePart || '', time: timePart || '' };
+  };
+
+  const initialDateTime = eventData ? parseDateTime(eventData.scheduledAt) : { date: '', time: '' };
 
   // Form State
-  const [eventImage, setEventImage] = useState<string>();
-  const [eventName, setEventName] = useState('');
-  const [shortDescription, setShortDescription] = useState('');
-  const [date, setDate] = useState('');
-  const [time, setTime] = useState('');
-  const [location, setLocation] = useState('');
-  const [description, setDescription] = useState('');
-  const [cost, setCost] = useState('');
-  const [maxParticipants, setMaxParticipants] = useState(10);
+  const [eventImage, setEventImage] = useState<string | undefined>(eventData?.imageUrl);
+  const [eventName, setEventName] = useState(eventData?.title || '');
+  const [shortDescription, setShortDescription] = useState(eventData?.description || '');
+  const [date, setDate] = useState(initialDateTime.date);
+  const [time, setTime] = useState(initialDateTime.time);
+  const [eventLocation, setEventLocation] = useState(eventData?.location || '');
+  const [description, setDescription] = useState(eventData?.description || '');
+  const [cost, setCost] = useState(eventData?.cost || '');
+  const [maxParticipants, setMaxParticipants] = useState(eventData?.maxParticipants || 10);
 
   // Map State
   const [selectedLocation, setSelectedLocation] = useState<SelectedPlace | null>(null);
   const [showMapModal, setShowMapModal] = useState(false);
+
+  // Delete Modal State
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -40,40 +55,44 @@ const EventCreatePage: React.FC = () => {
 
   const handleLocationSelect = (place: SelectedPlace) => {
     setSelectedLocation(place);
-    setLocation(place.address);
+    setEventLocation(place.address);
   };
 
   const handleSubmit = () => {
-    // 모임장을 자동 참석자로 추가
-    const hostParticipant = user ? {
-      userId: user.userId,
-      nickname: user.nickname,
-      profileImage: user.profileImage,
-      isHost: true,
-    } : undefined;
-
-    const newEvent = {
-      eventId: `event-${Date.now()}`,
+    const updatedEvent: MeetingEvent = {
+      eventId: eventId || eventData?.eventId || '',
       title: eventName,
       description,
       scheduledAt: `${date} ${time}`,
-      location,
+      location: eventLocation,
       mapUrl: selectedLocation
         ? `https://map.kakao.com/link/map/${selectedLocation.name},${selectedLocation.lat},${selectedLocation.lng}`
-        : '',
+        : eventData?.mapUrl,
       cost,
       maxParticipants,
-      participantCount: hostParticipant ? 1 : 0,
-      participants: hostParticipant ? [hostParticipant] : [],
+      participantCount: eventData?.participantCount || 0,
+      participants: eventData?.participants || [],
       imageUrl: eventImage,
     };
 
-    // TODO: API 호출
-    console.log('새 정모 생성:', newEvent);
-    navigate(`/meetings/${meetingId}`, { state: { newEvent } });
+    navigate(`/meetings/${meetingId}`, { state: { updatedEvent } });
   };
 
-  const isFormValid = eventName && shortDescription && date && time && location && description;
+  const handleDelete = () => {
+    navigate(`/meetings/${meetingId}`, { state: { deletedEventId: eventId || eventData?.eventId } });
+  };
+
+  const isFormValid = eventName && shortDescription && date && time && eventLocation && description;
+
+  // 데이터가 없으면 뒤로가기
+  if (!eventData) {
+    return (
+      <div className="min-h-screen bg-white flex flex-col items-center justify-center">
+        <p className="text-gray-500 mb-4">정모 정보를 찾을 수 없습니다.</p>
+        <Button variant="outline" onClick={() => navigate(-1)}>돌아가기</Button>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-white flex flex-col">
@@ -81,7 +100,7 @@ const EventCreatePage: React.FC = () => {
       <header className="sticky top-0 bg-white z-10 border-b border-gray-100">
         <div className="flex items-center justify-center p-4 relative">
           <div className="absolute left-4"><BackButton /></div>
-          <h1 className="font-semibold text-base">정모 개설</h1>
+          <h1 className="font-semibold text-base">정모 수정</h1>
         </div>
       </header>
 
@@ -143,8 +162,8 @@ const EventCreatePage: React.FC = () => {
         <div className="mb-2">
           <Input
             label="모임 장소"
-            value={location}
-            onChange={(e) => setLocation(e.target.value)}
+            value={eventLocation}
+            onChange={(e) => setEventLocation(e.target.value)}
             placeholder="주소 검색"
             rightElement={<Search size={20} className="text-gray-400" />}
           />
@@ -190,22 +209,27 @@ const EventCreatePage: React.FC = () => {
               onClick={() => setMaxParticipants(prev => Math.max(1, prev - 1))}
               className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center"
             >
-              <Minus size={16} className="text-gray-600" />
+              -
             </button>
             <span className="text-base font-medium w-8 text-center">{maxParticipants}</span>
             <button
               onClick={() => setMaxParticipants(prev => Math.min(300, prev + 1))}
               className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center"
             >
-              <Plus size={16} className="text-gray-600" />
+              +
             </button>
           </div>
         </div>
 
-        {/* 개설 버튼 */}
-        <Button variant="primary" size="lg" fullWidth onClick={handleSubmit} disabled={!isFormValid}>
-          정모 개설하기
-        </Button>
+        {/* 버튼들 */}
+        <div className="space-y-3">
+          <Button variant="primary" size="lg" fullWidth onClick={handleSubmit} disabled={!isFormValid}>
+            수정 완료
+          </Button>
+          <Button variant="outline" size="lg" fullWidth onClick={() => setShowDeleteModal(true)} className="text-red-500 border-red-300 hover:bg-red-50">
+            정모 삭제하기
+          </Button>
+        </div>
       </main>
 
       {/* Map Modal */}
@@ -214,8 +238,21 @@ const EventCreatePage: React.FC = () => {
         onClose={() => setShowMapModal(false)}
         onSelect={handleLocationSelect}
       />
+
+      {/* Delete Confirmation Modal */}
+      <Modal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        title="정모 삭제"
+        message="정모를 삭제하시겠습니까? 삭제된 정모는 복구할 수 없습니다."
+        showCheckbox
+        checkboxLabel="삭제에 동의합니다"
+        confirmText="삭제"
+        cancelText="취소"
+        onConfirm={handleDelete}
+      />
     </div>
   );
 };
 
-export default EventCreatePage;
+export default EventEditPage;

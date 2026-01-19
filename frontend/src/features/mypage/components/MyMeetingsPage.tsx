@@ -9,9 +9,15 @@ type TabType = 'my' | 'liked';
 
 const MyMeetingsPage: React.FC = () => {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const initialTab = searchParams.get('tab') === 'liked' ? 'liked' : 'my';
   const [activeTab, setActiveTab] = useState<TabType>(initialTab);
+
+  // 탭 변경 시 URL 파라미터도 업데이트
+  const handleTabChange = (tab: TabType) => {
+    setActiveTab(tab);
+    setSearchParams({ tab }, { replace: true });
+  };
 
   const { myMeetings, likedMeetings, isLoading, unlikeMeeting } = useMyPage();
 
@@ -83,7 +89,7 @@ const MyMeetingsPage: React.FC = () => {
       <div className="px-4 py-2">
         <div className="flex gap-2">
           <button
-            onClick={() => setActiveTab('my')}
+            onClick={() => handleTabChange('my')}
             className={`px-4 py-2 rounded-full text-sm font-medium transition ${
               activeTab === 'my'
                 ? 'bg-primary text-white'
@@ -93,7 +99,7 @@ const MyMeetingsPage: React.FC = () => {
             내 모임
           </button>
           <button
-            onClick={() => setActiveTab('liked')}
+            onClick={() => handleTabChange('liked')}
             className={`px-4 py-2 rounded-full text-sm font-medium transition ${
               activeTab === 'liked'
                 ? 'bg-primary text-white'
@@ -113,7 +119,7 @@ const MyMeetingsPage: React.FC = () => {
               <MeetingCard
                 key={meeting.id}
                 meeting={meeting}
-                onClick={() => navigate(`/meetings/${meeting.id}`)}
+                onClick={() => navigate(`/meetings/${meeting.groupId}`)}
                 onLike={activeTab === 'liked' ? () => handleUnlike(meeting.id) : undefined}
                 showLikeButton={activeTab === 'liked'}
               />

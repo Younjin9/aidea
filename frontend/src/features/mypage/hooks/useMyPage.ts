@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import mypageApi from '@/shared/api/user/userApi';
+import meetingApi from '@/shared/api/meeting/meetingApi';
 import { useMyPageStore } from '../store/myPageStore';
 import type { Meeting, MeetingUI } from '@/shared/types/Meeting.types';
 import type { UpdateProfileRequest } from '@/shared/types/User.types';
@@ -14,6 +15,7 @@ import type { UpdateProfileRequest } from '@/shared/types/User.types';
 const transformMeetingToUI = (meeting: Meeting): MeetingUI => {
   return {
     id: parseInt(meeting.groupId, 10) || 0,
+    groupId: meeting.groupId, // 원본 groupId 유지
     image: meeting.imageUrl || '',
     title: meeting.title,
     category: meeting.interestCategoryName || '카테고리',
@@ -87,7 +89,7 @@ export const useLikedMeetings = () => {
   return useQuery({
     queryKey: myPageKeys.likedMeetings(),
     queryFn: async () => {
-      const response = await mypageApi.getLikedMeetings();
+      const response = await meetingApi.getLiked();
       const meetings = response.data;
       setLikedMeetings(meetings);
       return meetings;
@@ -158,48 +160,53 @@ export const useUpdateProfile = () => {
 };
 
 /**
- * 통합 훅 - 모든 데이터를 한 번에 가져오기
+ * 통합 훅 - Mock 데이터 사용 (테스트용)
+ * TODO: 테스트 완료 후 API 호출 방식으로 전환
  */
 export const useMyPage = () => {
-  const profile = useMyProfile();
-  const myMeetings = useMyMeetings();
-  const likedMeetings = useLikedMeetings();
-  const unlikeMutation = useUnlikeMeeting();
-  const updateProfileMutation = useUpdateProfile();
-
   const user = useMyPageStore((state) => state.user);
   const myMeetingsData = useMyPageStore((state) => state.myMeetings);
   const likedMeetingsData = useMyPageStore((state) => state.likedMeetings);
+  const initializeMockData = useMyPageStore((state) => state.initializeMockData);
+  const updateUser = useMyPageStore((state) => state.updateUser);
+  const unlikeMeeting = useMyPageStore((state) => state.unlikeMeeting);
+  const isInitialized = useMyPageStore((state) => state.isInitialized);
+
+  // Mock 데이터 초기화
+  if (!isInitialized) {
+    initializeMockData();
+  }
 
   return {
     // 사용자 정보
-    user: user || profile.data,
-    isLoadingProfile: profile.isLoading,
-    profileError: profile.error,
+    user,
+    isLoadingProfile: false,
+    profileError: null,
 
     // 내 모임
-    myMeetings: myMeetingsData.length > 0 ? myMeetingsData : myMeetings.data || [],
-    isLoadingMyMeetings: myMeetings.isLoading,
-    myMeetingsError: myMeetings.error,
+    myMeetings: myMeetingsData,
+    isLoadingMyMeetings: false,
+    myMeetingsError: null,
 
     // 찜한 모임
-    likedMeetings: likedMeetingsData.length > 0 ? likedMeetingsData : likedMeetings.data || [],
-    isLoadingLikedMeetings: likedMeetings.isLoading,
-    likedMeetingsError: likedMeetings.error,
+    likedMeetings: likedMeetingsData,
+    isLoadingLikedMeetings: false,
+    likedMeetingsError: null,
 
     // 전체 로딩 상태
-    isLoading: profile.isLoading || myMeetings.isLoading || likedMeetings.isLoading,
-    error: profile.error || myMeetings.error || likedMeetings.error,
+    isLoading: false,
+    error: null,
 
-    // Mutations
-    unlikeMeeting: unlikeMutation.mutate,
-    updateProfile: updateProfileMutation.mutate,
-    isUnliking: unlikeMutation.isPending,
-    isUpdatingProfile: updateProfileMutation.isPending,
+    // Mutations - Store 직접 사용
+    unlikeMeeting,
+    updateProfile: () => {}, // Mock에서는 updateUser 사용
+    updateUser,
+    isUnliking: false,
+    isUpdatingProfile: false,
 
-    // Refetch functions
-    refetchProfile: profile.refetch,
-    refetchMyMeetings: myMeetings.refetch,
-    refetchLikedMeetings: likedMeetings.refetch,
+    // Refetch functions (Mock에서는 no-op)
+    refetchProfile: () => Promise.resolve(),
+    refetchMyMeetings: () => Promise.resolve(),
+    refetchLikedMeetings: () => Promise.resolve(),
   };
 };

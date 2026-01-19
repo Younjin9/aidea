@@ -4,13 +4,20 @@ import { useNavigate } from 'react-router-dom';
 import { Edit2 } from 'lucide-react';
 import ProfileImage from '@/shared/components/ui/ProfileImage';
 import MeetingCard from '@/shared/components/ui/MeetingCard';
+import Modal from '@/shared/components/ui/Modal';
 import logo from '@/assets/images/logo.png';
 import { useMyPage, transformMeetingsToUI } from '../hooks/useMyPage';
+import { useMyPageStore } from '../store/myPageStore';
 import type { MeetingUI } from '@/shared/types/Meeting.types';
 
 const MyPageView: React.FC<{ onUnlike?: (id: number) => void }> = ({ onUnlike }) => {
   const navigate = useNavigate();
   const { user, myMeetings, likedMeetings, isLoading, unlikeMeeting } = useMyPage();
+  const clearAll = useMyPageStore((state) => state.clearAll);
+
+  // 로그아웃/회원탈퇴 모달 상태
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [showWithdrawModal, setShowWithdrawModal] = useState(false);
 
   // Meeting 타입을 MeetingUI로 변환
   const myMeetingsUI = useMemo(() => transformMeetingsToUI(myMeetings), [myMeetings]);
@@ -43,6 +50,24 @@ const MyPageView: React.FC<{ onUnlike?: (id: number) => void }> = ({ onUnlike })
       setDisplayedLikedMeetings(prev => prev.filter(m => m.id !== id));
       onUnlike?.(id);
     }, 1000);
+  };
+
+  // 로그아웃 핸들러
+  const handleLogout = () => {
+    clearAll();
+    setShowLogoutModal(false);
+    // TODO: API 호출 (토큰 삭제 등)
+    console.log('로그아웃 완료');
+    navigate('/');
+  };
+
+  // 회원탈퇴 핸들러
+  const handleWithdraw = () => {
+    clearAll();
+    setShowWithdrawModal(false);
+    // TODO: API 호출 (회원탈퇴 요청)
+    console.log('회원탈퇴 완료');
+    navigate('/');
   };
 
   if (isLoading) {
@@ -95,8 +120,8 @@ const MyPageView: React.FC<{ onUnlike?: (id: number) => void }> = ({ onUnlike })
           </div>
           {myMeetingsUI.length > 0 ? (
             <div className="space-y-4">
-              {myMeetingsUI.map(meeting => (
-                <MeetingCard key={meeting.id} meeting={meeting} onClick={() => navigate(`/meetings/${meeting.id}`)} />
+              {myMeetingsUI.slice(0, 2).map(meeting => (
+                <MeetingCard key={meeting.id} meeting={meeting} onClick={() => navigate(`/meetings/${meeting.id}`)} showLikeButton={false} />
               ))}
             </div>
           ) : (
@@ -112,7 +137,7 @@ const MyPageView: React.FC<{ onUnlike?: (id: number) => void }> = ({ onUnlike })
           </div>
           {displayedLikedMeetings.length > 0 ? (
             <div className="space-y-4">
-              {displayedLikedMeetings.map(meeting => (
+              {displayedLikedMeetings.slice(0, 2).map(meeting => (
                 <MeetingCard key={meeting.id} meeting={meeting} onClick={() => navigate(`/meetings/${meeting.id}`)} onLike={() => handleUnlike(meeting.id)} showLikeButton />
               ))}
             </div>
@@ -123,11 +148,38 @@ const MyPageView: React.FC<{ onUnlike?: (id: number) => void }> = ({ onUnlike })
 
         {/* 로그아웃/회원탈퇴 */}
         <div className="px-6 py-8 mt-auto flex items-center justify-center gap-2">
-          <button className="text-xs text-gray-400 underline">로그아웃</button>
+          <button onClick={() => setShowLogoutModal(true)} className="text-xs text-gray-400 underline">로그아웃</button>
           <span className="text-xs text-gray-300">·</span>
-          <button className="text-xs text-gray-400 underline">회원탈퇴</button>
+          <button onClick={() => setShowWithdrawModal(true)} className="text-xs text-gray-400 underline">회원탈퇴</button>
         </div>
       </main>
+
+      {/* 로그아웃 확인 모달 */}
+      <Modal
+        isOpen={showLogoutModal}
+        onClose={() => setShowLogoutModal(false)}
+        showLogo={true}
+        message="로그아웃 하시겠습니까?"
+        confirmText="로그아웃"
+        cancelText="취소"
+        onConfirm={handleLogout}
+        onCancel={() => setShowLogoutModal(false)}
+      />
+
+      {/* 회원탈퇴 확인 모달 */}
+      <Modal
+        isOpen={showWithdrawModal}
+        onClose={() => setShowWithdrawModal(false)}
+        showLogo={true}
+        title="회원탈퇴"
+        message="탈퇴 시 모든 데이터가 삭제되며 복구할 수 없습니다."
+        showCheckbox={true}
+        checkboxLabel="위 내용을 확인했습니다"
+        confirmText="탈퇴"
+        cancelText="취소"
+        onConfirm={handleWithdraw}
+        onCancel={() => setShowWithdrawModal(false)}
+      />
     </div>
   );
 };

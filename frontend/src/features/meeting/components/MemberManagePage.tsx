@@ -1,6 +1,6 @@
 // 모임 멤버 관리
 import React, { useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { Crown } from 'lucide-react';
 import BackButton from '@/shared/components/ui/BackButton';
 import ProfileImage from '@/shared/components/ui/ProfileImage';
@@ -29,10 +29,11 @@ const MOCK_PENDING_MEMBERS: Member[] = [
 const MemberManagePage: React.FC = () => {
   const { meetingId } = useParams();
   const navigate = useNavigate();
-  console.log('meetingId:', meetingId); // TODO: API 호출 시 사용
+  const location = useLocation();
+  const passedMembers = (location.state as { members?: Member[] })?.members;
 
-  // Member State
-  const [members, setMembers] = useState<Member[]>(MOCK_MEMBERS);
+  // Member State - 전달받은 멤버가 있으면 사용, 없으면 Mock 데이터 사용
+  const [members, setMembers] = useState<Member[]>(passedMembers || MOCK_MEMBERS);
   const [pendingMembers, setPendingMembers] = useState<Member[]>(MOCK_PENDING_MEMBERS);
 
   // Modal State
@@ -48,8 +49,16 @@ const MemberManagePage: React.FC = () => {
   // 모임장 양도
   const handleTransferConfirm = () => {
     if (!selectedMember) return;
-    // TODO: API 호출
-    console.log('모임장 양도:', selectedMember.userId);
+    // 기존 HOST를 MEMBER로, 선택된 멤버를 HOST로 변경
+    setMembers(prev => prev.map(m => {
+      if (m.role === 'HOST') {
+        return { ...m, role: 'MEMBER' as const };
+      }
+      if (m.userId === selectedMember.userId) {
+        return { ...m, role: 'HOST' as const };
+      }
+      return m;
+    }));
     setShowTransferModal(false);
     setSelectedMember(null);
   };
@@ -80,7 +89,10 @@ const MemberManagePage: React.FC = () => {
         <div className="flex items-center justify-between p-4">
           <BackButton />
           <h1 className="font-semibold text-base">모임 멤버</h1>
-          <button onClick={() => navigate(-1)} className="text-sm text-gray-400 font-medium">
+          <button
+            onClick={() => navigate(`/meetings/${meetingId}`, { state: { updatedMembers: members } })}
+            className="text-sm text-gray-400 font-medium"
+          >
             완료
           </button>
         </div>

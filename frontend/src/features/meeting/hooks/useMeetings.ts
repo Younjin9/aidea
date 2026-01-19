@@ -13,6 +13,7 @@ import type { Meeting, MeetingUI, MeetingListParams } from '@/shared/types/Meeti
 const transformMeetingToUI = (meeting: Meeting): MeetingUI => {
   return {
     id: parseInt(meeting.groupId, 10) || 0,
+    groupId: meeting.groupId, // 원본 groupId 유지
     image: meeting.imageUrl || '',
     title: meeting.title,
     category: meeting.interestCategoryName || '카테고리',
@@ -125,31 +126,35 @@ export const useToggleLike = () => {
 };
 
 /**
- * 통합 훅 - 모든 데이터를 한 번에 가져오기
+ * 통합 훅 - Mock 데이터 사용 (테스트용)
+ * TODO: 테스트 완료 후 API 호출 방식으로 전환
  */
-export const useMeetings = (params: MeetingListParams = {}) => {
-  const meetingList = useMeetingList(params);
-  const toggleLikeMutation = useToggleLike();
-
+export const useMeetings = (_params: MeetingListParams = {}) => {
   const meetings = useMeetingStore((state) => state.meetings);
   const groupByCategoryFn = useMeetingStore((state) => state.groupByCategory);
+  const toggleLikeByGroupId = useMeetingStore((state) => state.toggleLikeByGroupId);
+  const initializeMockData = useMeetingStore((state) => state.initializeMockData);
+  const isInitialized = useMeetingStore((state) => state.isInitialized);
+
+  // Mock 데이터 초기화
+  if (!isInitialized) {
+    initializeMockData();
+  }
 
   return {
-    // 모임 목록
-    meetings: meetings.length > 0 ? meetings : transformMeetingsToUI(meetingList.data?.items || []),
-    total: meetingList.data?.meta.total || 0,
-    isLoading: meetingList.isLoading,
-    error: meetingList.error,
+    meetings,
+    total: meetings.length,
+    isLoading: false,
+    error: null,
 
-    // 카테고리별 그룹핑 - 함수를 그대로 반환
     groupByCategory: groupByCategoryFn,
 
-    // Mutations
-    toggleLike: (groupId: string, isLiked: boolean) =>
-      toggleLikeMutation.mutate({ groupId, isLiked }),
-    isTogglingLike: toggleLikeMutation.isPending,
+    // Store의 toggleLikeByGroupId 사용
+    toggleLike: (groupId: string, _isLiked: boolean) => {
+      toggleLikeByGroupId(groupId);
+    },
+    isTogglingLike: false,
 
-    // Refetch
-    refetch: meetingList.refetch,
+    refetch: () => Promise.resolve(),
   };
 };

@@ -27,6 +27,7 @@ import MeetingDetailPage from '@/features/meeting/components/MeetingDetailPage';
 import MeetingSearchPage from '@/features/meeting/components/MeetingSearchPage';
 import MemberManagePage from '@/features/meeting/components/MemberManagePage';
 import EventCreatePage from '@/features/meeting/components/EventCreatePage';
+import EventEditPage from '@/features/meeting/components/EventEditPage';
 import ChatListPage from '@/features/chat/components/ChatListPage';
 import MyPageView from '@/features/mypage/components/MyPageView';
 import ProfileEditPage from '@/features/mypage/components/ProfileEditPage';
@@ -65,6 +66,7 @@ const AppRoutes: React.FC = () => {
         <Route path="/meetings/:meetingId" element={<MeetingDetailPage />} />
         <Route path="/meetings/:meetingId/members" element={<MemberManagePage />} />
         <Route path="/meetings/:meetingId/events/create" element={<EventCreatePage />} />
+        <Route path="/meetings/:meetingId/events/:eventId/edit" element={<EventEditPage />} />
       </Route>
 
       {/* MyPage Routes (No Bottom Navigation) */}
