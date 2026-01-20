@@ -112,3 +112,6 @@ EDITUS_CONTEXT.md
 ### Temporary Files ###
 uploads/temp/
 temp/
+
+# Vite
+frontend/.vite/

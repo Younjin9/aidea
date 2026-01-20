@@ -38,7 +38,7 @@ export interface MeetingDetail extends Meeting {
 }
 
 // ============================================
-// MapMeeting - 지도 위치 기반 검색용
+// MapMeeting - 지도 위치 기반 검색용 (Moved to Map Types below)
 // ============================================
 
 export interface MapMeeting {
@@ -156,7 +156,9 @@ export interface MeetingUI {
   description?: string;
   date?: string;
   isLiked?: boolean;
+
   ownerUserId?: string; // 모임 생성자 ID
   myStatus?: 'PENDING' | 'APPROVED'; // 내 가입 상태
   myRole?: 'HOST' | 'MEMBER'; // 내 역할
 }
+

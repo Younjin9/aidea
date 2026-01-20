@@ -1,6 +1,10 @@
 
 # 위치 기반 AI 모임 매칭 플랫폼
 
+## DB 실행 방법
+cd db
+docker-compose up -d
+
 # aidea
 ```
 프론트 구조
