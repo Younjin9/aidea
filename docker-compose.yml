@@ -1,24 +1,28 @@
+version: "3.8"
+
 services:
-  mysql:
-    image: mysql:8.0
-    container_name: aidea-mysql
+  postgres:
+    build:
+      context: .
+      dockerfile: docker/postgres/Dockerfile
+    container_name: aidea-postgres
     environment:
-      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
-      MYSQL_DATABASE: ${DB_NAME}
-      MYSQL_USER: ${DB_USER}
-      MYSQL_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${PG_DB}
+      POSTGRES_USER: ${PG_USER}
+      POSTGRES_PASSWORD: ${PG_PASSWORD}
     ports:
-      - "3307:3306"
+      - "5432:5432"
     volumes:
-      - mysql_data:/var/lib/mysql
-      - ./db/mysql/init:/docker-entrypoint-initdb.d
-    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+      - pg_data:/var/lib/postgresql/data
+      - ./db/postgres/init:/docker-entrypoint-initdb.d
+    restart: unless-stopped
 
   redis:
     image: redis:alpine
     container_name: aidea-redis
     ports:
       - "6379:6379"
+    restart: unless-stopped
 
 volumes:
-  mysql_data:
+  pg_data:
