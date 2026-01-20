@@ -54,8 +54,8 @@ const MeetingListPage: React.FC = () => {
                   <MeetingCard
                     key={meeting.id}
                     meeting={meeting}
-                    onClick={() => navigate(`/meetings/${meeting.id}`)}
-                    onLike={() => toggleLike(String(meeting.id), meeting.isLiked || false)}
+                    onClick={() => navigate(`/meetings/${meeting.groupId}`)}
+                    onLike={() => toggleLike(meeting.groupId)}
                     showLikeButton={true}
                   />
                 ))}
@@ -81,4 +81,3 @@ const MeetingListPage: React.FC = () => {
   );
 };
 export default MeetingListPage;
-

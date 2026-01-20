@@ -1,38 +1,56 @@
 import { create } from 'zustand';
 import type { UserProfile } from '@/shared/types/User.types';
-import type { Meeting } from '@/shared/types/Meeting.types';
+
+// Mock 초기 데이터
+const MOCK_USER: UserProfile = {
+  userId: 'user1',
+  email: 'user@example.com',
+  nickname: '김구름',
+  bio: '맛집 탐방을 좋아하는 사람입니다.',
+  profileImage: undefined,
+  location: { lat: 37.5665, lng: 126.978, region: '성수동' },
+  interests: ['맛집 탐방', '러닝'],
+  provider: 'KAKAO',
+  createdAt: '2024-01-01',
+  updatedAt: '2024-01-01',
+};
 
 interface MyPageState {
   user: UserProfile | null;
-  myMeetings: Meeting[];
-  likedMeetings: Meeting[];
+  isInitialized: boolean;
+
+  // 초기화
+  initializeMockData: () => void;
+
+  // 유저 관리
   setUser: (user: UserProfile) => void;
-  setMyMeetings: (meetings: Meeting[]) => void;
-  setLikedMeetings: (meetings: Meeting[]) => void;
-  unlikeMeeting: (groupId: string) => void;
-  clearAll: () => void;
+  updateUser: (data: Partial<UserProfile>) => void;
+  clearUser: () => void;
 }
 
-export const useMyPageStore = create<MyPageState>((set) => ({
+export const useMyPageStore = create<MyPageState>((set, get) => ({
   user: null,
-  myMeetings: [],
-  likedMeetings: [],
+  isInitialized: false,
+
+  initializeMockData: () => {
+    if (!get().isInitialized) {
+      set({
+        user: MOCK_USER,
+        isInitialized: true,
+      });
+    }
+  },
 
   setUser: (user) => set({ user }),
 
-  setMyMeetings: (meetings) => set({ myMeetings: meetings }),
-
-  setLikedMeetings: (meetings) => set({ likedMeetings: meetings }),
-
-  unlikeMeeting: (groupId) =>
+  updateUser: (data) =>
     set((state) => ({
-      likedMeetings: state.likedMeetings.filter((meeting) => meeting.groupId !== groupId),
+      user: state.user ? { ...state.user, ...data, updatedAt: new Date().toISOString() } : null,
     })),
 
-  clearAll: () =>
+  clearUser: () =>
     set({
       user: null,
-      myMeetings: [],
-      likedMeetings: [],
+      isInitialized: false,
     }),
 }));

@@ -16,6 +16,7 @@ import MeetingDetailPage from '@/features/meeting/components/MeetingDetailPage';
 import MeetingSearchPage from '@/features/meeting/components/MeetingSearchPage';
 import MemberManagePage from '@/features/meeting/components/MemberManagePage';
 import EventCreatePage from '@/features/meeting/components/EventCreatePage';
+import EventEditPage from '@/features/meeting/components/EventEditPage';
 import ChatListPage from '@/features/chat/components/ChatListPage';
 import MyPageView from '@/features/mypage/components/MyPageView';
 import ProfileEditPage from '@/features/mypage/components/ProfileEditPage';
