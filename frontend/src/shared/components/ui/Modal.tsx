@@ -89,7 +89,6 @@ const Modal: React.FC<ModalProps> = ({
                   <button
                     onClick={() => {
                       action.onClick();
-                      onClose();
                     }}
                     className={`w-full px-6 py-4 text-center font-medium text-base transition hover:bg-gray-50 ${
                       action.variant === 'danger' ? 'text-primary' : 'text-gray-900'

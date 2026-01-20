@@ -1,17 +1,26 @@
 // 모임 상세 페이지
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { Heart, Ellipsis, UsersRound, Crown } from 'lucide-react';
 import BackButton from '@/shared/components/ui/BackButton';
 import ProfileImage from '@/shared/components/ui/ProfileImage';
 import Button from '@/shared/components/ui/Button';
 import Modal from '@/shared/components/ui/Modal';
+import meetingApi from '@/shared/api/meeting/meetingApi';
 import { useMeetingStore } from '../store/meetingStore';
 import { useMyPageStore } from '@/features/mypage/store/myPageStore';
-import type { MeetingDetail, MeetingEvent, Meeting } from '@/shared/types/Meeting.types';
+import { useJoinMeeting, useLeaveMeeting } from '../hooks/useMeetings';
+import { useJoinEvent, useCancelEventParticipation } from '../hooks/useEvents';
+import type { MeetingDetail, MeetingEvent } from '@/shared/types/Meeting.types';
 import defaultLogo from '@/assets/images/logo.png';
 
-// ===== Constants =====
+// ============================================
+// Constants & Types
+// ============================================
+
+type ModalType = 'profile' | 'greeting' | 'actionSheet' | 'cancelParticipation' | 'joinEvent' | 'joinMeetingFirst' | 'leaveMeeting' | 'report' | null;
+
 const MOCK_MEETING_DETAIL: MeetingDetail = {
   groupId: '1',
   title: '맛집 탐방',
@@ -41,49 +50,25 @@ const MOCK_MEETING_DETAIL: MeetingDetail = {
       { userId: 'user2', nickname: '김구름2', profileImage: undefined },
     ],
   }],
-  myRole: 'USER',
-  myStatus: undefined,
+  myRole: 'HOST',
+  myStatus: 'APPROVED',
 };
 
-type ModalType = 'profile' | 'greeting' | 'actionSheet' | 'cancelParticipation' | 'joinEvent' | 'joinMeetingFirst' | 'leaveMeeting' | 'report' | null;
-
-// ===== Utility Functions =====
-const formatDateTime = (dateString: string) => {
-  const date = new Date(dateString);
-  const dateStr = date.toLocaleDateString('ko-KR', { month: '2-digit', day: '2-digit', weekday: 'short' });
-  const timeStr = date.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
-  return `${dateStr} ${timeStr}`;
-};
-
-// Mock 정모 데이터 (테스트용)
-const MOCK_EVENTS: MeetingEvent[] = [{
-  eventId: '1',
-  title: '성수 맛집 탐방',
-  scheduledAt: '2025-02-15 14:00',
-  location: '성수역 2번 출구',
-  cost: '각자 계산',
-  maxParticipants: 10,
-  participantCount: 2,
-  participants: [
-    { userId: 'user1', nickname: '김구름', profileImage: undefined, isHost: true },
-    { userId: 'user2', nickname: '김구름2', profileImage: undefined },
-  ],
-}];
+// ============================================
+// Utility Functions
+// ============================================
 
 const createMeetingDetailFromStore = (
-  storedMeeting: { id: number; title: string; description?: string; image: string; category: string; members: number; maxMembers?: number; location: string; ownerUserId?: string },
+  storedMeeting: { id: number; title: string; description?: string; image: string; category: string; members: number; maxMembers?: number; location: string; ownerUserId?: string; myStatus?: 'PENDING' | 'APPROVED'; myRole?: 'HOST' | 'MEMBER' },
   isOwner: boolean,
   user: { userId: string; nickname: string; profileImage?: string } | null,
-  newEvent?: MeetingEvent
+  existingEvents: MeetingEvent[] = MOCK_EVENTS
 ): MeetingDetail => {
   const hostUserId = storedMeeting.ownerUserId || 'user1';
   const hostNickname = isOwner ? (user?.nickname || '방장') : '모임장';
   const hostProfileImage = isOwner ? user?.profileImage : undefined;
 
-  // 기본 정모 데이터 (테스트용)
-  const defaultEvents = newEvent ? [newEvent] : MOCK_EVENTS;
-
-  const meetingDetail: MeetingDetail = {
+  return {
     groupId: String(storedMeeting.id),
     title: storedMeeting.title,
     description: storedMeeting.description || '모임 설명이 없습니다.',
@@ -101,80 +86,126 @@ const createMeetingDetailFromStore = (
     members: [
       { userId: hostUserId, nickname: hostNickname, profileImage: hostProfileImage, role: 'HOST', status: 'APPROVED', joinedAt: new Date().toISOString() },
     ],
-    events: defaultEvents,
-    myRole: isOwner ? 'HOST' : 'USER',
-    myStatus: undefined,
-  };
-
-  return meetingDetail;
-};
-
-const createMeetingDetailFromMyPage = (
-  myPageMeeting: Meeting,
-  isOwner: boolean,
-  user: { userId: string; nickname: string; profileImage?: string } | null,
-  newEvent?: MeetingEvent
-): MeetingDetail => {
-  const hostUserId = myPageMeeting.ownerUserId || 'user1';
-  const hostNickname = isOwner ? (user?.nickname || '방장') : '모임장';
-  const hostProfileImage = isOwner ? user?.profileImage : undefined;
-
-  const defaultEvents = newEvent ? [newEvent] : MOCK_EVENTS;
-
-  return {
-    groupId: myPageMeeting.groupId,
-    title: myPageMeeting.title,
-    description: myPageMeeting.description || '모임 설명이 없습니다.',
-    imageUrl: myPageMeeting.imageUrl,
-    interestCategoryId: myPageMeeting.interestCategoryId,
-    interestCategoryName: myPageMeeting.interestCategoryName,
-    memberCount: myPageMeeting.memberCount,
-    maxMembers: myPageMeeting.maxMembers || 10,
-    location: myPageMeeting.location,
-    distanceKm: 0,
-    isPublic: myPageMeeting.isPublic,
-    ownerUserId: hostUserId,
-    createdAt: myPageMeeting.createdAt,
-    updatedAt: myPageMeeting.updatedAt,
-    members: [
-      { userId: hostUserId, nickname: hostNickname, profileImage: hostProfileImage, role: 'HOST', status: 'APPROVED', joinedAt: myPageMeeting.createdAt },
-    ],
-    events: defaultEvents,
-    myRole: isOwner ? 'HOST' : 'USER',
-    myStatus: undefined,
+    events: existingEvents,
+    myRole: storedMeeting.myRole === 'MEMBER' ? 'USER' : storedMeeting.myRole || (isOwner ? 'HOST' : undefined),
+    myStatus: storedMeeting.myStatus,
   };
 };
 
-const convertMeetingDetailToMeeting = (detail: MeetingDetail): Meeting => ({
-  groupId: detail.groupId,
-  title: detail.title,
-  description: detail.description,
-  imageUrl: detail.imageUrl,
-  interestCategoryId: detail.interestCategoryId,
-  interestCategoryName: detail.interestCategoryName,
-  memberCount: detail.memberCount,
-  maxMembers: detail.maxMembers,
-  location: detail.location,
-  isPublic: detail.isPublic,
-  ownerUserId: detail.ownerUserId,
-  createdAt: detail.createdAt,
-  updatedAt: detail.updatedAt,
-});
+// ============================================
+// Sub Components
+// ============================================
 
-// ===== Sub Components =====
+// --- DetailHeader ---
+interface DetailHeaderProps {
+  title: string;
+  isLiked: boolean;
+  activeTab: 'home' | 'chat';
+  onLikeToggle: () => void;
+  onActionSheet: () => void;
+  onTabChange: (tab: 'home' | 'chat') => void;
+}
+
+const DetailHeader: React.FC<DetailHeaderProps> = ({
+  title,
+  isLiked,
+  activeTab,
+  onLikeToggle,
+  onActionSheet,
+  onTabChange,
+}) => (
+  <header className="sticky top-0 bg-white border-b border-gray-200 z-10">
+    <div className="flex items-center p-4 relative">
+      <BackButton />
+      <h1 className="absolute left-1/2 -translate-x-1/2 font-semibold text-sm">{title}</h1>
+      <div className="flex items-center gap-1 ml-auto">
+        <button onClick={onLikeToggle} className="p-2 hover:bg-gray-100 rounded-full transition">
+          <Heart size={20} fill={isLiked ? '#e91e63' : 'none'} stroke={isLiked ? '#e91e63' : 'currentColor'} />
+        </button>
+        <button onClick={onActionSheet} className="p-2 hover:bg-gray-100 rounded-full transition">
+          <Ellipsis size={20} />
+        </button>
+      </div>
+    </div>
+    <div className="flex px-4 border-t border-gray-100">
+      {(['home', 'chat'] as const).map((tab) => (
+        <button
+          key={tab}
+          onClick={() => onTabChange(tab)}
+          className={`flex-1 py-3 font-medium text-sm relative text-center ${activeTab === tab ? 'text-black' : 'text-gray-500'}`}
+        >
+          {tab === 'home' ? '홈' : '채팅'}
+          {activeTab === tab && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gray-dark" />}
+        </button>
+      ))}
+    </div>
+  </header>
+);
+
+// --- MeetingImage ---
+interface MeetingImageProps {
+  imageUrl: string;
+  title: string;
+}
+
+const MeetingImage: React.FC<MeetingImageProps> = ({ imageUrl, title }) => (
+  <div className="w-full h-64 bg-gray-200 flex items-center justify-center">
+    {imageUrl && !imageUrl.includes('logo') ? (
+      <img src={imageUrl} alt={title} className="w-full h-full object-cover" />
+    ) : (
+      <img src={defaultLogo} alt="로고" className="w-20 h-20 object-contain opacity-50 mx-auto" />
+    )}
+  </div>
+);
+
+// --- MeetingInfo ---
+interface MeetingInfoProps {
+  meeting: MeetingDetail;
+}
+
+const MeetingInfo: React.FC<MeetingInfoProps> = ({ meeting }) => (
+  <section className="p-4 border-b border-gray-200">
+    <div className="flex gap-2 mb-2">
+      <span className="px-3 py-1 bg-mint text-white rounded-full text-xs font-medium">{meeting.interestCategoryName}</span>
+      <span className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-xs font-medium">{meeting.location.region}</span>
+    </div>
+    <h2 className="font-bold text-lg mb-3">{meeting.title}</h2>
+    <p className="text-gray-700 text-sm leading-relaxed">{meeting.description}</p>
+  </section>
+);
+
+// --- EventCard ---
 interface EventCardProps {
   event: MeetingEvent;
   meeting: MeetingDetail;
   isHost: boolean;
   isMember: boolean;
-  isHostParticipating: boolean; // 모임장이 해당 정모에 참석 중인지
-  onTitleClick: () => void; // 제목 클릭 (모임장만)
-  onCancelParticipation: () => void; // 모임장 참석 취소
+  isParticipating: boolean;
+  onTitleClick: () => void;
+  onCancelParticipation: () => void;
   onJoin: () => void;
   onJoinMeetingFirst: () => void;
 }
 
-const EventCard: React.FC<EventCardProps> = ({ event, meeting, isHost, isMember, isHostParticipating, onTitleClick, onCancelParticipation, onJoin, onJoinMeetingFirst }) => (
+const EventCard: React.FC<EventCardProps> = ({
+  event,
+  meeting,
+  isHost,
+  isMember,
+  isParticipating,
+  onTitleClick,
+  onCancelParticipation,
+  onJoin,
+  onJoinMeetingFirst,
+}) => {
+  const formatDateTime = (dateString: string) => {
+    const date = new Date(dateString);
+    const dateStr = date.toLocaleDateString('ko-KR', { month: '2-digit', day: '2-digit', weekday: 'short' });
+    const timeStr = date.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
+    return `${dateStr} ${timeStr}`;
+  };
+
+  return (
   <div className="border-b border-gray-100 pb-4 last:border-b-0">
     {isHost ? (
       <h3 className="font-semibold text-sm mb-3 cursor-pointer hover:opacity-60 transition" onClick={onTitleClick}>{event.title}</h3>
@@ -212,44 +243,245 @@ const EventCard: React.FC<EventCardProps> = ({ event, meeting, isHost, isMember,
     {/* Buttons */}
     <div className="flex gap-2">
       <Button variant="outline" size="md" className="flex-1">공유</Button>
-      {isHost ? (
-        // HOST: 참석 중이면 취소, 아니면 참석
-        isHostParticipating ? (
-          <Button variant="primary" size="md" className="flex-1" onClick={onCancelParticipation}>취소</Button>
-        ) : (
-          <Button variant="primary" size="md" className="flex-1" onClick={onJoin}>참석</Button>
-        )
-      ) : isMember ? (
-        // USER (멤버): 참석 중이면 취소, 아니면 참석
-        isHostParticipating ? (
+      {isHost || isMember ? (
+        isParticipating ? (
           <Button variant="primary" size="md" className="flex-1" onClick={onCancelParticipation}>취소</Button>
         ) : (
           <Button variant="primary" size="md" className="flex-1" onClick={onJoin}>참석</Button>
         )
       ) : (
-        // 비멤버: 모임 먼저 가입 필요
         <Button variant="primary" size="md" className="flex-1" onClick={onJoinMeetingFirst}>참석</Button>
       )}
     </div>
   </div>
-);
+  );
+};
 
-interface MemberListProps {
-  members: MeetingDetail['members'];
+// --- EventSection ---
+interface EventSectionProps {
+  events: MeetingEvent[];
+  meeting: MeetingDetail;
+  isHost: boolean;
+  isMember: boolean;
+  userId?: string;
+  meetingId?: string;
+  onEventTitleClick: (event: MeetingEvent) => void;
+  onEventAction: (eventId: string, title: string, action: 'cancelParticipation' | 'join') => void;
+  onJoinMeetingFirst: () => void;
+  onCreateEvent: () => void;
 }
 
-const MemberList: React.FC<MemberListProps> = ({ members }) => (
-  <div className="space-y-3">
-    {members.map((member) => (
-      <div key={member.userId} className="flex items-center gap-3 py-2">
-        <ProfileImage src={member.profileImage} alt={member.nickname} size="md" />
-        <p className="font-medium text-sm">{member.nickname}</p>
-      </div>
-    ))}
-  </div>
+const EventSection: React.FC<EventSectionProps> = ({
+  events,
+  meeting,
+  isHost,
+  isMember,
+  userId,
+  onEventTitleClick,
+  onEventAction,
+  onJoinMeetingFirst,
+  onCreateEvent,
+}) => (
+  <section className="p-4 space-y-6">
+    {events.length > 0 ? (
+      events.map((event) => {
+        const isParticipating = (event.participants || []).some(p => p.userId === userId);
+        return (
+          <EventCard
+            key={event.eventId}
+            event={event}
+            meeting={meeting}
+            isHost={isHost}
+            isMember={isMember}
+            isParticipating={isParticipating}
+            onTitleClick={() => onEventTitleClick(event)}
+            onCancelParticipation={() => onEventAction(event.eventId, event.title, 'cancelParticipation')}
+            onJoin={() => onEventAction(event.eventId, event.title, 'join')}
+            onJoinMeetingFirst={onJoinMeetingFirst}
+          />
+        );
+      })
+    ) : (
+      <p className="text-center text-sm text-gray-400 py-4">예정된 정모가 없습니다</p>
+    )}
+    {isHost && (
+      <Button variant="primary" size="md" fullWidth onClick={onCreateEvent}>
+        정모 만들기
+      </Button>
+    )}
+  </section>
 );
 
-// ===== Main Component =====
+// --- MemberSection ---
+interface MemberSectionProps {
+  members: MeetingDetail['members'];
+  isHost: boolean;
+  onManage: () => void;
+}
+
+const MemberSection: React.FC<MemberSectionProps> = ({ members, isHost, onManage }) => (
+  <section className="px-4 pb-8 border-t border-gray-200">
+    <div className="flex items-center justify-between py-4">
+      <h3 className="font-semibold">멤버</h3>
+      {isHost && (
+        <button onClick={onManage} className="flex items-center gap-1 text-xs font-semibold text-gray-500 hover:opacity-60 transition">
+          <UsersRound size={16} />관리
+        </button>
+      )}
+    </div>
+    <div className="space-y-3">
+      {members.map((member) => (
+        <div key={member.userId} className="flex items-center gap-3 py-2">
+          <ProfileImage src={member.profileImage} alt={member.nickname} size="md" />
+          <p className="font-medium text-sm">{member.nickname}</p>
+        </div>
+      ))}
+    </div>
+  </section>
+);
+
+// --- MeetingModals ---
+interface MeetingModalsProps {
+  activeModal: ModalType;
+  selectedEvent: { id: string; title: string } | null;
+  user: { userId: string; nickname: string; profileImage?: string } | null;
+  greeting: string;
+  reportContent: string;
+  isMember: boolean;
+  onClose: () => void;
+  onGreetingChange: (value: string) => void;
+  onReportChange: (value: string) => void;
+  onNavigateProfile: () => void;
+  onJoinMeeting: () => void;
+  onOpenReport: () => void;
+  onOpenLeaveMeeting: () => void;
+  onReportMeeting: () => void;
+  onLeaveMeeting: () => void;
+  onCancelParticipation: () => void;
+  onJoinEvent: () => void;
+}
+
+const MeetingModals: React.FC<MeetingModalsProps> = ({
+  activeModal,
+  selectedEvent,
+  user,
+  greeting,
+  reportContent,
+  isMember,
+  onClose,
+  onGreetingChange,
+  onReportChange,
+  onNavigateProfile,
+  onJoinMeeting,
+  onOpenReport,
+  onOpenLeaveMeeting,
+  onReportMeeting,
+  onLeaveMeeting,
+  onCancelParticipation,
+  onJoinEvent,
+}) => {
+  // 멤버 여부에 따라 액션 버튼 구성
+  const actionSheetActions = isMember
+    ? [
+        { label: '모임 신고하기', onClick: onOpenReport },
+        { label: '모임 탈퇴하기', onClick: onOpenLeaveMeeting, variant: 'danger' as const },
+      ]
+    : [
+        { label: '모임 신고하기', onClick: onOpenReport },
+      ];
+
+  return (
+  <>
+    <Modal
+      isOpen={activeModal === 'profile'}
+      onClose={onClose}
+      message="프로필 사진을 등록해주세요."
+      showLogo
+      confirmText="OK"
+      singleButton
+      onConfirm={onNavigateProfile}
+    />
+
+    <Modal
+      isOpen={activeModal === 'greeting'}
+      onClose={onClose}
+      message="가입인사를 작성해주세요."
+      image={<ProfileImage src={user?.profileImage} alt="프로필" size="md" />}
+      showInput
+      inputPlaceholder="가입인사를 작성해주세요!"
+      inputValue={greeting}
+      onInputChange={onGreetingChange}
+      confirmText="확인"
+      cancelText="취소"
+      onConfirm={onJoinMeeting}
+    />
+
+    <Modal
+      type="bottom"
+      isOpen={activeModal === 'actionSheet'}
+      onClose={onClose}
+      actions={actionSheetActions}
+    />
+
+    <Modal
+      isOpen={activeModal === 'report'}
+      onClose={onClose}
+      title="모임 신고"
+      message="신고 사유를 작성해주세요."
+      showInput
+      inputPlaceholder="신고 내용을 입력해주세요"
+      inputValue={reportContent}
+      onInputChange={onReportChange}
+      confirmText="신고"
+      cancelText="취소"
+      onConfirm={onReportMeeting}
+    />
+
+    <Modal
+      isOpen={activeModal === 'leaveMeeting'}
+      onClose={onClose}
+      message="모임에서 탈퇴하시겠습니까?"
+      showCheckbox
+      checkboxLabel="탈퇴에 동의합니다"
+      confirmText="탈퇴"
+      cancelText="취소"
+      onConfirm={onLeaveMeeting}
+    />
+
+    <Modal
+      isOpen={activeModal === 'cancelParticipation'}
+      onClose={onClose}
+      message={`"${selectedEvent?.title}" 정모 참석을 취소하시겠습니까?`}
+      confirmText="취소"
+      cancelText="닫기"
+      onConfirm={onCancelParticipation}
+    />
+
+    <Modal
+      isOpen={activeModal === 'joinEvent'}
+      onClose={onClose}
+      message={`"${selectedEvent?.title}" 정모에 참여하시겠습니까?`}
+      confirmText="참여"
+      cancelText="취소"
+      onConfirm={onJoinEvent}
+    />
+
+    <Modal
+      isOpen={activeModal === 'joinMeetingFirst'}
+      onClose={onClose}
+      message="모임에 먼저 가입 후 참석할 수 있습니다."
+      confirmText="확인"
+      singleButton
+      onConfirm={onClose}
+    />
+  </>
+  );
+};
+
+// ============================================
+// Main Component
+// ============================================
+
 const MeetingDetailPage: React.FC = () => {
   const { meetingId } = useParams();
   const navigate = useNavigate();
@@ -262,18 +494,39 @@ const MeetingDetailPage: React.FC = () => {
   } | null;
 
   // Store
-  const { getMeetingByGroupId, toggleLike } = useMeetingStore();
-  const { user, myMeetings, toggleLikedMeeting, addMyMeeting, removeMyMeeting, initializeMockData, isInitialized } = useMyPageStore();
+  const { getMeetingByGroupId, toggleLikeByGroupId, joinMeeting, leaveMeeting, getEventsByGroupId, addEvent, updateEvent: updateEventInStore, deleteEvent: deleteEventInStore, initializeMockData: initializeMeetingMockData, isInitialized: isMeetingInitialized } = useMeetingStore();
+  const { user, initializeMockData: initializeUserMockData, isInitialized: isUserInitialized } = useMyPageStore();
+
+  // API Mutations
+  const { mutate: joinMeetingApi, isPending: isJoining } = useJoinMeeting();
+  const { mutate: leaveMeetingApi, isPending: isLeaving } = useLeaveMeeting();
+  const { mutate: joinEventApi, isPending: isJoiningEvent } = useJoinEvent(meetingId || '');
+  const { mutate: cancelEventApi, isPending: isCancellingEvent } = useCancelEventParticipation(meetingId || '');
+
+  // API 호출 - 모임 상세 조회
+  const { data: apiMeetingDetail, isLoading, error } = useQuery({
+    queryKey: ['meeting', 'detail', meetingId],
+    queryFn: async () => {
+      const response = await meetingApi.getDetail(meetingId || '');
+      return response.data;
+    },
+    enabled: !!meetingId,
+    staleTime: 1000 * 60 * 3,
+    retry: 1,
+  });
 
   // Mock 데이터 초기화
-  if (!isInitialized) {
-    initializeMockData();
+  if (!isMeetingInitialized) {
+    initializeMeetingMockData();
+  }
+  if (!isUserInitialized) {
+    initializeUserMockData();
   }
 
-  // meetingStore에서 먼저 찾고, 없으면 myPageStore에서 찾기
+  // meetingStore에서 모임 찾기
   const storedMeeting = getMeetingByGroupId(meetingId || '');
-  const myPageMeeting = myMeetings.find(m => m.groupId === meetingId);
-  const isOwner = storedMeeting?.ownerUserId === user?.userId || myPageMeeting?.ownerUserId === user?.userId;
+  // myRole로 호스트 여부 판단 (myRole이 있으면 우선 사용, 없으면 ownerUserId로 판단)
+  const isOwner = storedMeeting?.myRole === 'HOST' || (storedMeeting?.myRole === undefined && storedMeeting?.ownerUserId === user?.userId);
 
   // State
   const [activeTab, setActiveTab] = useState<'home' | 'chat'>('home');
@@ -283,56 +536,99 @@ const MeetingDetailPage: React.FC = () => {
   const [reportContent, setReportContent] = useState('');
   const [selectedEvent, setSelectedEvent] = useState<{ id: string; title: string } | null>(null);
 
-  const [meeting, setMeeting] = useState<MeetingDetail>(() => {
-    // locationState가 있으면 history 정리
-    if (locationState) {
-      window.history.replaceState({}, document.title);
-    }
+  // store에서 이벤트 목록 가져오기
+  const storedEvents = getEventsByGroupId(meetingId || '');
 
-    // 기본 meeting 데이터 생성
+  // 모임 상세 정보 state (API 데이터 또는 Mock 데이터)
+  const [meeting, setMeeting] = useState<MeetingDetail>(() => {
+    // store에 저장된 이벤트가 있으면 사용, 없으면 빈 배열
+    const events = storedEvents.length > 0 ? storedEvents : [];
     let baseMeeting: MeetingDetail;
     if (storedMeeting) {
-      baseMeeting = createMeetingDetailFromStore(storedMeeting, isOwner, user, locationState?.newEvent);
-    } else if (myPageMeeting) {
-      baseMeeting = createMeetingDetailFromMyPage(myPageMeeting, isOwner, user, locationState?.newEvent);
+      baseMeeting = createMeetingDetailFromStore(storedMeeting, isOwner, user, events);
     } else {
-      baseMeeting = locationState?.newEvent
-        ? { ...MOCK_MEETING_DETAIL, events: [...MOCK_MEETING_DETAIL.events, locationState.newEvent] }
-        : MOCK_MEETING_DETAIL;
-    }
-
-    // 멤버 업데이트 적용
-    if (locationState?.updatedMembers) {
-      baseMeeting = {
-        ...baseMeeting,
-        members: locationState.updatedMembers,
-        memberCount: locationState.updatedMembers.filter(m => m.status === 'APPROVED').length,
-      };
-    }
-
-    // 정모 수정 적용
-    if (locationState?.updatedEvent) {
-      baseMeeting = {
-        ...baseMeeting,
-        events: baseMeeting.events.map(e => e.eventId === locationState.updatedEvent!.eventId ? locationState.updatedEvent! : e),
-      };
-    }
-
-    // 정모 삭제 적용
-    if (locationState?.deletedEventId) {
-      baseMeeting = {
-        ...baseMeeting,
-        events: baseMeeting.events.filter(e => e.eventId !== locationState.deletedEventId),
-      };
+      baseMeeting = { ...MOCK_MEETING_DETAIL, events };
     }
 
     return baseMeeting;
   });
 
+  // locationState로 전달된 이벤트 변경사항 처리
+  useEffect(() => {
+    if (!locationState || !meetingId) return;
+
+    // history state 초기화 (새로고침 시 중복 처리 방지)
+    window.history.replaceState({}, document.title);
+
+    if (locationState.newEvent) {
+      // store에 이벤트 추가 (영구 저장)
+      const exists = getEventsByGroupId(meetingId).some(e => e.eventId === locationState.newEvent!.eventId);
+      if (!exists) {
+        addEvent(meetingId, locationState.newEvent);
+      }
+      // 로컬 state도 업데이트
+      setMeeting(prev => {
+        const localExists = prev.events.some(e => e.eventId === locationState.newEvent!.eventId);
+        if (localExists) return prev;
+        return {
+          ...prev,
+          events: [...prev.events, locationState.newEvent!],
+        };
+      });
+    }
+
+    if (locationState.updatedMembers) {
+      setMeeting(prev => ({
+        ...prev,
+        members: locationState.updatedMembers!,
+        memberCount: locationState.updatedMembers!.filter(m => m.status === 'APPROVED').length,
+      }));
+    }
+
+    if (locationState.updatedEvent) {
+      // store에 이벤트 업데이트
+      updateEventInStore(meetingId, locationState.updatedEvent.eventId, locationState.updatedEvent);
+      // 로컬 state도 업데이트
+      setMeeting(prev => ({
+        ...prev,
+        events: prev.events.map(e => e.eventId === locationState.updatedEvent!.eventId ? locationState.updatedEvent! : e),
+      }));
+    }
+
+    if (locationState.deletedEventId) {
+      // store에서 이벤트 삭제
+      deleteEventInStore(meetingId, locationState.deletedEventId);
+      // 로컬 state도 업데이트
+      setMeeting(prev => ({
+        ...prev,
+        events: prev.events.filter(e => e.eventId !== locationState.deletedEventId),
+      }));
+    }
+  }, [locationState, meetingId, getEventsByGroupId, addEvent, updateEventInStore, deleteEventInStore]);
+
+  // store의 이벤트가 변경되면 meeting state도 업데이트
+  useEffect(() => {
+    if (storedEvents.length > 0) {
+      setMeeting(prev => ({
+        ...prev,
+        events: storedEvents,
+      }));
+    }
+  }, [storedEvents]);
+
+  // API 데이터가 로드되면 meeting state 업데이트
+  useEffect(() => {
+    if (apiMeetingDetail) {
+      setMeeting(apiMeetingDetail);
+    } else if (error) {
+      // API 실패 시 Mock 데이터 사용 (이미 초기화된 상태 유지)
+      console.warn('모임 상세 API 호출 실패, Mock 데이터 사용:', error);
+    }
+  }, [apiMeetingDetail, error]);
+
   // Derived State
   const isHost = meeting.myRole === 'HOST';
   const isMember = meeting.myStatus === 'APPROVED';
-  const meetingForStore = useMemo(() => convertMeetingDetailToMeeting(meeting), [meeting]);
 
   // Modal Helpers
   const openModal = (type: ModalType) => setActiveModal(type);
@@ -345,54 +641,108 @@ const MeetingDetailPage: React.FC = () => {
   // Handlers
   const handleLikeToggle = () => {
     setIsLiked(prev => !prev);
-    // meetingStore에 있는 모임이면 해당 store도 업데이트
-    if (storedMeeting) {
-      toggleLike(storedMeeting.id);
+    if (meetingId) {
+      toggleLikeByGroupId(meetingId);
     }
-    // myPageStore의 찜 목록 업데이트
-    toggleLikedMeeting(meetingForStore);
   };
 
-  // 모임장 참석 취소 핸들러
   const handleCancelParticipation = () => {
     if (!selectedEvent || !user) return;
-    setMeeting(prev => ({
-      ...prev,
-      events: prev.events.map(e =>
-        e.eventId === selectedEvent.id
-          ? { ...e, participantCount: Math.max(0, e.participantCount - 1), participants: (e.participants || []).filter(p => p.userId !== user.userId) }
-          : e
-      ),
-    }));
-    closeModal();
+
+    // API 호출 시도
+    cancelEventApi(selectedEvent.id, {
+      onSuccess: () => {
+        setMeeting(prev => ({
+          ...prev,
+          events: prev.events.map(e =>
+            e.eventId === selectedEvent.id
+              ? { ...e, participantCount: Math.max(0, e.participantCount - 1), participants: (e.participants || []).filter(p => p.userId !== user.userId) }
+              : e
+          ),
+        }));
+        closeModal();
+      },
+      onError: () => {
+        // API 실패 시 로컬에서 처리 (fallback)
+        setMeeting(prev => ({
+          ...prev,
+          events: prev.events.map(e =>
+            e.eventId === selectedEvent.id
+              ? { ...e, participantCount: Math.max(0, e.participantCount - 1), participants: (e.participants || []).filter(p => p.userId !== user.userId) }
+              : e
+          ),
+        }));
+        closeModal();
+      },
+    });
   };
 
   const handleJoinEvent = () => {
     if (!selectedEvent || !user) return;
-    setMeeting(prev => ({
-      ...prev,
-      events: prev.events.map(e =>
-        e.eventId === selectedEvent.id
-          ? { ...e, participantCount: e.participantCount + 1, participants: [...(e.participants || []), { userId: user.userId, nickname: user.nickname, profileImage: user.profileImage, isHost: isHost }] }
-          : e
-      ),
-    }));
-    closeModal();
+
+    // API 호출 시도
+    joinEventApi(selectedEvent.id, {
+      onSuccess: () => {
+        setMeeting(prev => ({
+          ...prev,
+          events: prev.events.map(e =>
+            e.eventId === selectedEvent.id
+              ? { ...e, participantCount: e.participantCount + 1, participants: [...(e.participants || []), { userId: user.userId, nickname: user.nickname, profileImage: user.profileImage, isHost: isHost }] }
+              : e
+          ),
+        }));
+        closeModal();
+      },
+      onError: () => {
+        // API 실패 시 로컬에서 처리 (fallback)
+        setMeeting(prev => ({
+          ...prev,
+          events: prev.events.map(e =>
+            e.eventId === selectedEvent.id
+              ? { ...e, participantCount: e.participantCount + 1, participants: [...(e.participants || []), { userId: user.userId, nickname: user.nickname, profileImage: user.profileImage, isHost: isHost }] }
+              : e
+          ),
+        }));
+        closeModal();
+      },
+    });
   };
 
   const handleJoinClick = () => openModal(user?.profileImage ? 'greeting' : 'profile');
 
   const handleJoinMeeting = () => {
-    if (!user) return;
-    setMeeting(prev => ({
-      ...prev,
-      memberCount: prev.memberCount + 1,
-      members: [...prev.members, { userId: user.userId, nickname: user.nickname, profileImage: user.profileImage, role: 'MEMBER', status: 'APPROVED', joinedAt: new Date().toISOString() }],
-      myStatus: 'APPROVED',
-    }));
-    addMyMeeting({ ...meetingForStore, memberCount: meeting.memberCount + 1 });
-    setGreeting('');
-    closeModal();
+    if (!user || !meetingId) return;
+
+    // API 호출 시도
+    joinMeetingApi(
+      { groupId: meetingId, message: greeting },
+      {
+        onSuccess: () => {
+          setMeeting(prev => ({
+            ...prev,
+            memberCount: prev.memberCount + 1,
+            members: [...prev.members, { userId: user.userId, nickname: user.nickname, profileImage: user.profileImage, role: 'MEMBER', status: 'APPROVED', joinedAt: new Date().toISOString() }],
+            myStatus: 'APPROVED',
+          }));
+          // meetingStore에서 가입 처리 (useJoinMeeting 훅에서 이미 처리됨)
+          setGreeting('');
+          closeModal();
+        },
+        onError: () => {
+          // API 실패 시 로컬에서 처리 (fallback)
+          setMeeting(prev => ({
+            ...prev,
+            memberCount: prev.memberCount + 1,
+            members: [...prev.members, { userId: user.userId, nickname: user.nickname, profileImage: user.profileImage, role: 'MEMBER', status: 'APPROVED', joinedAt: new Date().toISOString() }],
+            myStatus: 'APPROVED',
+          }));
+          // meetingStore에서 가입 처리
+          if (meetingId) joinMeeting(meetingId, 'MEMBER');
+          setGreeting('');
+          closeModal();
+        },
+      }
+    );
   };
 
   const handleReportMeeting = () => {
@@ -402,124 +752,82 @@ const MeetingDetailPage: React.FC = () => {
   };
 
   const handleLeaveMeeting = () => {
-    if (!user) return;
-    setMeeting(prev => ({
-      ...prev,
-      memberCount: prev.memberCount - 1,
-      members: prev.members.filter(m => m.userId !== user.userId),
-      myStatus: undefined,
-    }));
-    removeMyMeeting(meeting.groupId);
-    closeModal();
-    navigate('/meetings');
+    if (!user || !meetingId) return;
+
+    // API 호출 시도
+    leaveMeetingApi(meetingId, {
+      onSuccess: () => {
+        // API 성공 시 useLeaveMeeting에서 처리
+        closeModal();
+      },
+      onError: () => {
+        // API 실패 시 로컬에서 처리 (fallback)
+        setMeeting(prev => ({
+          ...prev,
+          memberCount: prev.memberCount - 1,
+          members: prev.members.filter(m => m.userId !== user.userId),
+          myStatus: undefined,
+        }));
+        // meetingStore에서 탈퇴 처리
+        leaveMeeting(meeting.groupId);
+        closeModal();
+        navigate('/meetings');
+      },
+    });
   };
 
-  // 정모 제목 클릭 → 수정 페이지로 이동
   const handleEventTitleClick = (event: MeetingEvent) => {
     navigate(`/meetings/${meetingId}/events/${event.eventId}/edit`, { state: { event } });
   };
 
-  // 참석 취소/참석 액션
   const handleEventAction = (eventId: string, title: string, action: 'cancelParticipation' | 'join') => {
     setSelectedEvent({ id: eventId, title });
     openModal(action === 'cancelParticipation' ? 'cancelParticipation' : 'joinEvent');
   };
 
+  // Render
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-white flex flex-col items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+        <p className="mt-4 text-gray-500 text-sm">로딩 중...</p>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-white flex flex-col relative">
-      {/* Header */}
-      <header className="sticky top-0 bg-white border-b border-gray-200 z-10">
-        <div className="flex items-center p-4 relative">
-          <BackButton />
-          <h1 className="absolute left-1/2 -translate-x-1/2 font-semibold text-sm">{meeting.title}</h1>
-          <div className="flex items-center gap-1 ml-auto">
-            <button onClick={handleLikeToggle} className="p-2 hover:bg-gray-100 rounded-full transition">
-              <Heart size={20} fill={isLiked ? '#e91e63' : 'none'} stroke={isLiked ? '#e91e63' : 'currentColor'} />
-            </button>
-            <button onClick={() => openModal('actionSheet')} className="p-2 hover:bg-gray-100 rounded-full transition">
-              <Ellipsis size={20} />
-            </button>
-          </div>
-        </div>
-        <div className="flex px-4 border-t border-gray-100">
-          {(['home', 'chat'] as const).map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`flex-1 py-3 font-medium text-sm relative text-center ${activeTab === tab ? 'text-black' : 'text-gray-500'}`}
-            >
-              {tab === 'home' ? '홈' : '채팅'}
-              {activeTab === tab && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gray-dark" />}
-            </button>
-          ))}
-        </div>
-      </header>
+      <DetailHeader
+        title={meeting.title}
+        isLiked={isLiked}
+        activeTab={activeTab}
+        onLikeToggle={handleLikeToggle}
+        onActionSheet={() => openModal('actionSheet')}
+        onTabChange={setActiveTab}
+      />
 
-      {/* Content */}
       <main className="flex-1 overflow-y-auto pb-20">
         {activeTab === 'home' ? (
           <>
-            {/* Meeting Image */}
-            <div className="w-full h-64 bg-gray-200 flex items-center justify-center">
-              {meeting.imageUrl && !meeting.imageUrl.includes('logo') ? (
-                <img src={meeting.imageUrl} alt={meeting.title} className="w-full h-full object-cover" />
-              ) : (
-                <img src={defaultLogo} alt="로고" className="w-20 h-20 object-contain opacity-50 mx-auto" />
-              )}
-            </div>
-
-            {/* Meeting Info */}
-            <section className="p-4 border-b border-gray-200">
-              <div className="flex gap-2 mb-2">
-                <span className="px-3 py-1 bg-mint text-white rounded-full text-xs font-medium">{meeting.interestCategoryName}</span>
-                <span className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-xs font-medium">{meeting.location.region}</span>
-              </div>
-              <h2 className="font-bold text-lg mb-3">{meeting.title}</h2>
-              <p className="text-gray-700 text-sm leading-relaxed">{meeting.description}</p>
-            </section>
-
-            {/* Events */}
-            <section className="p-4 space-y-6">
-              {meeting.events.length > 0 ? (
-                meeting.events.map((event) => {
-                  const isHostParticipating = (event.participants || []).some(p => p.userId === user?.userId);
-                  return (
-                    <EventCard
-                      key={event.eventId}
-                      event={event}
-                      meeting={meeting}
-                      isHost={isHost}
-                      isMember={isMember}
-                      isHostParticipating={isHostParticipating}
-                      onTitleClick={() => handleEventTitleClick(event)}
-                      onCancelParticipation={() => handleEventAction(event.eventId, event.title, 'cancelParticipation')}
-                      onJoin={() => handleEventAction(event.eventId, event.title, 'join')}
-                      onJoinMeetingFirst={() => openModal('joinMeetingFirst')}
-                    />
-                  );
-                })
-              ) : (
-                <p className="text-center text-sm text-gray-400 py-4">예정된 정모가 없습니다</p>
-              )}
-              {isHost && (
-                <Button variant="primary" size="md" fullWidth onClick={() => navigate(`/meetings/${meetingId}/events/create`)}>
-                  정모 만들기
-                </Button>
-              )}
-            </section>
-
-            {/* Members */}
-            <section className="px-4 pb-8 border-t border-gray-200">
-              <div className="flex items-center justify-between py-4">
-                <h3 className="font-semibold">멤버</h3>
-                {isHost && (
-                  <button onClick={() => navigate(`/meetings/${meetingId}/members`, { state: { members: meeting.members } })} className="flex items-center gap-1 text-xs font-semibold text-gray-500 hover:opacity-60 transition">
-                    <UsersRound size={16} />관리
-                  </button>
-                )}
-              </div>
-              <MemberList members={meeting.members} />
-            </section>
+            <MeetingImage imageUrl={meeting.imageUrl} title={meeting.title} />
+            <MeetingInfo meeting={meeting} />
+            <EventSection
+              events={meeting.events}
+              meeting={meeting}
+              isHost={isHost}
+              isMember={isMember}
+              userId={user?.userId}
+              meetingId={meetingId}
+              onEventTitleClick={handleEventTitleClick}
+              onEventAction={handleEventAction}
+              onJoinMeetingFirst={() => openModal('joinMeetingFirst')}
+              onCreateEvent={() => navigate(`/meetings/${meetingId}/events/create`)}
+            />
+            <MemberSection
+              members={meeting.members}
+              isHost={isHost}
+              onManage={() => navigate(`/meetings/${meetingId}/members`, { state: { members: meeting.members } })}
+            />
           </>
         ) : (
           <div className="p-4 text-center py-20">
@@ -531,95 +839,30 @@ const MeetingDetailPage: React.FC = () => {
       {/* Fixed Bottom Button */}
       {!isHost && !isMember && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 w-full max-w-[398px] px-4">
-          <Button variant="primary" size="md" fullWidth onClick={handleJoinClick}>참석하기</Button>
+          <Button variant="primary" size="md" fullWidth onClick={handleJoinClick} disabled={isJoining}>
+            {isJoining ? '가입 중...' : '참석하기'}
+          </Button>
         </div>
       )}
 
-      {/* Modals */}
-      <Modal
-        isOpen={activeModal === 'profile'}
+      <MeetingModals
+        activeModal={activeModal}
+        selectedEvent={selectedEvent}
+        user={user}
+        greeting={greeting}
+        reportContent={reportContent}
+        isMember={isMember}
         onClose={closeModal}
-        message="프로필 사진을 등록해주세요."
-        showLogo
-        confirmText="OK"
-        singleButton
-        onConfirm={() => navigate('/mypage/edit')}
-      />
-
-      <Modal
-        isOpen={activeModal === 'greeting'}
-        onClose={closeModal}
-        message="가입인사를 작성해주세요."
-        image={<ProfileImage src={user?.profileImage} alt="프로필" size="md" />}
-        showInput
-        inputPlaceholder="가입인사를 작성해주세요!"
-        inputValue={greeting}
-        onInputChange={setGreeting}
-        confirmText="확인"
-        cancelText="취소"
-        onConfirm={handleJoinMeeting}
-      />
-
-      <Modal
-        type="bottom"
-        isOpen={activeModal === 'actionSheet'}
-        onClose={closeModal}
-        actions={[
-          { label: '모임 신고하기', onClick: () => { closeModal(); openModal('report'); } },
-          { label: '모임 탈퇴하기', onClick: () => { closeModal(); openModal('leaveMeeting'); }, variant: 'danger' },
-        ]}
-      />
-
-      <Modal
-        isOpen={activeModal === 'report'}
-        onClose={closeModal}
-        title="모임 신고"
-        message="신고 사유를 작성해주세요."
-        showInput
-        inputPlaceholder="신고 내용을 입력해주세요"
-        inputValue={reportContent}
-        onInputChange={setReportContent}
-        confirmText="신고"
-        cancelText="취소"
-        onConfirm={handleReportMeeting}
-      />
-
-      <Modal
-        isOpen={activeModal === 'leaveMeeting'}
-        onClose={closeModal}
-        message="모임에서 탈퇴하시겠습니까?"
-        showCheckbox
-        checkboxLabel="탈퇴에 동의합니다"
-        confirmText="탈퇴"
-        cancelText="취소"
-        onConfirm={handleLeaveMeeting}
-      />
-
-      <Modal
-        isOpen={activeModal === 'cancelParticipation'}
-        onClose={closeModal}
-        message={`"${selectedEvent?.title}" 정모 참석을 취소하시겠습니까?`}
-        confirmText="취소"
-        cancelText="닫기"
-        onConfirm={handleCancelParticipation}
-      />
-
-      <Modal
-        isOpen={activeModal === 'joinEvent'}
-        onClose={closeModal}
-        message={`"${selectedEvent?.title}" 정모에 참여하시겠습니까?`}
-        confirmText="참여"
-        cancelText="취소"
-        onConfirm={handleJoinEvent}
-      />
-
-      <Modal
-        isOpen={activeModal === 'joinMeetingFirst'}
-        onClose={closeModal}
-        message="모임에 먼저 가입 후 참석할 수 있습니다."
-        confirmText="확인"
-        singleButton
-        onConfirm={closeModal}
+        onGreetingChange={setGreeting}
+        onReportChange={setReportContent}
+        onNavigateProfile={() => navigate('/mypage/edit')}
+        onJoinMeeting={handleJoinMeeting}
+        onOpenReport={() => setActiveModal('report')}
+        onOpenLeaveMeeting={() => setActiveModal('leaveMeeting')}
+        onReportMeeting={handleReportMeeting}
+        onLeaveMeeting={handleLeaveMeeting}
+        onCancelParticipation={handleCancelParticipation}
+        onJoinEvent={handleJoinEvent}
       />
     </div>
   );

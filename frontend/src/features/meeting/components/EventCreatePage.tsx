@@ -7,12 +7,16 @@ import Button from '@/shared/components/ui/Button';
 import Input from '@/shared/components/ui/Input';
 import KakaoMapModal, { type SelectedPlace } from './KakaoMapModal';
 import { useMyPageStore } from '@/features/mypage/store/myPageStore';
+import { useCreateEvent } from '../hooks/useEvents';
 
 const EventCreatePage: React.FC = () => {
   const navigate = useNavigate();
   const { meetingId } = useParams();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const user = useMyPageStore((state) => state.user);
+
+  // API Mutation
+  const { mutate: createEvent, isPending } = useCreateEvent(meetingId || '');
 
   // Form State
   const [eventImage, setEventImage] = useState<string>();
@@ -68,9 +72,24 @@ const EventCreatePage: React.FC = () => {
       imageUrl: eventImage,
     };
 
-    // TODO: API 호출
-    console.log('새 정모 생성:', newEvent);
-    navigate(`/meetings/${meetingId}`, { state: { newEvent } });
+    // API 호출 시도
+    createEvent(
+      {
+        title: eventName,
+        description,
+        scheduledAt: `${date}T${time}:00`,
+        location,
+        cost,
+        maxParticipants,
+      },
+      {
+        onError: () => {
+          // API 실패 시 로컬에서 처리 (fallback)
+          console.log('새 정모 생성 (로컬):', newEvent);
+          navigate(`/meetings/${meetingId}`, { state: { newEvent } });
+        },
+      }
+    );
   };
 
   const isFormValid = eventName && shortDescription && date && time && location && description;
@@ -203,8 +222,8 @@ const EventCreatePage: React.FC = () => {
         </div>
 
         {/* 개설 버튼 */}
-        <Button variant="primary" size="lg" fullWidth onClick={handleSubmit} disabled={!isFormValid}>
-          정모 개설하기
+        <Button variant="primary" size="lg" fullWidth onClick={handleSubmit} disabled={!isFormValid || isPending}>
+          {isPending ? '생성 중...' : '정모 개설하기'}
         </Button>
       </main>
 

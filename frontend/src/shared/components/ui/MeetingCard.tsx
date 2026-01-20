@@ -23,7 +23,7 @@ const MeetingCard: React.FC<MeetingCardProps> = ({
     if (onClick) {
       onClick();
     } else {
-      navigate(`/meetings/${meeting.id}`);
+      navigate(`/meetings/${meeting.groupId}`);
     }
   };
 

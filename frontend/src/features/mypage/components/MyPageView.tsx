@@ -1,41 +1,44 @@
 // 마이페이지
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Edit2 } from 'lucide-react';
 import ProfileImage from '@/shared/components/ui/ProfileImage';
 import MeetingCard from '@/shared/components/ui/MeetingCard';
 import Modal from '@/shared/components/ui/Modal';
 import logo from '@/assets/images/logo.png';
-import { useMyPage, transformMeetingsToUI } from '../hooks/useMyPage';
+import { useMyPage } from '../hooks/useMyPage';
 import { useMyPageStore } from '../store/myPageStore';
+import { useMeetingStore } from '@/features/meeting/store/meetingStore';
 import type { MeetingUI } from '@/shared/types/Meeting.types';
 
 const MyPageView: React.FC<{ onUnlike?: (id: number) => void }> = ({ onUnlike }) => {
   const navigate = useNavigate();
   const { user, myMeetings, likedMeetings, isLoading, unlikeMeeting } = useMyPage();
-  const clearAll = useMyPageStore((state) => state.clearAll);
+  const clearUser = useMyPageStore((state) => state.clearUser);
+  const initializeMeetingMockData = useMeetingStore((state) => state.initializeMockData);
 
   // 로그아웃/회원탈퇴 모달 상태
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [showWithdrawModal, setShowWithdrawModal] = useState(false);
-
-  // Meeting 타입을 MeetingUI로 변환
-  const myMeetingsUI = useMemo(() => transformMeetingsToUI(myMeetings), [myMeetings]);
-  const likedMeetingsUI = useMemo(() => transformMeetingsToUI(likedMeetings).map(m => ({ ...m, isLiked: true })), [likedMeetings]);
 
   // 찜 목록 (1초 딜레이용)
   const [displayedLikedMeetings, setDisplayedLikedMeetings] = useState<MeetingUI[]>([]);
   const timeoutRef = useRef<number | null>(null);
   const isInitializedRef = useRef(false);
 
+  // Meeting Mock 데이터 초기화
   useEffect(() => {
-    if (!isInitializedRef.current && likedMeetingsUI.length > 0) {
-      setDisplayedLikedMeetings(likedMeetingsUI);
+    initializeMeetingMockData();
+  }, [initializeMeetingMockData]);
+
+  useEffect(() => {
+    if (!isInitializedRef.current && likedMeetings.length > 0) {
+      setDisplayedLikedMeetings(likedMeetings);
       isInitializedRef.current = true;
     } else if (isInitializedRef.current) {
-      setDisplayedLikedMeetings(likedMeetingsUI);
+      setDisplayedLikedMeetings(likedMeetings);
     }
-  }, [likedMeetingsUI]);
+  }, [likedMeetings]);
 
   useEffect(() => {
     return () => { if (timeoutRef.current) clearTimeout(timeoutRef.current); };
@@ -45,7 +48,7 @@ const MyPageView: React.FC<{ onUnlike?: (id: number) => void }> = ({ onUnlike })
     setDisplayedLikedMeetings(prev => prev.map(m => m.id === id ? { ...m, isLiked: false } : m));
 
     timeoutRef.current = window.setTimeout(() => {
-      const originalMeeting = likedMeetings.find(m => parseInt(m.groupId, 10) === id);
+      const originalMeeting = likedMeetings.find(m => m.id === id);
       if (originalMeeting) unlikeMeeting(originalMeeting.groupId);
       setDisplayedLikedMeetings(prev => prev.filter(m => m.id !== id));
       onUnlike?.(id);
@@ -54,7 +57,7 @@ const MyPageView: React.FC<{ onUnlike?: (id: number) => void }> = ({ onUnlike })
 
   // 로그아웃 핸들러
   const handleLogout = () => {
-    clearAll();
+    clearUser();
     setShowLogoutModal(false);
     // TODO: API 호출 (토큰 삭제 등)
     console.log('로그아웃 완료');
@@ -63,7 +66,7 @@ const MyPageView: React.FC<{ onUnlike?: (id: number) => void }> = ({ onUnlike })
 
   // 회원탈퇴 핸들러
   const handleWithdraw = () => {
-    clearAll();
+    clearUser();
     setShowWithdrawModal(false);
     // TODO: API 호출 (회원탈퇴 요청)
     console.log('회원탈퇴 완료');
@@ -118,10 +121,10 @@ const MyPageView: React.FC<{ onUnlike?: (id: number) => void }> = ({ onUnlike })
             <h3 className="text-base font-bold text-gray-900">내 모임</h3>
             <button onClick={() => navigate('/my-meetings')} className="text-xs text-gray-500">전체 보기</button>
           </div>
-          {myMeetingsUI.length > 0 ? (
+          {myMeetings.length > 0 ? (
             <div className="space-y-4">
-              {myMeetingsUI.slice(0, 2).map(meeting => (
-                <MeetingCard key={meeting.id} meeting={meeting} onClick={() => navigate(`/meetings/${meeting.id}`)} showLikeButton={false} />
+              {myMeetings.slice(0, 2).map(meeting => (
+                <MeetingCard key={meeting.id} meeting={meeting} onClick={() => navigate(`/meetings/${meeting.groupId}`)} showLikeButton={false} />
               ))}
             </div>
           ) : (
@@ -138,7 +141,7 @@ const MyPageView: React.FC<{ onUnlike?: (id: number) => void }> = ({ onUnlike })
           {displayedLikedMeetings.length > 0 ? (
             <div className="space-y-4">
               {displayedLikedMeetings.slice(0, 2).map(meeting => (
-                <MeetingCard key={meeting.id} meeting={meeting} onClick={() => navigate(`/meetings/${meeting.id}`)} onLike={() => handleUnlike(meeting.id)} showLikeButton />
+                <MeetingCard key={meeting.id} meeting={meeting} onClick={() => navigate(`/meetings/${meeting.groupId}`)} onLike={() => handleUnlike(meeting.id)} showLikeButton />
               ))}
             </div>
           ) : (

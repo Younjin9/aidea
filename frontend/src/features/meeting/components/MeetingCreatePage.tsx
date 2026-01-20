@@ -10,6 +10,7 @@ import { INTEREST_CATEGORIES } from '@/shared/config/constants';
 import defaultLogo from '@/assets/images/logo.png';
 import { useMeetingStore } from '../store/meetingStore';
 import { useMyPageStore } from '@/features/mypage/store/myPageStore';
+import { useCreateMeeting } from '../hooks/useMeetings';
 
 const MeetingCreatePage: React.FC = () => {
   const navigate = useNavigate();
@@ -18,14 +19,18 @@ const MeetingCreatePage: React.FC = () => {
 
   // 유저 프로필 이미지 가져오기
   const user = useMyPageStore((state) => state.user);
-  const addMyMeeting = useMyPageStore((state) => state.addMyMeeting);
   const currentUserProfileImage = user?.profileImage;
+
+  // API Mutation
+  const { mutate: createMeeting, isPending } = useCreateMeeting();
 
   // Form State
   const [meetingImage, setMeetingImage] = useState<string>();
+  const [imageFile, setImageFile] = useState<File | null>(null);
   const [meetingName, setMeetingName] = useState('');
   const [shortDescription, setShortDescription] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
+  const [selectedCategoryId, setSelectedCategoryId] = useState('');
   const [region, setRegion] = useState('');
   const [description, setDescription] = useState('');
   const [capacity, setCapacity] = useState(10);
@@ -38,6 +43,7 @@ const MeetingCreatePage: React.FC = () => {
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      setImageFile(file);
       const reader = new FileReader();
       reader.onloadend = () => setMeetingImage(reader.result as string);
       reader.readAsDataURL(file);
@@ -51,42 +57,42 @@ const MeetingCreatePage: React.FC = () => {
     }
 
     const groupId = `${Date.now()}`;
-
-    // 모임 목록 Store에 추가
     const finalImage = meetingImage || defaultLogo;
-    addMeeting({
-      image: finalImage,
-      title: meetingName,
-      category: selectedCategory,
-      location: region,
-      members: 1,
-      maxMembers: capacity,
-      description,
-      date: new Date().toISOString().split('T')[0],
-      isLiked: false,
-      ownerUserId: user?.userId,
-    });
 
-    // 내 모임 목록에도 추가
-    addMyMeeting({
-      groupId,
-      title: meetingName,
-      description,
-      imageUrl: finalImage,
-      interestCategoryId: '1',
-      interestCategoryName: selectedCategory,
-      memberCount: 1,
-      maxMembers: capacity,
-      location: { lat: 0, lng: 0, region },
-      isPublic: true,
-      ownerUserId: user?.userId || 'user1',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    });
+    // API 호출 시도
+    createMeeting(
+      {
+        title: meetingName,
+        description,
+        interestCategoryId: selectedCategoryId || '1',
+        maxMembers: capacity,
+        location: { lat: 0, lng: 0, region },
+        isPublic: true,
+        image: imageFile || undefined,
+      },
+      {
+        onError: () => {
+          // API 실패 시 로컬 store에 추가 (fallback)
+          addMeeting({
+            groupId,
+            image: finalImage,
+            title: meetingName,
+            category: selectedCategory,
+            location: region,
+            members: 1,
+            maxMembers: capacity,
+            description,
+            date: new Date().toISOString().split('T')[0],
+            isLiked: false,
+            ownerUserId: user?.userId,
+            myStatus: 'APPROVED',
+            myRole: 'HOST',
+          });
 
-    // TODO: API 호출
-    console.log('새 모임 생성:', { groupId, meetingName });
-    navigate('/meetings');
+          navigate('/meetings');
+        },
+      }
+    );
   };
 
   const isFormValid = meetingName && shortDescription && selectedCategory && region && description && agreeToTerms;
@@ -202,8 +208,8 @@ const MeetingCreatePage: React.FC = () => {
         </label>
 
         {/* 개설 버튼 */}
-        <Button variant="primary" size="lg" fullWidth onClick={handleSubmit} disabled={!isFormValid}>
-          모임 개설하기
+        <Button variant="primary" size="lg" fullWidth onClick={handleSubmit} disabled={!isFormValid || isPending}>
+          {isPending ? '생성 중...' : '모임 개설하기'}
         </Button>
       </main>
 
@@ -215,7 +221,10 @@ const MeetingCreatePage: React.FC = () => {
         title="카테고리 선택"
         actions={INTEREST_CATEGORIES.map(cat => ({
           label: cat.label,
-          onClick: () => setSelectedCategory(cat.label),
+          onClick: () => {
+            setSelectedCategory(cat.label);
+            setSelectedCategoryId(cat.id);
+          },
         }))}
       />
 

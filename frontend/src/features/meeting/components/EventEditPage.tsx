@@ -7,6 +7,7 @@ import Button from '@/shared/components/ui/Button';
 import Input from '@/shared/components/ui/Input';
 import Modal from '@/shared/components/ui/Modal';
 import KakaoMapModal, { type SelectedPlace } from './KakaoMapModal';
+import { useUpdateEvent, useDeleteEvent } from '../hooks/useEvents';
 import type { MeetingEvent } from '@/shared/types/Meeting.types';
 
 const EventEditPage: React.FC = () => {
@@ -17,6 +18,10 @@ const EventEditPage: React.FC = () => {
 
   // 전달받은 정모 데이터
   const eventData = (location.state as { event?: MeetingEvent })?.event;
+
+  // API Mutations
+  const { mutate: updateEvent, isPending: isUpdating } = useUpdateEvent(meetingId || '', eventId || eventData?.eventId || '');
+  const { mutate: deleteEvent, isPending: isDeleting } = useDeleteEvent(meetingId || '');
 
   // 날짜/시간 파싱
   const parseDateTime = (scheduledAt: string) => {
@@ -75,11 +80,36 @@ const EventEditPage: React.FC = () => {
       imageUrl: eventImage,
     };
 
-    navigate(`/meetings/${meetingId}`, { state: { updatedEvent } });
+    // API 호출 시도
+    updateEvent(
+      {
+        title: eventName,
+        description,
+        scheduledAt: `${date}T${time}:00`,
+        location: eventLocation,
+        cost,
+        maxParticipants,
+      },
+      {
+        onError: () => {
+          // API 실패 시 로컬에서 처리 (fallback)
+          navigate(`/meetings/${meetingId}`, { state: { updatedEvent } });
+        },
+      }
+    );
   };
 
   const handleDelete = () => {
-    navigate(`/meetings/${meetingId}`, { state: { deletedEventId: eventId || eventData?.eventId } });
+    const targetEventId = eventId || eventData?.eventId;
+    if (!targetEventId) return;
+
+    // API 호출 시도
+    deleteEvent(targetEventId, {
+      onError: () => {
+        // API 실패 시 로컬에서 처리 (fallback)
+        navigate(`/meetings/${meetingId}`, { state: { deletedEventId: targetEventId } });
+      },
+    });
   };
 
   const isFormValid = eventName && shortDescription && date && time && eventLocation && description;
@@ -223,11 +253,11 @@ const EventEditPage: React.FC = () => {
 
         {/* 버튼들 */}
         <div className="space-y-3">
-          <Button variant="primary" size="lg" fullWidth onClick={handleSubmit} disabled={!isFormValid}>
-            수정 완료
+          <Button variant="primary" size="lg" fullWidth onClick={handleSubmit} disabled={!isFormValid || isUpdating}>
+            {isUpdating ? '수정 중...' : '수정 완료'}
           </Button>
-          <Button variant="outline" size="lg" fullWidth onClick={() => setShowDeleteModal(true)} className="text-red-500 border-red-300 hover:bg-red-50">
-            정모 삭제하기
+          <Button variant="outline" size="lg" fullWidth onClick={() => setShowDeleteModal(true)} disabled={isDeleting} className="text-red-500 border-red-300 hover:bg-red-50">
+            {isDeleting ? '삭제 중...' : '정모 삭제하기'}
           </Button>
         </div>
       </main>

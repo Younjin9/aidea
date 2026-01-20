@@ -1,33 +1,8 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
+import { useEffect } from 'react';
 import mypageApi from '@/shared/api/user/userApi';
-import meetingApi from '@/shared/api/meeting/meetingApi';
 import { useMyPageStore } from '../store/myPageStore';
-import type { Meeting, MeetingUI } from '@/shared/types/Meeting.types';
-import type { UpdateProfileRequest } from '@/shared/types/User.types';
-
-// ============================================
-// Helper Functions
-// ============================================
-
-/**
- * Meeting 타입을 MeetingUI 타입으로 변환
- */
-const transformMeetingToUI = (meeting: Meeting): MeetingUI => {
-  return {
-    id: parseInt(meeting.groupId, 10) || 0,
-    groupId: meeting.groupId, // 원본 groupId 유지
-    image: meeting.imageUrl || '',
-    title: meeting.title,
-    category: meeting.interestCategoryName || '카테고리',
-    location: `${meeting.location.region || '위치 정보 없음'}`,
-    members: meeting.memberCount,
-    isLiked: false,
-  };
-};
-
-export const transformMeetingsToUI = (meetings: Meeting[]): MeetingUI[] => {
-  return meetings.map(transformMeetingToUI);
-};
+import { useMeetingStore } from '@/features/meeting/store/meetingStore';
 
 // ============================================
 // React Query Keys
@@ -41,172 +16,81 @@ export const myPageKeys = {
 };
 
 // ============================================
-// Custom Hooks
+// Custom Hook
 // ============================================
 
 /**
- * 내 프로필 조회
+ * 마이페이지 통합 훅 - API 호출 후 실패 시 Mock 데이터 fallback
  */
-export const useMyProfile = () => {
+export const useMyPage = () => {
+  // MyPage Store (user 정보만)
+  const user = useMyPageStore((state) => state.user);
   const setUser = useMyPageStore((state) => state.setUser);
+  const initializeMockData = useMyPageStore((state) => state.initializeMockData);
+  const updateUser = useMyPageStore((state) => state.updateUser);
+  const isUserInitialized = useMyPageStore((state) => state.isInitialized);
 
-  return useQuery({
+  // Meeting Store (모임 정보)
+  const getMyMeetings = useMeetingStore((state) => state.getMyMeetings);
+  const getLikedMeetings = useMeetingStore((state) => state.getLikedMeetings);
+  const toggleLikeByGroupId = useMeetingStore((state) => state.toggleLikeByGroupId);
+  const initializeMeetingMockData = useMeetingStore((state) => state.initializeMockData);
+  const isMeetingInitialized = useMeetingStore((state) => state.isInitialized);
+
+  // 프로필 API 호출
+  const {
+    data: profileData,
+    isLoading: isLoadingProfile,
+    error: profileError,
+    refetch: refetchProfile,
+  } = useQuery({
     queryKey: myPageKeys.profile(),
     queryFn: async () => {
       const response = await mypageApi.getMyProfile();
-      const user = response.data;
-      setUser(user);
-      return user;
+      return response.data;
     },
-    staleTime: 1000 * 60 * 5, // 5분
+    staleTime: 1000 * 60 * 5,
+    retry: 1,
   });
-};
 
-/**
- * 내가 참여 중인 모임 목록
- */
-export const useMyMeetings = () => {
-  const setMyMeetings = useMyPageStore((state) => state.setMyMeetings);
+  // API 성공 시 store 업데이트, 실패 시 Mock 데이터 사용
+  useEffect(() => {
+    if (profileData) {
+      setUser(profileData);
+    } else if (profileError && !isUserInitialized) {
+      console.warn('MyPage API 호출 실패, Mock 데이터 사용');
+      initializeMockData();
+    }
+  }, [profileData, profileError, isUserInitialized, setUser, initializeMockData]);
 
-  return useQuery({
-    queryKey: myPageKeys.myMeetings(),
-    queryFn: async () => {
-      const response = await mypageApi.getMyMeetings('active');
-      const meetings = response.data;
-      setMyMeetings(meetings);
-      return meetings;
-    },
-    staleTime: 1000 * 60 * 3, // 3분
-  });
-};
+  // Meeting Mock 데이터 초기화
+  useEffect(() => {
+    if (!isMeetingInitialized) {
+      initializeMeetingMockData();
+    }
+  }, [isMeetingInitialized, initializeMeetingMockData]);
 
-/**
- * 내가 찜한 모임 목록
- */
-export const useLikedMeetings = () => {
-  const setLikedMeetings = useMyPageStore((state) => state.setLikedMeetings);
-
-  return useQuery({
-    queryKey: myPageKeys.likedMeetings(),
-    queryFn: async () => {
-      const response = await meetingApi.getLiked();
-      const meetings = response.data;
-      setLikedMeetings(meetings);
-      return meetings;
-    },
-    staleTime: 1000 * 60 * 3, // 3분
-  });
-};
-
-/**
- * 모임 찜하기 취소 (Optimistic Update)
- */
-export const useUnlikeMeeting = () => {
-  const queryClient = useQueryClient();
-  const unlikeMeeting = useMyPageStore((state) => state.unlikeMeeting);
-
-  return useMutation({
-    mutationFn: async (groupId: string) => {
-      // TODO: 실제 API 엔드포인트로 교체 필요
-      // 현재는 meetingApi의 unlike 엔드포인트를 사용한다고 가정
-      // await meetingApi.unlikeMeeting(groupId);
-      return groupId;
-    },
-    onMutate: async (groupId: string) => {
-      // 이전 쿼리 취소
-      await queryClient.cancelQueries({ queryKey: myPageKeys.likedMeetings() });
-
-      // 이전 데이터 스냅샷
-      const previousMeetings = queryClient.getQueryData<Meeting[]>(myPageKeys.likedMeetings());
-
-      // Optimistic Update
-      queryClient.setQueryData<Meeting[]>(myPageKeys.likedMeetings(), (old: Meeting[] | undefined) => {
-        return old?.filter((meeting: Meeting) => meeting.groupId !== groupId) ?? [];
-      });
-
-      // Zustand store도 업데이트
-      unlikeMeeting(groupId);
-
-      return { previousMeetings };
-    },
-    onError: (_err: unknown, _groupId: string, context: { previousMeetings?: Meeting[] } | undefined) => {
-      // 에러 발생 시 이전 데이터로 롤백
-      if (context?.previousMeetings) {
-        queryClient.setQueryData(myPageKeys.likedMeetings(), context.previousMeetings);
-      }
-    },
-    onSettled: () => {
-      // 성공/실패 관계없이 쿼리 무효화하여 최신 데이터 가져오기
-      queryClient.invalidateQueries({ queryKey: myPageKeys.likedMeetings() });
-    },
-  });
-};
-
-/**
- * 프로필 수정
- */
-export const useUpdateProfile = () => {
-  const queryClient = useQueryClient();
-  const setUser = useMyPageStore((state) => state.setUser);
-
-  return useMutation({
-    mutationFn: (data: UpdateProfileRequest) => mypageApi.updateProfile(data),
-    onSuccess: (response: { data: any }) => {
-      const updatedUser = response.data;
-      setUser(updatedUser);
-      queryClient.invalidateQueries({ queryKey: myPageKeys.profile() });
-    },
-  });
-};
-
-/**
- * 통합 훅 - Mock 데이터 사용 (테스트용)
- * TODO: 테스트 완료 후 API 호출 방식으로 전환
- */
-export const useMyPage = () => {
-  const user = useMyPageStore((state) => state.user);
-  const myMeetingsData = useMyPageStore((state) => state.myMeetings);
-  const likedMeetingsData = useMyPageStore((state) => state.likedMeetings);
-  const initializeMockData = useMyPageStore((state) => state.initializeMockData);
-  const updateUser = useMyPageStore((state) => state.updateUser);
-  const unlikeMeeting = useMyPageStore((state) => state.unlikeMeeting);
-  const isInitialized = useMyPageStore((state) => state.isInitialized);
-
-  // Mock 데이터 초기화
-  if (!isInitialized) {
-    initializeMockData();
-  }
+  // meetingStore에서 파생된 데이터
+  const myMeetings = getMyMeetings();
+  const likedMeetings = getLikedMeetings();
 
   return {
     // 사용자 정보
     user,
-    isLoadingProfile: false,
-    profileError: null,
+    isLoading: isLoadingProfile,
+    error: profileError,
 
-    // 내 모임
-    myMeetings: myMeetingsData,
-    isLoadingMyMeetings: false,
-    myMeetingsError: null,
+    // 내 모임 (meetingStore에서 파생)
+    myMeetings,
 
-    // 찜한 모임
-    likedMeetings: likedMeetingsData,
-    isLoadingLikedMeetings: false,
-    likedMeetingsError: null,
+    // 찜한 모임 (meetingStore에서 파생)
+    likedMeetings,
 
-    // 전체 로딩 상태
-    isLoading: false,
-    error: null,
-
-    // Mutations - Store 직접 사용
-    unlikeMeeting,
-    updateProfile: () => {}, // Mock에서는 updateUser 사용
+    // Actions
+    unlikeMeeting: toggleLikeByGroupId,
     updateUser,
-    isUnliking: false,
-    isUpdatingProfile: false,
 
-    // Refetch functions (Mock에서는 no-op)
-    refetchProfile: () => Promise.resolve(),
-    refetchMyMeetings: () => Promise.resolve(),
-    refetchLikedMeetings: () => Promise.resolve(),
+    // Refetch
+    refetchProfile,
   };
 };
