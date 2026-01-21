@@ -21,8 +21,14 @@ export interface PaginationMeta {
 }
 
 export interface PaginatedResponse<T> {
-  items: T[];
-  meta: PaginationMeta;
+  content: T[];  // Spring Data Page uses 'content' instead of 'items'
+  totalElements: number;
+  totalPages: number;
+  size: number;
+  number: number;
+  first: boolean;
+  last: boolean;
+  empty: boolean;
 }
 
 // ============================================

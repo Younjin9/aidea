@@ -7,16 +7,30 @@ import Button from '@/shared/components/ui/Button';
 import Input from '@/shared/components/ui/Input';
 import Modal from '@/shared/components/ui/Modal';
 import { INTEREST_CATEGORIES } from '@/shared/config/constants';
+import defaultLogo from '@/assets/images/logo.png';
+import { useMeetingStore } from '../store/meetingStore';
+import { useMyPageStore } from '@/features/mypage/store/myPageStore';
+import { useCreateMeeting } from '../hooks/useMeetings';
 
 const MeetingCreatePage: React.FC = () => {
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const addMeeting = useMeetingStore((state) => state.addMeeting);
+
+  // 유저 프로필 이미지 가져오기
+  const user = useMyPageStore((state) => state.user);
+  const currentUserProfileImage = user?.profileImage;
+
+  // API Mutation
+  const { mutate: createMeeting, isPending } = useCreateMeeting();
 
   // Form State
   const [meetingImage, setMeetingImage] = useState<string>();
+  const [imageFile, setImageFile] = useState<File | null>(null);
   const [meetingName, setMeetingName] = useState('');
   const [shortDescription, setShortDescription] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
+  const [selectedCategoryId, setSelectedCategoryId] = useState('');
   const [region, setRegion] = useState('');
   const [description, setDescription] = useState('');
   const [capacity, setCapacity] = useState(10);
@@ -26,12 +40,10 @@ const MeetingCreatePage: React.FC = () => {
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
 
-  // TODO: 실제 유저 정보로 대체
-  const currentUserProfileImage: string | undefined = undefined;
-
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      setImageFile(file);
       const reader = new FileReader();
       reader.onloadend = () => setMeetingImage(reader.result as string);
       reader.readAsDataURL(file);
@@ -43,9 +55,44 @@ const MeetingCreatePage: React.FC = () => {
       setShowProfileModal(true);
       return;
     }
-    // TODO: API 호출
-    console.log({ meetingImage, meetingName, shortDescription, selectedCategory, region, description, capacity, agreeToTerms });
-    navigate(-1);
+
+    const groupId = `${Date.now()}`;
+    const finalImage = meetingImage || defaultLogo;
+
+    // API 호출 시도
+    createMeeting(
+      {
+        title: meetingName,
+        description,
+        interestCategoryId: selectedCategoryId || '1',
+        maxMembers: capacity,
+        location: { lat: 0, lng: 0, region },
+        isPublic: true,
+        image: imageFile || undefined,
+      },
+      {
+        onError: () => {
+          // API 실패 시 로컬 store에 추가 (fallback)
+          addMeeting({
+            groupId,
+            image: finalImage,
+            title: meetingName,
+            category: selectedCategory,
+            location: region,
+            members: 1,
+            maxMembers: capacity,
+            description,
+            date: new Date().toISOString().split('T')[0],
+            isLiked: false,
+            ownerUserId: user?.userId,
+            myStatus: 'APPROVED',
+            myRole: 'HOST',
+          });
+
+          navigate('/meetings');
+        },
+      }
+    );
   };
 
   const isFormValid = meetingName && shortDescription && selectedCategory && region && description && agreeToTerms;
@@ -134,17 +181,17 @@ const MeetingCreatePage: React.FC = () => {
           <label className="text-sm font-medium text-gray-900">정원(3~300명)</label>
           <div className="flex items-center gap-4">
             <button
-              onClick={() => setCapacity(prev => Math.min(300, prev + 1))}
-              className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center"
-            >
-              <Plus size={16} className="text-gray-600" />
-            </button>
-            <span className="text-base font-medium w-8 text-center">{capacity}</span>
-            <button
               onClick={() => setCapacity(prev => Math.max(3, prev - 1))}
               className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center"
             >
               <Minus size={16} className="text-gray-600" />
+            </button>
+            <span className="text-base font-medium w-8 text-center">{capacity}</span>
+            <button
+              onClick={() => setCapacity(prev => Math.min(300, prev + 1))}
+              className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center"
+            >
+              <Plus size={16} className="text-gray-600" />
             </button>
           </div>
         </div>
@@ -161,8 +208,8 @@ const MeetingCreatePage: React.FC = () => {
         </label>
 
         {/* 개설 버튼 */}
-        <Button variant="primary" size="lg" fullWidth onClick={handleSubmit} disabled={!isFormValid}>
-          모임 개설하기
+        <Button variant="primary" size="lg" fullWidth onClick={handleSubmit} disabled={!isFormValid || isPending}>
+          {isPending ? '생성 중...' : '모임 개설하기'}
         </Button>
       </main>
 
@@ -174,7 +221,10 @@ const MeetingCreatePage: React.FC = () => {
         title="카테고리 선택"
         actions={INTEREST_CATEGORIES.map(cat => ({
           label: cat.label,
-          onClick: () => setSelectedCategory(cat.label),
+          onClick: () => {
+            setSelectedCategory(cat.label);
+            setSelectedCategoryId(cat.id);
+          },
         }))}
       />
 
