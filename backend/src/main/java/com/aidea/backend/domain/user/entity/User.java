@@ -17,7 +17,7 @@ import org.hibernate.annotations.UpdateTimestamp;
 @Setter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor(access = AccessLevel.PROTECTED)
-@ToString(exclude = {"password"})
+@ToString(exclude = { "password" })
 public class User {
 
     @Id
