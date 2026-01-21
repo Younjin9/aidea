@@ -16,8 +16,8 @@ import type {
   PopularRegion,
   RegionMeetingCount,
   MarkerStyles,
-} from '@/shared/types/map.types';
-import type { MapMeeting } from '@/shared/types/meeting.types';
+} from '@/shared/types/Map.types';
+import type { MapMeeting } from '@/shared/types/Meeting.types';
 
 // ============================================
 // 🗺️ Map API - 유경님

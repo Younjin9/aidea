@@ -1,18 +1,43 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Camera } from 'lucide-react';
 import BackButton from '@/shared/components/ui/BackButton';
 import ProfileImage from '@/shared/components/ui/ProfileImage';
 import { INTEREST_CATEGORIES } from '@/shared/config/constants';
+import { useMyPageStore } from '../store/myPageStore';
 
 const ProfileEditPage: React.FC = () => {
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const user = useMyPageStore((state) => state.user);
+  const updateUser = useMyPageStore((state) => state.updateUser);
+  const initializeMockData = useMyPageStore((state) => state.initializeMockData);
+  const isInitialized = useMyPageStore((state) => state.isInitialized);
+
+  // Mock 데이터 초기화
+  useEffect(() => {
+    if (!isInitialized) {
+      initializeMockData();
+    }
+  }, [isInitialized, initializeMockData]);
+
   const [name, setName] = useState('');
   const [bio, setBio] = useState('');
   const [region, setRegion] = useState('');
   const [selectedInterests, setSelectedInterests] = useState<string[]>([]);
   const [profileImage, setProfileImage] = useState<string | undefined>(undefined);
+
+  // 유저 데이터가 있으면 초기값 설정
+  useEffect(() => {
+    if (user) {
+      setName(user.nickname || '');
+      setBio(user.bio || '');
+      setRegion(user.location?.region || '');
+      setSelectedInterests(user.interests || []);
+      setProfileImage(user.profileImage);
+    }
+  }, [user]);
 
   const handleInterestToggle = (interest: string) => {
     setSelectedInterests((prev) =>
@@ -23,8 +48,17 @@ const ProfileEditPage: React.FC = () => {
   };
 
   const handleSave = () => {
+    // Store 업데이트 (Mock)
+    updateUser({
+      nickname: name,
+      bio,
+      profileImage,
+      interests: selectedInterests,
+      location: user?.location ? { ...user.location, region } : { lat: 0, lng: 0, region },
+    });
+
     // TODO: API 호출로 프로필 저장
-    console.log({ name, bio, region, selectedInterests, profileImage });
+    console.log('프로필 저장:', { name, bio, region, selectedInterests, profileImage });
     navigate(-1);
   };
 
