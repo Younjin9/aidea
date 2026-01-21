@@ -1,143 +1,96 @@
-import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { useEffect } from 'react';
+import mypageApi from '@/shared/api/user/userApi';
+import { useMyPageStore } from '../store/myPageStore';
+import { useMeetingStore } from '@/features/meeting/store/meetingStore';
 
-interface User {
-  nickname: string;
-  profileImage: string;
-  bio: string;
-  interests: string[];
-}
+// ============================================
+// React Query Keys
+// ============================================
 
-interface Meeting {
-  id: number;
-  image: string;
-  title: string;
-  category: string;
-  location: string;
-  members: number;
-  date: string;
-}
+export const myPageKeys = {
+  all: ['mypage'] as const,
+  profile: () => [...myPageKeys.all, 'profile'] as const,
+  myMeetings: () => [...myPageKeys.all, 'my-meetings'] as const,
+  likedMeetings: () => [...myPageKeys.all, 'liked-meetings'] as const,
+};
 
-// TODO: 나중에 React Query로 대체
+// ============================================
+// Custom Hook
+// ============================================
+
+/**
+ * 마이페이지 통합 훅 - API 호출 후 실패 시 Mock 데이터 fallback
+ */
 export const useMyPage = () => {
-  const [user, setUser] = useState<User>({
-    nickname: '김수현',
-    profileImage: '',
-    bio: '서울 중구',
-    interests: ['여행하기 좋아요', '게임 좋아', '운동도 조아'],
+  // MyPage Store (user 정보만)
+  const user = useMyPageStore((state) => state.user);
+  const setUser = useMyPageStore((state) => state.setUser);
+  const initializeMockData = useMyPageStore((state) => state.initializeMockData);
+  const updateUser = useMyPageStore((state) => state.updateUser);
+  const isUserInitialized = useMyPageStore((state) => state.isInitialized);
+
+  // Meeting Store (모임 정보)
+  const getMyMeetings = useMeetingStore((state) => state.getMyMeetings);
+  const getLikedMeetings = useMeetingStore((state) => state.getLikedMeetings);
+  const toggleLikeByGroupId = useMeetingStore((state) => state.toggleLikeByGroupId);
+  const initializeMeetingMockData = useMeetingStore((state) => state.initializeMockData);
+  const isMeetingInitialized = useMeetingStore((state) => state.isInitialized);
+
+  // 프로필 API 호출
+  const {
+    data: profileData,
+    isLoading: isLoadingProfile,
+    error: profileError,
+    refetch: refetchProfile,
+  } = useQuery({
+    queryKey: myPageKeys.profile(),
+    queryFn: async () => {
+      const response = await mypageApi.getMyProfile();
+      return response.data;
+    },
+    staleTime: 1000 * 60 * 5,
+    retry: 1,
   });
 
-  const [myMeetings, setMyMeetings] = useState<Meeting[]>([
-    {
-      id: 1,
-      image: 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=400',
-      title: '홍대에 맛집 탐방',
-      category: '맛집 투어',
-      location: '서울 · 마포구',
-      members: 4,
-      date: '오늘 · 오후 6시 30분',
-    },
-    {
-      id: 2,
-      image: 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=400',
-      title: '홍대에 치킨 탐방',
-      category: '맛집 투어',
-      location: '서울 · 마포구',
-      members: 4,
-      date: '오늘 · 오후 7시 30분',
-    },
-  ]);
-
-  const [likedMeetings, setLikedMeetings] = useState<Meeting[]>([
-    {
-      id: 3,
-      image: 'https://images.unsplash.com/photo-1579952363873-27f3bde9be2b?w=400',
-      title: '연트럴 시즌 구린너디',
-      category: '운동/스포츠',
-      location: '서울 · 중구',
-      members: 10,
-      date: '오늘 · 오후 7시 30분',
-    },
-    {
-      id: 4,
-      image: 'https://images.unsplash.com/photo-1579952363873-27f3bde9be2b?w=400',
-      title: '연트럴 시즌 구린너디',
-      category: '운동/스포츠',
-      location: '서울 · 중구',
-      members: 10,
-      date: '오늘 · 오후 8시 30분',
-    },
-  ]);
-
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const unlikeMeeting = (id: number) => {
-    setLikedMeetings((prev) => prev.filter((meeting) => meeting.id !== id));
-  };
-
-  const fetchUserProfile = async () => {
-    setIsLoading(true);
-    setError(null);
-    
-    try {
-      // TODO: API 호출
-      // const response = await fetch('/api/users/me');
-      // const data = await response.json();
-      // setUser(data);
-      
-      await new Promise(resolve => setTimeout(resolve, 500));
-    } catch (err) {
-      setError('프로필을 불러오는데 실패했습니다.');
-    } finally {
-      setIsLoading(false);
+  // API 성공 시 store 업데이트, 실패 시 Mock 데이터 사용
+  useEffect(() => {
+    if (profileData) {
+      setUser(profileData);
+    } else if (profileError && !isUserInitialized) {
+      console.warn('MyPage API 호출 실패, Mock 데이터 사용');
+      initializeMockData();
     }
-  };
+  }, [profileData, profileError, isUserInitialized, setUser, initializeMockData]);
 
-  const fetchMyMeetings = async () => {
-    setIsLoading(true);
-    setError(null);
-    
-    try {
-      // TODO: API 호출
-      // const response = await fetch('/api/users/me/meetings');
-      // const data = await response.json();
-      // setMyMeetings(data);
-      
-      await new Promise(resolve => setTimeout(resolve, 500));
-    } catch (err) {
-      setError('모임 목록을 불러오는데 실패했습니다.');
-    } finally {
-      setIsLoading(false);
+  // Meeting Mock 데이터 초기화
+  useEffect(() => {
+    if (!isMeetingInitialized) {
+      initializeMeetingMockData();
     }
-  };
+  }, [isMeetingInitialized, initializeMeetingMockData]);
 
-  const fetchLikedMeetings = async () => {
-    setIsLoading(true);
-    setError(null);
-    
-    try {
-      // TODO: API 호출
-      // const response = await fetch('/api/users/me/liked-meetings');
-      // const data = await response.json();
-      // setLikedMeetings(data);
-      
-      await new Promise(resolve => setTimeout(resolve, 500));
-    } catch (err) {
-      setError('찜한 모임 목록을 불러오는데 실패했습니다.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  // meetingStore에서 파생된 데이터
+  const myMeetings = getMyMeetings();
+  const likedMeetings = getLikedMeetings();
 
   return {
+    // 사용자 정보
     user,
+    isLoading: isLoadingProfile,
+    error: profileError,
+
+    // 내 모임 (meetingStore에서 파생)
     myMeetings,
+
+    // 찜한 모임 (meetingStore에서 파생)
     likedMeetings,
-    isLoading,
-    error,
-    unlikeMeeting,
-    fetchUserProfile,
-    fetchMyMeetings,
-    fetchLikedMeetings,
+
+    // Actions
+    unlikeMeeting: toggleLikeByGroupId,
+    updateUser,
+
+    // Refetch
+    refetchProfile,
   };
 };

@@ -1,147 +1,188 @@
-import React from 'react';
+// 마이페이지
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Edit2 } from 'lucide-react';
 import ProfileImage from '@/shared/components/ui/ProfileImage';
-import MeetingListCard from '@/features/meeting/components/MeetingListCard';
+import MeetingCard from '@/shared/components/ui/MeetingCard';
+import Modal from '@/shared/components/ui/Modal';
 import logo from '@/assets/images/logo.png';
+import { useMyPage } from '../hooks/useMyPage';
+import { useMyPageStore } from '../store/myPageStore';
+import { useMeetingStore } from '@/features/meeting/store/meetingStore';
 import type { MeetingUI } from '@/shared/types/Meeting.types';
-import type { User } from '@/shared/types/MyPage.types';
 
-const MOCK_USER = {
-  nickname: '김구름',
-  profileImage: '',
-  bio: '서울 중구',
-  interests: ['맛집 탐방', '취미 활동', '운동/스포츠'],
-};
-
-const MOCK_MY_MEETINGS: MeetingUI[] = [
-  {
-    id: 1,
-    image: 'https://search.pstatic.net/common/?src=http%3A%2F%2Fblogfiles.naver.net%2FMjAxOTA1MTZfMTMg%2FMDAxNTU4MDE3MzY3Mzk1.9HCj1nFR8Q1Ho1vdxodzd332xbOB-POZiZ6a13hip9kg.mDh2PiIKVmEc5Xu9Fjs4-XhHYNbIyje7ugBHViJg8CYg.PNG.cherewu%2F1558017337291.png&type=sc960_832',
-    title: '맛집 탐방',
-    category: '맛집 투어',
-    location: '서울 · 마포구',
-    members: 4,
-    date: '오늘 · 오후 6시 30분',
-    isLiked: false,
-  },
-  {
-    id: 2,
-    image: 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=400',
-    title: '홍대 맛집 탐방',
-    category: '맛집 투어',
-    location: '서울 · 마포구',
-    members: 4,
-    date: '오늘 · 오후 7시 30분',
-    isLiked: false,
-  },
-];
-
-const MOCK_LIKED_MEETINGS: MeetingUI[] = [
-  {
-    id: 3,
-    image: 'https://search.pstatic.net/common/?src=http%3A%2F%2Fblogfiles.naver.net%2FMjAyNTExMTFfMjI2%2FMDAxNzYyODIzODIwMjcy.LULBVH9Nt4A1r5XMdCEL9rA7b06xOk7xDQpf1TNOLCQg.ceyfsKWEzUAVUISgdhP7-0VtYJ5B2Hc_sftZhGOvWkMg.JPEG%2F900%25A3%25DF1762743095069.jpg&type=sc960_832',
-    title: '퇴근 후 풋살 모임',
-    category: '운동/스포츠',
-    location: '서울 · 중구',
-    members: 10,
-    date: '오늘 · 오후 7시 30분',
-    isLiked: true,
-  },
-  {
-    id: 4,
-    image: 'https://search.pstatic.net/common/?src=http%3A%2F%2Fblogfiles.naver.net%2FMjAyNTA0MDNfMjIz%2FMDAxNzQzNjUxNjU0MzY3.KoERpm42v7L5iMTlDOGDz1n7hTsVb59MNcYTyMNC7U0g.iKDfksImrgAqLObGD-rZqjPkghlBQ6z6Eoi-EdYfA3Eg.JPEG%2F900%25A3%25DFScreenshot%25A3%25DF20250403%25A3%25DFPinterest.jpg&type=sc960_832',
-    title: '배드민턴 할 사람!!',
-    category: '운동/스포츠',
-    location: '서울 · 중구',
-    members: 10,
-    date: '오늘 · 오후 8시 30분',
-    isLiked: true,
-  },
-];
-
-interface MyPageViewProps {
-  onUnlike?: (id: number) => void;
-}
-
-const MyPageView: React.FC<MyPageViewProps> = ({ onUnlike }) => {
+const MyPageView: React.FC<{ onUnlike?: (id: number) => void }> = ({ onUnlike }) => {
   const navigate = useNavigate();
+  const { user, myMeetings, likedMeetings, isLoading, unlikeMeeting } = useMyPage();
+  const clearUser = useMyPageStore((state) => state.clearUser);
+  const initializeMeetingMockData = useMeetingStore((state) => state.initializeMockData);
 
-  const renderMeetingCard = (meeting: MeetingUI, showLikeButton: boolean = false) => (
-    <MeetingListCard
-      key={meeting.id}
-      meeting={meeting}
-      onClick={() => navigate(`/meetings/${meeting.id}`)}
-      onLike={() => onUnlike?.(meeting.id)}
-      showLikeButton={showLikeButton}
-    />
-  );
+  // 로그아웃/회원탈퇴 모달 상태
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [showWithdrawModal, setShowWithdrawModal] = useState(false);
+
+  // 찜 목록 (1초 딜레이용)
+  const [displayedLikedMeetings, setDisplayedLikedMeetings] = useState<MeetingUI[]>([]);
+  const timeoutRef = useRef<number | null>(null);
+  const isInitializedRef = useRef(false);
+
+  // Meeting Mock 데이터 초기화
+  useEffect(() => {
+    initializeMeetingMockData();
+  }, [initializeMeetingMockData]);
+
+  useEffect(() => {
+    if (!isInitializedRef.current && likedMeetings.length > 0) {
+      setDisplayedLikedMeetings(likedMeetings);
+      isInitializedRef.current = true;
+    } else if (isInitializedRef.current) {
+      setDisplayedLikedMeetings(likedMeetings);
+    }
+  }, [likedMeetings]);
+
+  useEffect(() => {
+    return () => { if (timeoutRef.current) clearTimeout(timeoutRef.current); };
+  }, []);
+
+  const handleUnlike = (id: number) => {
+    setDisplayedLikedMeetings(prev => prev.map(m => m.id === id ? { ...m, isLiked: false } : m));
+
+    timeoutRef.current = window.setTimeout(() => {
+      const originalMeeting = likedMeetings.find(m => m.id === id);
+      if (originalMeeting) unlikeMeeting(originalMeeting.groupId);
+      setDisplayedLikedMeetings(prev => prev.filter(m => m.id !== id));
+      onUnlike?.(id);
+    }, 1000);
+  };
+
+  // 로그아웃 핸들러
+  const handleLogout = () => {
+    clearUser();
+    setShowLogoutModal(false);
+    // TODO: API 호출 (토큰 삭제 등)
+    console.log('로그아웃 완료');
+    navigate('/');
+  };
+
+  // 회원탈퇴 핸들러
+  const handleWithdraw = () => {
+    clearUser();
+    setShowWithdrawModal(false);
+    // TODO: API 호출 (회원탈퇴 요청)
+    console.log('회원탈퇴 완료');
+    navigate('/');
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col h-full bg-white items-center justify-center">
+        <p className="text-sm text-gray-500">로딩 중...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-full bg-white">
+      {/* Header */}
       <header className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
         <img src={logo} alt="AIMO" className="w-8 h-8 object-contain" />
         <h1 className="text-lg font-bold text-gray-900">MyPage</h1>
         <div className="w-8" />
       </header>
 
-      <div className="flex-1 overflow-y-auto pb-20 no-scrollbar">
-        <div className="px-6 py-6 border-b border-gray-100">
-          <div className="flex items-start gap-4">
-            <ProfileImage
-              src={MOCK_USER.profileImage}
-              alt={MOCK_USER.nickname}
-              fallback={MOCK_USER.nickname}
-              size="lg"
-            />
-
-            <div className="flex-1">
-              <div className="flex items-center justify-between mb-1">
-                <h2 className="text-lg font-bold text-gray-900">{MOCK_USER.nickname}</h2>
-                <button onClick={() => navigate('/profile/edit')} className="p-1">
-                  <Edit2 size={18} className="text-gray-600" />
-                </button>
-              </div>
-              <p className="text-sm text-gray-500 mb-3">{MOCK_USER.bio}</p>
+      <main className="flex-1 overflow-y-auto pb-20 no-scrollbar flex flex-col min-h-0">
+        {/* Profile */}
+        <section className="px-6 py-6 border-b border-gray-100">
+          <div className="flex items-start gap-4 relative">
+            <ProfileImage src={user?.profileImage || ''} alt={user?.nickname || '사용자'} fallback={user?.nickname || '사용자'} size="lg" />
+            <div className="flex-1 pt-1">
+              <h2 className="text-base font-bold text-gray-900 mb-0.5">{user?.nickname || '이름 없음'}</h2>
+              <p className="text-xs text-gray-500 mb-0.5">{user?.location?.region || '위치 없음'}</p>
+              <p className="text-xs text-gray-600 mb-2">{user?.bio || '소개가 없습니다'}</p>
               <div className="flex flex-wrap gap-2">
-                {MOCK_USER.interests.map((interest, index) => (
-                  <span key={index} className="px-3 py-1 bg-mint text-white text-xs rounded-full">
-                    {interest}
-                  </span>
-                ))}
+                {user?.interests?.length ? (
+                  user.interests.map((interest, i) => (
+                    <span key={i} className="px-3 py-1 bg-mint text-white text-xs rounded-full">{interest}</span>
+                  ))
+                ) : (
+                  <span className="text-xs text-gray-400">관심사 없음</span>
+                )}
               </div>
             </div>
+            <button onClick={() => navigate('/mypage/edit')} className="absolute top-6 right-0 p-1">
+              <Edit2 size={16} className="text-gray-600" />
+            </button>
           </div>
-        </div>
+        </section>
 
-        <div className="px-6 py-6 border-b border-gray-100">
+        {/* 내 모임 */}
+        <section className="px-6 py-6 border-b border-gray-100">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-base font-bold text-gray-900">내 모임</h3>
-            <button onClick={() => navigate('/my-meetings')} className="text-sm text-gray-500">
-              전체 보기
-            </button>
+            <button onClick={() => navigate('/my-meetings')} className="text-xs text-gray-500">전체 보기</button>
           </div>
-          <div className="space-y-4">
-            {MOCK_MY_MEETINGS.map((meeting) => renderMeetingCard(meeting, false))}
-          </div>
-        </div>
+          {myMeetings.length > 0 ? (
+            <div className="space-y-4">
+              {myMeetings.slice(0, 2).map(meeting => (
+                <MeetingCard key={meeting.id} meeting={meeting} onClick={() => navigate(`/meetings/${meeting.groupId}`)} showLikeButton={false} />
+              ))}
+            </div>
+          ) : (
+            <p className="py-8 text-center text-sm text-gray-400">참여 중인 모임이 없습니다</p>
+          )}
+        </section>
 
-        <div className="px-6 py-6">
+        {/* 찜 목록 */}
+        <section className="px-6 py-6 border-b border-gray-100">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-base font-bold text-gray-900">찜 목록</h3>
-            <button onClick={() => navigate('/liked-meetings')} className="text-sm text-gray-500">
-              전체 보기
-            </button>
+            <button onClick={() => navigate('/my-meetings?tab=liked')} className="text-xs text-gray-500">전체 보기</button>
           </div>
-          <div className="space-y-4">
-            {MOCK_LIKED_MEETINGS.map((meeting) => renderMeetingCard(meeting, true))}
-          </div>
-        </div>
+          {displayedLikedMeetings.length > 0 ? (
+            <div className="space-y-4">
+              {displayedLikedMeetings.slice(0, 2).map(meeting => (
+                <MeetingCard key={meeting.id} meeting={meeting} onClick={() => navigate(`/meetings/${meeting.groupId}`)} onLike={() => handleUnlike(meeting.id)} showLikeButton />
+              ))}
+            </div>
+          ) : (
+            <p className="py-8 text-center text-sm text-gray-400">찜한 모임이 없습니다</p>
+          )}
+        </section>
 
-        <div className="px-6 py-4 text-center">
-          <button className="text-sm text-gray-400 underline">로그아웃 · 회원탈퇴</button>
+        {/* 로그아웃/회원탈퇴 */}
+        <div className="px-6 py-8 mt-auto flex items-center justify-center gap-2">
+          <button onClick={() => setShowLogoutModal(true)} className="text-xs text-gray-400 underline">로그아웃</button>
+          <span className="text-xs text-gray-300">·</span>
+          <button onClick={() => setShowWithdrawModal(true)} className="text-xs text-gray-400 underline">회원탈퇴</button>
         </div>
-      </div>
+      </main>
+
+      {/* 로그아웃 확인 모달 */}
+      <Modal
+        isOpen={showLogoutModal}
+        onClose={() => setShowLogoutModal(false)}
+        showLogo={true}
+        message="로그아웃 하시겠습니까?"
+        confirmText="로그아웃"
+        cancelText="취소"
+        onConfirm={handleLogout}
+        onCancel={() => setShowLogoutModal(false)}
+      />
+
+      {/* 회원탈퇴 확인 모달 */}
+      <Modal
+        isOpen={showWithdrawModal}
+        onClose={() => setShowWithdrawModal(false)}
+        showLogo={true}
+        title="회원탈퇴"
+        message="탈퇴 시 모든 데이터가 삭제되며 복구할 수 없습니다."
+        showCheckbox={true}
+        checkboxLabel="위 내용을 확인했습니다"
+        confirmText="탈퇴"
+        cancelText="취소"
+        onConfirm={handleWithdraw}
+        onCancel={() => setShowWithdrawModal(false)}
+      />
     </div>
   );
 };

@@ -1,201 +1,77 @@
 import React from 'react';
-import type { MeetingCardProps } from '@/shared/types/component.types';
-import { MapPin, Users, Calendar, Heart } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Heart } from 'lucide-react';
+import type { MeetingUI } from '@/shared/types/Meeting.types';
+import defaultLogo from '@/assets/images/logo.png';
 
-const statusStyles = {
-  RECRUITING: {
-    bg: 'bg-green-100',
-    text: 'text-green-700',
-    label: '모집중',
-  },
-  CONFIRMED: {
-    bg: 'bg-blue-100',
-    text: 'text-blue-700',
-    label: '확정',
-  },
-  COMPLETED: {
-    bg: 'bg-gray-100',
-    text: 'text-gray-700',
-    label: '완료',
-  },
-  CANCELLED: {
-    bg: 'bg-red-100',
-    text: 'text-red-700',
-    label: '취소',
-  },
-};
+interface MeetingCardProps {
+  meeting: MeetingUI;
+  onClick?: () => void;
+  onLike?: () => void;
+  showLikeButton?: boolean;
+}
 
 const MeetingCard: React.FC<MeetingCardProps> = ({
   meeting,
-  variant = 'card',
   onClick,
   onLike,
-  isLiked = false,
-  className = '',
+  showLikeButton = true,
 }) => {
-  const {
-    meeting_id,
-    title,
-    description,
-    image_url,
-    location,
-    max_members,
-    current_members,
-    meeting_date,
-    status,
-    tags = [],
-  } = meeting;
+  const navigate = useNavigate();
 
-  const statusStyle = statusStyles[status];
-
-  // 날짜 포맷팅
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    const month = date.getMonth() + 1;
-    const day = date.getDate();
-    const hours = date.getHours();
-    const minutes = date.getMinutes();
-    return `${month}/${day} ${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+  const handleClick = () => {
+    if (onClick) {
+      onClick();
+    } else {
+      navigate(`/meetings/${meeting.groupId}`);
+    }
   };
 
-  const handleCardClick = () => {
-    onClick?.(meeting_id);
-  };
-
-  const handleLikeClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    onLike?.(meeting_id);
-  };
-
-  // Card 변형 (기본)
-  if (variant === 'card') {
-    return (
-      <div
-        className={`
-          relative
-          flex gap-4
-          bg-amber-50
-          rounded-xl
-          shadow-sm
-          hover:shadow-md
-          transition-all
-          duration-300
-          overflow-hidden
-          cursor-pointer
-          border border-amber-100
-          p-4
-          ${className}
-        `}
-        onClick={handleCardClick}
-      >
-        {/* 이미지 영역 */}
-        <div className="w-20 h-20 flex-shrink-0 rounded-lg overflow-hidden bg-gray-200">
-          {image_url ? (
-            <img
-              src={image_url}
-              alt={title}
-              className="w-full h-full object-cover"
-            />
+  return (
+    <div className="relative flex gap-3 cursor-pointer pr-12" onClick={handleClick}>
+      {/* 이미지 */}
+      <div className="w-20 h-20 flex-shrink-0 rounded-lg overflow-hidden bg-gray-100 flex items-center justify-center">
+        {meeting.image ? (
+          meeting.image === defaultLogo ? (
+            <img src={meeting.image} alt={meeting.title} className="w-7 h-7 object-contain" />
           ) : (
-            <div className="w-full h-full flex items-center justify-center bg-gray-300">
-              <Users className="w-8 h-8 text-gray-400" />
-            </div>
-          )}
+            <img src={meeting.image} alt={meeting.title} className="w-full h-full object-cover" />
+          )
+        ) : (
+          <div className="text-xs text-gray-400">사진</div>
+        )}
+      </div>
+
+      {/* 정보 */}
+      <div className="flex-1 flex flex-col h-20">
+        {/* 제목 - 이미지 상단에 맞춤 */}
+        <div className="mb-2">
+          <h3 className="text-sm font-bold text-gray-900 line-clamp-1">{meeting.title}</h3>
         </div>
 
-        {/* 정보 영역 */}
-        <div className="flex-1 flex flex-col justify-between min-w-0">
-          <div>
-            <h3 className="text-sm font-bold text-gray-900 mb-1 line-clamp-1">
-              {title}
-            </h3>
-            <p className="text-xs text-gray-600 mb-2 line-clamp-1">
-              {description || `${location} · 멤버 ${current_members}/${max_members}`}
-            </p>
-          </div>
-          
-          {/* 메타 정보 */}
-          <div className="flex flex-wrap gap-2 items-center text-xs text-gray-500">
-            <span>{location}</span>
-            <span>·</span>
-            <span>멤버 {current_members}</span>
-          </div>
-
-          {/* 태그 */}
-          {tags.length > 0 && (
-            <div className="text-xs text-gray-400 mt-1 line-clamp-1">
-              #{tags.join(' #')}
-            </div>
-          )}
+        {/* 한줄소개 & 위치·멤버 */}
+        <div>
+          <p className="text-xs text-gray-500 mb-0.5 line-clamp-1">{meeting.category}</p>
+          <p className="text-xs text-gray-400">{meeting.location} · 멤버 {meeting.members}</p>
         </div>
+      </div>
 
-        {/* 좋아요 버튼 */}
+      {/* 좋아요 버튼 (우측 하단에 고정 배치) */}
+      {showLikeButton && (
         <button
-          onClick={handleLikeClick}
-          className="
-            flex-shrink-0
-            self-end
-            w-6 h-6
-            flex items-center justify-center
-            transition-colors
-            p-1
-          "
+          onClick={(e) => {
+            e.stopPropagation();
+            onLike?.();
+          }}
+          className="absolute right-3 bottom-2 p-2 rounded-full bg-white shadow-sm"
+          aria-label="like"
         >
           <Heart
             size={20}
-            className={`${isLiked ? 'fill-primary text-primary' : 'text-gray-300'}`}
+            className={`transition-colors ${meeting.isLiked ? 'fill-primary text-primary' : 'text-gray-300'}`}
           />
         </button>
-      </div>
-    );
-  }
-
- 
-
-  // Compact 변형 (최소 정보)
-  return (
-    <div
-      className={`
-        bg-white
-        rounded-lg
-        p-4
-        border border-gray-200
-        hover:border-blue-300
-        transition-colors
-        cursor-pointer
-        ${className}
-      `}
-      onClick={handleCardClick}
-    >
-      <div className="flex items-start justify-between mb-2">
-        <h3 className="text-sm font-bold text-gray-900 line-clamp-1 flex-1">
-          {title}
-        </h3>
-        <span
-          className={`
-            px-2 py-0.5
-            rounded-full
-            text-xs font-semibold
-            ml-2
-            ${statusStyle.bg} ${statusStyle.text}
-          `}
-        >
-          {statusStyle.label}
-        </span>
-      </div>
-
-      <div className="flex items-center gap-3 text-xs text-gray-600">
-        <div className="flex items-center gap-1">
-          <Calendar className="w-3 h-3" />
-          <span>{formatDate(meeting_date)}</span>
-        </div>
-        <div className="flex items-center gap-1">
-          <Users className="w-3 h-3" />
-          <span>
-            {current_members}/{max_members}
-          </span>
-        </div>
-      </div>
+      )}
     </div>
   );
 };

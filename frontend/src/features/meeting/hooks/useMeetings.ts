@@ -1,116 +1,180 @@
-import { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import meetingApi from '@/shared/api/meeting/meetingApi';
+import { useMeetingStore } from '../store/meetingStore';
+import { myPageKeys } from '@/features/mypage/hooks/useMyPage';
+import type { Meeting, MeetingUI, MeetingListParams, CreateMeetingRequest } from '@/shared/types/Meeting.types';
 
-interface Meeting {
-  id: number;
-  image: string;
-  title: string;
-  category: string;
-  location: string;
-  members: number;
-  date: string;
-  isLiked: boolean;
-}
+// ============================================
+// Helper Functions
+// ============================================
 
-// TODO: 나중에 React Query로 대체
-export const useMeetings = () => {
-  const [meetings, setMeetings] = useState<Meeting[]>([
-    {
-      id: 1,
-      image: 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=400',
-      title: '홍대에 맛집 탐방',
-      category: '맛집 투어',
-      location: '서울 · 마포구',
-      members: 4,
-      date: '오늘 · 오후 6시 30분',
-      isLiked: false,
-    },
-    {
-      id: 2,
-      image: 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=400',
-      title: '홍대에 치킨 탐방',
-      category: '맛집 투어',
-      location: '서울 · 마포구',
-      members: 4,
-      date: '오늘 · 오후 7시 30분',
-      isLiked: false,
-    },
-    {
-      id: 3,
-      image: 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=400',
-      title: '홍대에 치킨 탐방',
-      category: '맛집 투어',
-      location: '서울 · 마포구',
-      members: 4,
-      date: '오늘 · 오후 8시 30분',
-      isLiked: false,
-    },
-    {
-      id: 4,
-      image: 'https://images.unsplash.com/photo-1579952363873-27f3bde9be2b?w=400',
-      title: '연트럴 시즌 구린너디',
-      category: '운동/스포츠',
-      location: '서울 · 중구',
-      members: 10,
-      date: '오늘 · 오후 7시 30분',
-      isLiked: false,
-    },
-    {
-      id: 5,
-      image: 'https://images.unsplash.com/photo-1579952363873-27f3bde9be2b?w=400',
-      title: '연트럴 시즌 구린너디',
-      category: '운동/스포츠',
-      location: '서울 · 중구',
-      members: 10,
-      date: '오늘 · 오후 8시 30분',
-      isLiked: false,
-    },
-    {
-      id: 6,
-      image: 'https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?w=400',
-      title: '한남 장가지 모집',
-      category: '액티비티/스포츠',
-      location: '서울 · 용산구',
-      members: 12,
-      date: '오늘 · 오후 7시 30분',
-      isLiked: false,
-    },
-  ]);
-
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const toggleLike = (id: number) => {
-    setMeetings((prev) =>
-      prev.map((meeting) =>
-        meeting.id === id ? { ...meeting, isLiked: !meeting.isLiked } : meeting
-      )
-    );
+/**
+ * Meeting 타입을 MeetingUI 타입으로 변환
+ */
+const transformMeetingToUI = (meeting: Meeting): MeetingUI => {
+  return {
+    id: parseInt(meeting.groupId, 10) || 0,
+    groupId: meeting.groupId,
+    image: meeting.imageUrl || '',
+    title: meeting.title,
+    category: meeting.interestCategoryName || '카테고리',
+    location: `${meeting.location.region || '위치 정보 없음'}`,
+    members: meeting.memberCount,
+    isLiked: false,
   };
+};
 
-  const fetchMeetings = async () => {
-    setIsLoading(true);
-    setError(null);
-    
-    try {
-      // TODO: API 호출
-      // const response = await fetch('/api/meetings');
-      // const data = await response.json();
-      // setMeetings(data);
-      
-      // 임시로 mock 데이터 사용
-      await new Promise(resolve => setTimeout(resolve, 500));
-    } catch (err) {
-      setError('모임을 불러오는데 실패했습니다.');
-    } finally {
-      setIsLoading(false);
+const transformMeetingsToUI = (meetings: Meeting[]): MeetingUI[] => {
+  return meetings.map(transformMeetingToUI);
+};
+
+// ============================================
+// React Query Keys
+// ============================================
+
+export const meetingKeys = {
+  all: ['meetings'] as const,
+  list: () => [...meetingKeys.all, 'list'] as const,
+  detail: (groupId: string) => [...meetingKeys.all, 'detail', groupId] as const,
+};
+
+// ============================================
+// Custom Hooks
+// ============================================
+
+/**
+ * 모임 목록 조회 - API 호출 후 실패 시 Mock 데이터 fallback
+ */
+export const useMeetings = (params: MeetingListParams = {}) => {
+  const meetings = useMeetingStore((state) => state.meetings);
+  const setMeetings = useMeetingStore((state) => state.setMeetings);
+  const groupByCategoryFn = useMeetingStore((state) => state.groupByCategory);
+  const toggleLikeByGroupId = useMeetingStore((state) => state.toggleLikeByGroupId);
+  const initializeMockData = useMeetingStore((state) => state.initializeMockData);
+  const isInitialized = useMeetingStore((state) => state.isInitialized);
+
+  // API 호출
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: meetingKeys.list(),
+    queryFn: async () => {
+      const response = await meetingApi.getList(params);
+      return transformMeetingsToUI(response.data.items);
+    },
+    staleTime: 1000 * 60 * 3,
+    retry: 1,
+  });
+
+  // API 성공 시 store 업데이트, 실패 시 Mock 데이터 사용
+  useEffect(() => {
+    if (data) {
+      setMeetings(data);
+    } else if (error && !isInitialized) {
+      console.warn('API 호출 실패, Mock 데이터 사용:', error);
+      initializeMockData();
     }
-  };
+  }, [data, error, isInitialized, setMeetings, initializeMockData]);
 
   return {
     meetings,
+    total: meetings.length,
     isLoading,
     error,
-    toggleLike,
-    fetchMeetings,
+    groupByCategory: groupByCategoryFn,
+    toggleLike: toggleLikeByGroupId,
+    refetch,
   };
+};
+
+// ============================================
+// Meeting Actions (생성/참여/탈퇴)
+// ============================================
+
+/**
+ * 모임 생성
+ */
+export const useCreateMeeting = () => {
+  const queryClient = useQueryClient();
+  const navigate = useNavigate();
+  const addMeeting = useMeetingStore((state) => state.addMeeting);
+
+  return useMutation({
+    mutationFn: async (data: CreateMeetingRequest) => {
+      const response = await meetingApi.create(data);
+      return response.data;
+    },
+    onSuccess: (data) => {
+      addMeeting({
+        groupId: data.groupId,
+        image: data.imageUrl || '',
+        title: data.title,
+        category: data.interestCategoryName || '카테고리',
+        location: data.location.region || '위치 정보 없음',
+        members: data.memberCount,
+        maxMembers: data.maxMembers,
+        description: data.description,
+        date: data.createdAt,
+        isLiked: false,
+        ownerUserId: data.ownerUserId,
+        myStatus: 'APPROVED',
+        myRole: 'HOST',
+      });
+
+      queryClient.invalidateQueries({ queryKey: meetingKeys.all });
+      queryClient.invalidateQueries({ queryKey: myPageKeys.myMeetings() });
+      navigate('/meetings');
+    },
+    onError: (error) => {
+      console.warn('모임 생성 API 실패 (fallback 처리됨):', error);
+    },
+  });
+};
+
+/**
+ * 모임 참여
+ */
+export const useJoinMeeting = () => {
+  const queryClient = useQueryClient();
+  const joinMeeting = useMeetingStore((state) => state.joinMeeting);
+
+  return useMutation({
+    mutationFn: async ({ groupId, requestMessage }: { groupId: string; requestMessage?: string }) => {
+      const response = await meetingApi.join(groupId, { requestMessage });
+      return { groupId, ...response.data };
+    },
+    onSuccess: (_, { groupId }) => {
+      joinMeeting(groupId, 'MEMBER');
+      queryClient.invalidateQueries({ queryKey: meetingKeys.detail(groupId) });
+      queryClient.invalidateQueries({ queryKey: myPageKeys.myMeetings() });
+    },
+    onError: (error) => {
+      console.warn('모임 참여 API 실패 (fallback 처리됨):', error);
+    },
+  });
+};
+
+/**
+ * 모임 탈퇴
+ */
+export const useLeaveMeeting = () => {
+  const queryClient = useQueryClient();
+  const navigate = useNavigate();
+  const leaveMeeting = useMeetingStore((state) => state.leaveMeeting);
+
+  return useMutation({
+    mutationFn: async (groupId: string) => {
+      await meetingApi.leave(groupId);
+      return groupId;
+    },
+    onSuccess: (groupId) => {
+      leaveMeeting(groupId);
+      queryClient.invalidateQueries({ queryKey: meetingKeys.all });
+      queryClient.invalidateQueries({ queryKey: myPageKeys.myMeetings() });
+      navigate('/meetings');
+    },
+    onError: (error) => {
+      console.warn('모임 탈퇴 API 실패 (fallback 처리됨):', error);
+    },
+  });
 };

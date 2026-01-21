@@ -1,45 +1,56 @@
 import { create } from 'zustand';
+import type { UserProfile } from '@/shared/types/User.types';
 
-interface User {
-  nickname: string;
-  profileImage: string;
-  bio: string;
-  interests: string[];
-}
-
-interface Meeting {
-  id: number;
-  image: string;
-  title: string;
-  category: string;
-  location: string;
-  members: number;
-  date: string;
-}
+// Mock 초기 데이터
+const MOCK_USER: UserProfile = {
+  userId: 'user1',
+  email: 'user@example.com',
+  nickname: '김구름',
+  bio: '맛집 탐방을 좋아하는 사람입니다.',
+  profileImage: undefined,
+  location: { lat: 37.5665, lng: 126.978, region: '성수동' },
+  interests: ['맛집 탐방', '러닝'],
+  provider: 'KAKAO',
+  createdAt: '2024-01-01',
+  updatedAt: '2024-01-01',
+};
 
 interface MyPageState {
-  user: User | null;
-  myMeetings: Meeting[];
-  likedMeetings: Meeting[];
-  setUser: (user: User) => void;
-  setMyMeetings: (meetings: Meeting[]) => void;
-  setLikedMeetings: (meetings: Meeting[]) => void;
-  unlikeMeeting: (id: number) => void;
+  user: UserProfile | null;
+  isInitialized: boolean;
+
+  // 초기화
+  initializeMockData: () => void;
+
+  // 유저 관리
+  setUser: (user: UserProfile) => void;
+  updateUser: (data: Partial<UserProfile>) => void;
+  clearUser: () => void;
 }
 
-export const useMyPageStore = create<MyPageState>((set) => ({
+export const useMyPageStore = create<MyPageState>((set, get) => ({
   user: null,
-  myMeetings: [],
-  likedMeetings: [],
-  
+  isInitialized: false,
+
+  initializeMockData: () => {
+    if (!get().isInitialized) {
+      set({
+        user: MOCK_USER,
+        isInitialized: true,
+      });
+    }
+  },
+
   setUser: (user) => set({ user }),
-  
-  setMyMeetings: (meetings) => set({ myMeetings: meetings }),
-  
-  setLikedMeetings: (meetings) => set({ likedMeetings: meetings }),
-  
-  unlikeMeeting: (id) =>
+
+  updateUser: (data) =>
     set((state) => ({
-      likedMeetings: state.likedMeetings.filter((meeting) => meeting.id !== id),
+      user: state.user ? { ...state.user, ...data, updatedAt: new Date().toISOString() } : null,
     })),
+
+  clearUser: () =>
+    set({
+      user: null,
+      isInitialized: false,
+    }),
 }));
