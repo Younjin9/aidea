@@ -6,7 +6,8 @@ import BackButton from '@/shared/components/ui/BackButton';
 import MeetingCard from '@/shared/components/ui/MeetingCard';
 import meetingApi from '@/shared/api/meeting/meetingApi';
 import { useMeetings, transformMeetingsToUI } from '../hooks/useMeetings';
-import type { MeetingUI } from '@/shared/types/Meeting.types';
+import type { MeetingUI, Meeting } from '@/shared/types/Meeting.types';
+import type { PaginatedResponse } from '@/shared/types/common.types';
 
 const MeetingSearchPage: React.FC = () => {
   const navigate = useNavigate();
@@ -26,8 +27,8 @@ const MeetingSearchPage: React.FC = () => {
   const { data: apiSearchResults, isLoading: isSearching, error: searchError } = useQuery({
     queryKey: ['meetings', 'search', debouncedQuery],
     queryFn: async () => {
-      const response = await meetingApi.search(debouncedQuery);
-      return transformMeetingsToUI(response.data.items);
+      const response = await meetingApi.search(debouncedQuery) as unknown as PaginatedResponse<Meeting>;
+      return transformMeetingsToUI(response.content || []);
     },
     enabled: debouncedQuery.trim().length > 0,
     staleTime: 1000 * 60 * 3,

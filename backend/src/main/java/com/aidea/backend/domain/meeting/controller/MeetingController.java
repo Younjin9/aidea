@@ -21,7 +21,7 @@ import org.springframework.web.bind.annotation.*;
  */
 @Tag(name = "Meeting", description = "모임 API")
 @RestController
-@RequestMapping("/api/meetings")
+@RequestMapping("/api/groups")
 @RequiredArgsConstructor
 public class MeetingController {
 
@@ -62,6 +62,25 @@ public class MeetingController {
             @RequestParam(defaultValue = "10") int size) {
         Pageable pageable = PageRequest.of(page, size);
         Page<MeetingSummaryResponse> response = meetingService.getAllMeetings(pageable);
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * 모임 검색 (조건별 통합 검색)
+     * - category만 있음 → category 조회
+     * - region만 있음 → region 조회
+     * - 둘 다 있음 → category AND region 조회
+     * - 둘 다 없음 → 전체 조회
+     */
+    @Operation(summary = "모임 검색", description = "카테고리, 지역 조건으로 모임을 검색합니다")
+    @GetMapping("/search")
+    public ResponseEntity<Page<MeetingSummaryResponse>> searchMeetings(
+            @RequestParam(required = false) com.aidea.backend.domain.meeting.entity.enums.MeetingCategory category,
+            @RequestParam(required = false) com.aidea.backend.domain.meeting.entity.enums.Region region,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        Page<MeetingSummaryResponse> response = meetingService.searchMeetings(category, region, pageable);
         return ResponseEntity.ok(response);
     }
 
