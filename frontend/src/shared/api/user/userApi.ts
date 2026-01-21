@@ -11,7 +11,7 @@ import type {
   UpdateNotificationSettingsRequest,
   DeleteAccountRequest,
 } from '@/shared/types/User.types';
-import type { Meeting } from '@/shared/types/meeting.types';
+import type { Meeting } from '@/shared/types/Meeting.types';
 
 // ============================================
 // 👤 User API - 마이페이지
