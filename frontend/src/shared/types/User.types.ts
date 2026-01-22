@@ -4,14 +4,14 @@
 // ============================================
 
 import type { Provider, Gender, Location } from './common.types';
-import type { Meeting } from './Meeting.types';
+// import type { Meeting } from './Meeting.types';
 
 // ============================================
 // User Types
 // ============================================
 
 export interface User {
-  userId: string;
+  userId: number;
   email: string;
   nickname: string;
   bio?: string;
