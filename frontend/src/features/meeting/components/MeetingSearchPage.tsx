@@ -1,26 +1,60 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { Search } from 'lucide-react';
 import BackButton from '@/shared/components/ui/BackButton';
 import MeetingCard from '@/shared/components/ui/MeetingCard';
-import { useMeetings } from '../hooks/useMeetings';
+import meetingApi from '@/shared/api/meeting/meetingApi';
+import { useMeetings, transformMeetingsToUI } from '../hooks/useMeetings';
+import type { MeetingUI } from '@/shared/types/Meeting.types';
 
 const MeetingSearchPage: React.FC = () => {
   const navigate = useNavigate();
   const { meetings, toggleLike } = useMeetings();
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedQuery, setDebouncedQuery] = useState('');
 
-  // 검색 결과 필터링
-  const searchResults = useMemo(() => {
-    if (!searchQuery.trim()) return [];
-    const query = searchQuery.toLowerCase();
+  // 디바운스 처리 (300ms)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedQuery(searchQuery);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  // API 검색 호출
+  const { data: apiSearchResults, isLoading: isSearching, error: searchError } = useQuery({
+    queryKey: ['meetings', 'search', debouncedQuery],
+    queryFn: async () => {
+      const response = await meetingApi.search(debouncedQuery);
+      return transformMeetingsToUI(response.data.items);
+    },
+    enabled: debouncedQuery.trim().length > 0,
+    staleTime: 1000 * 60 * 3,
+    retry: 1,
+  });
+
+  // 로컬 필터링 (API 실패 시 fallback)
+  const localSearchResults = useMemo(() => {
+    if (!debouncedQuery.trim()) return [];
+    const query = debouncedQuery.toLowerCase();
     return meetings.filter(
       (meeting) =>
         meeting.title.toLowerCase().includes(query) ||
         meeting.category.toLowerCase().includes(query) ||
         meeting.location.toLowerCase().includes(query)
     );
-  }, [searchQuery, meetings]);
+  }, [debouncedQuery, meetings]);
+
+  // API 성공 시 API 결과, 실패 시 로컬 결과 사용
+  const searchResults: MeetingUI[] = useMemo(() => {
+    if (!debouncedQuery.trim()) return [];
+    if (searchError) {
+      console.warn('검색 API 호출 실패, 로컬 필터링 사용:', searchError);
+      return localSearchResults;
+    }
+    return apiSearchResults || localSearchResults;
+  }, [debouncedQuery, apiSearchResults, searchError, localSearchResults]);
 
   return (
     <div className="flex flex-col h-full bg-white">
@@ -52,14 +86,18 @@ const MeetingSearchPage: React.FC = () => {
           <div className="flex items-center justify-center h-full">
             <p className="text-sm text-gray-400">검색 결과가 없습니다</p>
           </div>
+        ) : isSearching ? (
+          <div className="flex items-center justify-center h-full">
+            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary" />
+          </div>
         ) : (
           <div className="space-y-4">
             {searchResults.map((meeting) => (
               <MeetingCard
                 key={meeting.id}
                 meeting={meeting}
-                onClick={() => navigate(`/meetings/${meeting.id}`)}
-                onLike={() => toggleLike(String(meeting.id), meeting.isLiked || false)}
+                onClick={() => navigate(`/meetings/${meeting.groupId}`)}
+                onLike={() => toggleLike(meeting.groupId)}
                 showLikeButton={true}
               />
             ))}

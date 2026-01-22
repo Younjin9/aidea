@@ -2,6 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Heart } from 'lucide-react';
 import type { MeetingUI } from '@/shared/types/Meeting.types';
+import defaultLogo from '@/assets/images/logo.png';
 
 interface MeetingCardProps {
   meeting: MeetingUI;
@@ -22,7 +23,7 @@ const MeetingCard: React.FC<MeetingCardProps> = ({
     if (onClick) {
       onClick();
     } else {
-      navigate(`/meetings/${meeting.id}`);
+      navigate(`/meetings/${meeting.groupId}`);
     }
   };
 
@@ -31,9 +32,13 @@ const MeetingCard: React.FC<MeetingCardProps> = ({
       {/* 이미지 */}
       <div className="w-20 h-20 flex-shrink-0 rounded-lg overflow-hidden bg-gray-100 flex items-center justify-center">
         {meeting.image ? (
-          <img src={meeting.image} alt={meeting.title} className="w-full h-full object-cover" />
+          meeting.image === defaultLogo ? (
+            <img src={meeting.image} alt={meeting.title} className="w-7 h-7 object-contain" />
+          ) : (
+            <img src={meeting.image} alt={meeting.title} className="w-full h-full object-cover" />
+          )
         ) : (
-          <div className="text-xs text-gray-400">사진..?</div>
+          <div className="text-xs text-gray-400">사진</div>
         )}
       </div>
 

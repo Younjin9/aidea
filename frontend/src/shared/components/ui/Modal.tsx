@@ -89,7 +89,6 @@ const Modal: React.FC<ModalProps> = ({
                   <button
                     onClick={() => {
                       action.onClick();
-                      onClose();
                     }}
                     className={`w-full px-6 py-4 text-center font-medium text-base transition hover:bg-gray-50 ${
                       action.variant === 'danger' ? 'text-primary' : 'text-gray-900'
@@ -139,15 +138,17 @@ const Modal: React.FC<ModalProps> = ({
 
         {/* Title (optional) */}
         {title && (
-          <div className="px-6 pb-2">
+          <div className={`px-6 pb-3 ${!showLogo && !image ? 'pt-8' : ''}`}>
             <h3 className="text-center font-semibold text-base">{title}</h3>
           </div>
         )}
 
         {/* Message */}
-        <div className={`px-6 pb-6 ${!showLogo && !image && !title ? 'pt-8' : ''}`}>
-          <p className="text-center text-sm text-gray-900">{message}</p>
-        </div>
+        {message && (
+          <div className={`px-6 pb-6 ${!showLogo && !image && !title ? 'pt-8' : ''}`}>
+            <p className="text-center text-sm text-gray-500">{message}</p>
+          </div>
+        )}
 
         {/* Input Field (optional) */}
         {showInput && (

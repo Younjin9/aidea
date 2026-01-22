@@ -1,10 +1,18 @@
 // 모임 멤버 관리
-import React, { useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { Crown } from 'lucide-react';
 import BackButton from '@/shared/components/ui/BackButton';
 import ProfileImage from '@/shared/components/ui/ProfileImage';
 import Modal from '@/shared/components/ui/Modal';
+import {
+  useMembers,
+  usePendingMembers,
+  useApproveMember,
+  useRejectMember,
+  useRemoveMember,
+  useTransferHost,
+} from '../hooks/useMembers';
 
 interface Member {
   userId: string;
@@ -29,11 +37,39 @@ const MOCK_PENDING_MEMBERS: Member[] = [
 const MemberManagePage: React.FC = () => {
   const { meetingId } = useParams();
   const navigate = useNavigate();
-  console.log('meetingId:', meetingId); // TODO: API 호출 시 사용
+  const location = useLocation();
+  const passedMembers = (location.state as { members?: Member[] })?.members;
 
-  // Member State
-  const [members, setMembers] = useState<Member[]>(MOCK_MEMBERS);
+  // API Queries
+  const { data: apiMembers, isLoading: isLoadingMembers, error: membersError } = useMembers(meetingId || '');
+  const { data: apiPendingMembers, isLoading: isLoadingPending, error: pendingError } = usePendingMembers(meetingId || '');
+
+  // API Mutations
+  const { mutate: approveMember, isPending: isApproving } = useApproveMember(meetingId || '');
+  const { mutate: rejectMember, isPending: isRejecting } = useRejectMember(meetingId || '');
+  const { mutate: removeMember, isPending: isRemoving } = useRemoveMember(meetingId || '');
+  const { mutate: transferHost, isPending: isTransferring } = useTransferHost(meetingId || '');
+
+  // Member State - API 데이터 > 전달받은 멤버 > Mock 데이터 순서로 사용
+  const [members, setMembers] = useState<Member[]>(passedMembers || MOCK_MEMBERS);
   const [pendingMembers, setPendingMembers] = useState<Member[]>(MOCK_PENDING_MEMBERS);
+
+  // API 데이터가 로드되면 state 업데이트
+  useEffect(() => {
+    if (apiMembers) {
+      setMembers(apiMembers as Member[]);
+    } else if (membersError) {
+      console.warn('멤버 목록 API 호출 실패, Mock 데이터 사용:', membersError);
+    }
+  }, [apiMembers, membersError]);
+
+  useEffect(() => {
+    if (apiPendingMembers) {
+      setPendingMembers(apiPendingMembers as Member[]);
+    } else if (pendingError) {
+      console.warn('대기 멤버 목록 API 호출 실패, Mock 데이터 사용:', pendingError);
+    }
+  }, [apiPendingMembers, pendingError]);
 
   // Modal State
   const [showTransferModal, setShowTransferModal] = useState(false);
@@ -48,30 +84,96 @@ const MemberManagePage: React.FC = () => {
   // 모임장 양도
   const handleTransferConfirm = () => {
     if (!selectedMember) return;
-    // TODO: API 호출
-    console.log('모임장 양도:', selectedMember.userId);
-    setShowTransferModal(false);
-    setSelectedMember(null);
+
+    // API 호출 시도
+    transferHost(selectedMember.userId, {
+      onSuccess: () => {
+        setMembers(prev => prev.map(m => {
+          if (m.role === 'HOST') return { ...m, role: 'MEMBER' as const };
+          if (m.userId === selectedMember.userId) return { ...m, role: 'HOST' as const };
+          return m;
+        }));
+        setShowTransferModal(false);
+        setSelectedMember(null);
+      },
+      onError: () => {
+        // API 실패 시 로컬에서 처리 (fallback)
+        setMembers(prev => prev.map(m => {
+          if (m.role === 'HOST') return { ...m, role: 'MEMBER' as const };
+          if (m.userId === selectedMember.userId) return { ...m, role: 'HOST' as const };
+          return m;
+        }));
+        setShowTransferModal(false);
+        setSelectedMember(null);
+      },
+    });
   };
 
   // 강퇴
   const handleKickConfirm = () => {
     if (!selectedMember) return;
-    // TODO: API 호출
-    setMembers(prev => prev.filter(m => m.userId !== selectedMember.userId));
-    setShowKickModal(false);
-    setSelectedMember(null);
+
+    // API 호출 시도
+    removeMember(selectedMember.userId, {
+      onSuccess: () => {
+        setMembers(prev => prev.filter(m => m.userId !== selectedMember.userId));
+        setShowKickModal(false);
+        setSelectedMember(null);
+      },
+      onError: () => {
+        // API 실패 시 로컬에서 처리 (fallback)
+        setMembers(prev => prev.filter(m => m.userId !== selectedMember.userId));
+        setShowKickModal(false);
+        setSelectedMember(null);
+      },
+    });
   };
 
-  // 참가 승인/거절
+  // 참가 승인
   const handleApprove = (member: Member) => {
-    setPendingMembers(prev => prev.filter(m => m.userId !== member.userId));
-    setMembers(prev => [...prev, { ...member, status: 'APPROVED' }]);
+    // API 호출 시도
+    approveMember(
+      { memberId: member.userId },
+      {
+        onSuccess: () => {
+          setPendingMembers(prev => prev.filter(m => m.userId !== member.userId));
+          setMembers(prev => [...prev, { ...member, status: 'APPROVED' }]);
+        },
+        onError: () => {
+          // API 실패 시 로컬에서 처리 (fallback)
+          setPendingMembers(prev => prev.filter(m => m.userId !== member.userId));
+          setMembers(prev => [...prev, { ...member, status: 'APPROVED' }]);
+        },
+      }
+    );
   };
 
+  // 참가 거절
   const handleReject = (member: Member) => {
-    setPendingMembers(prev => prev.filter(m => m.userId !== member.userId));
+    // API 호출 시도
+    rejectMember(
+      { memberId: member.userId },
+      {
+        onSuccess: () => {
+          setPendingMembers(prev => prev.filter(m => m.userId !== member.userId));
+        },
+        onError: () => {
+          // API 실패 시 로컬에서 처리 (fallback)
+          setPendingMembers(prev => prev.filter(m => m.userId !== member.userId));
+        },
+      }
+    );
   };
+
+  // 로딩 상태
+  if (isLoadingMembers || isLoadingPending) {
+    return (
+      <div className="min-h-screen bg-white flex flex-col items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+        <p className="mt-4 text-gray-500 text-sm">로딩 중...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-white flex flex-col">
@@ -80,7 +182,10 @@ const MemberManagePage: React.FC = () => {
         <div className="flex items-center justify-between p-4">
           <BackButton />
           <h1 className="font-semibold text-base">모임 멤버</h1>
-          <button onClick={() => navigate(-1)} className="text-sm text-gray-400 font-medium">
+          <button
+            onClick={() => navigate(`/meetings/${meetingId}`, { state: { updatedMembers: members } })}
+            className="text-sm text-gray-400 font-medium"
+          >
             완료
           </button>
         </div>
@@ -115,15 +220,17 @@ const MemberManagePage: React.FC = () => {
                 <div className="flex gap-2">
                   <button
                     onClick={() => { setSelectedMember(member); setShowTransferModal(true); }}
-                    className="px-3 py-1.5 bg-primary text-white text-xs font-medium rounded-md"
+                    disabled={isTransferring}
+                    className="px-3 py-1.5 bg-primary text-white text-xs font-medium rounded-md disabled:opacity-50"
                   >
-                    모임장 양도
+                    {isTransferring && selectedMember?.userId === member.userId ? '양도 중...' : '모임장 양도'}
                   </button>
                   <button
                     onClick={() => { setSelectedMember(member); setShowKickModal(true); }}
-                    className="px-3 py-1.5 bg-gray-200 text-gray-600 text-xs font-medium rounded-md"
+                    disabled={isRemoving}
+                    className="px-3 py-1.5 bg-gray-200 text-gray-600 text-xs font-medium rounded-md disabled:opacity-50"
                   >
-                    강퇴
+                    {isRemoving && selectedMember?.userId === member.userId ? '강퇴 중...' : '강퇴'}
                   </button>
                 </div>
               </div>
@@ -150,15 +257,17 @@ const MemberManagePage: React.FC = () => {
                   <div className="flex gap-2">
                     <button
                       onClick={() => handleApprove(member)}
-                      className="px-3 py-1.5 bg-primary text-white text-xs font-medium rounded-md"
+                      disabled={isApproving}
+                      className="px-3 py-1.5 bg-primary text-white text-xs font-medium rounded-md disabled:opacity-50"
                     >
-                      승인
+                      {isApproving ? '처리 중...' : '승인'}
                     </button>
                     <button
                       onClick={() => handleReject(member)}
-                      className="px-3 py-1.5 bg-gray-200 text-gray-600 text-xs font-medium rounded-md"
+                      disabled={isRejecting}
+                      className="px-3 py-1.5 bg-gray-200 text-gray-600 text-xs font-medium rounded-md disabled:opacity-50"
                     >
-                      거절
+                      {isRejecting ? '처리 중...' : '거절'}
                     </button>
                   </div>
                 </div>

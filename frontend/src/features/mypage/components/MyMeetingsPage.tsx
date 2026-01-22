@@ -1,39 +1,41 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import BackButton from '@/shared/components/ui/BackButton';
 import MeetingCard from '@/shared/components/ui/MeetingCard';
-import { useMyPage, transformMeetingsToUI } from '../hooks/useMyPage';
+import { useMyPage } from '../hooks/useMyPage';
 import type { MeetingUI } from '@/shared/types/Meeting.types';
 
 type TabType = 'my' | 'liked';
 
 const MyMeetingsPage: React.FC = () => {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const initialTab = searchParams.get('tab') === 'liked' ? 'liked' : 'my';
   const [activeTab, setActiveTab] = useState<TabType>(initialTab);
 
-  const { myMeetings, likedMeetings, isLoading, unlikeMeeting } = useMyPage();
+  // 탭 변경 시 URL 파라미터도 업데이트
+  const handleTabChange = (tab: TabType) => {
+    setActiveTab(tab);
+    setSearchParams({ tab }, { replace: true });
+  };
 
-  // Meeting 타입을 MeetingUI로 변환
-  const myMeetingsUI = React.useMemo(() => transformMeetingsToUI(myMeetings), [myMeetings]);
-  const likedMeetingsUI = React.useMemo(() => transformMeetingsToUI(likedMeetings).map(m => ({ ...m, isLiked: true })), [likedMeetings]);
+  const { myMeetings, likedMeetings, isLoading, unlikeMeeting } = useMyPage();
 
   // 찜 목록 로컬 state (1초 딜레이용)
   const [displayedLikedMeetings, setDisplayedLikedMeetings] = useState<MeetingUI[]>([]);
-  const timeoutRef = React.useRef<number | null>(null);
-  const isInitializedRef = React.useRef(false);
+  const timeoutRef = useRef<number | null>(null);
+  const isInitializedRef = useRef(false);
 
-  React.useEffect(() => {
-    if (!isInitializedRef.current && likedMeetingsUI.length > 0) {
-      setDisplayedLikedMeetings(likedMeetingsUI);
+  useEffect(() => {
+    if (!isInitializedRef.current && likedMeetings.length > 0) {
+      setDisplayedLikedMeetings(likedMeetings);
       isInitializedRef.current = true;
     } else if (isInitializedRef.current) {
-      setDisplayedLikedMeetings(likedMeetingsUI);
+      setDisplayedLikedMeetings(likedMeetings);
     }
-  }, [likedMeetingsUI]);
+  }, [likedMeetings]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     return () => {
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
@@ -49,7 +51,7 @@ const MyMeetingsPage: React.FC = () => {
 
     // 1초 후에 목록에서 제거 및 API 호출
     timeoutRef.current = window.setTimeout(() => {
-      const originalMeeting = likedMeetings.find((m: any) => parseInt(m.groupId, 10) === id);
+      const originalMeeting = likedMeetings.find(m => m.id === id);
       if (originalMeeting) {
         unlikeMeeting(originalMeeting.groupId);
       }
@@ -57,7 +59,7 @@ const MyMeetingsPage: React.FC = () => {
     }, 1000);
   };
 
-  const currentMeetings = activeTab === 'my' ? myMeetingsUI : displayedLikedMeetings;
+  const currentMeetings = activeTab === 'my' ? myMeetings : displayedLikedMeetings;
 
   if (isLoading) {
     return (
@@ -83,7 +85,7 @@ const MyMeetingsPage: React.FC = () => {
       <div className="px-4 py-2">
         <div className="flex gap-2">
           <button
-            onClick={() => setActiveTab('my')}
+            onClick={() => handleTabChange('my')}
             className={`px-4 py-2 rounded-full text-sm font-medium transition ${
               activeTab === 'my'
                 ? 'bg-primary text-white'
@@ -93,7 +95,7 @@ const MyMeetingsPage: React.FC = () => {
             내 모임
           </button>
           <button
-            onClick={() => setActiveTab('liked')}
+            onClick={() => handleTabChange('liked')}
             className={`px-4 py-2 rounded-full text-sm font-medium transition ${
               activeTab === 'liked'
                 ? 'bg-primary text-white'
@@ -113,7 +115,7 @@ const MyMeetingsPage: React.FC = () => {
               <MeetingCard
                 key={meeting.id}
                 meeting={meeting}
-                onClick={() => navigate(`/meetings/${meeting.id}`)}
+                onClick={() => navigate(`/meetings/${meeting.groupId}`)}
                 onLike={activeTab === 'liked' ? () => handleUnlike(meeting.id) : undefined}
                 showLikeButton={activeTab === 'liked'}
               />
