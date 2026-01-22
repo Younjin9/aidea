@@ -17,7 +17,7 @@ import org.hibernate.annotations.UpdateTimestamp;
 @Setter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor(access = AccessLevel.PROTECTED)
-@ToString(exclude = {"password"})
+@ToString(exclude = { "password" })
 public class User {
 
     @Id
@@ -74,9 +74,15 @@ public class User {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
-    public User update(String nickname, String profileImage) {
+    public User update(String nickname, String profileImage, String phoneNumber, 
+                     String gender, String location, Double latitude, Double longitude) {
         this.nickname = nickname;
         this.profileImage = profileImage;
+        this.phoneNumber = phoneNumber;
+        this.gender = gender;
+        this.location = location;
+        this.latitude = latitude;
+        this.longitude = longitude;
         return this;
     }
 

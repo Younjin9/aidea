@@ -1,5 +1,6 @@
 package com.aidea.backend.domain.user.dto;
 
+import com.aidea.backend.domain.user.dto.UserResponse.Location;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -7,9 +8,7 @@ import lombok.NoArgsConstructor;
 @Getter
 @NoArgsConstructor
 @AllArgsConstructor
-public class TokenRefreshResponse {
-    private String accessToken;
-    private String refreshToken;
-    private long expiresIn;
-    private UserResponse user;
+public class LocationUpdateResponse {
+    private boolean updated;
+    private Location location;
 }
