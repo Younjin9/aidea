@@ -7,6 +7,7 @@ import BackButton from '@/shared/components/ui/BackButton';
 import ProfileImage from '@/shared/components/ui/ProfileImage';
 import Button from '@/shared/components/ui/Button';
 import Modal from '@/shared/components/ui/Modal';
+import ChatRoomPage from '@/features/chat/components/ChatRoomPage';
 import meetingApi from '@/shared/api/meeting/meetingApi';
 import { useMeetingStore } from '../store/meetingStore';
 import { useMyPageStore } from '@/features/mypage/store/myPageStore';
@@ -806,7 +807,7 @@ const MeetingDetailPage: React.FC = () => {
         onTabChange={setActiveTab}
       />
 
-      <main className="flex-1 overflow-y-auto pb-20">
+      <main className={`flex-1 flex flex-col relative ${activeTab === 'home' ? 'overflow-y-auto pb-20' : 'overflow-hidden pb-0'}`}>
         {activeTab === 'home' ? (
           <>
             <MeetingImage imageUrl={meeting.imageUrl} title={meeting.title} />
@@ -830,9 +831,7 @@ const MeetingDetailPage: React.FC = () => {
             />
           </>
         ) : (
-          <div className="p-4 text-center py-20">
-            <p className="text-gray-500">채팅 기능은 준비 중입니다.</p>
-          </div>
+          <ChatRoomPage />
         )}
       </main>
 
