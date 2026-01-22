@@ -78,7 +78,7 @@ public class SecurityConfig {
                                                                 "/home", // 홈 페이지
                                                                 "/test/login",
                                                                 "/test/**",
-                                                                "/api/v1/**",
+                                                                "/api/**",
                                                                 "/swagger-ui/**",
                                                                 "/swagger-ui.html",
                                                                 "/v3/api-docs/**", // ✅ Swagger API 문서
