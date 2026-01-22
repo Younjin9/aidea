@@ -2,7 +2,7 @@ import apiClient from '../client';
 import type { ApiResponse } from '@/shared/types/common.types';
 import type { LocationUpdate } from '@/shared/types/common.types';
 import type {
-  User,
+  // User,
   UserProfile,
   UpdateProfileRequest,
   UpdateProfileImageResponse,
@@ -11,7 +11,7 @@ import type {
   UpdateNotificationSettingsRequest,
   DeleteAccountRequest,
 } from '@/shared/types/User.types';
-import type { Meeting } from '@/shared/types/meeting.types';
+import type { Meeting } from '@/shared/types/Meeting.types';
 
 // ============================================
 // 👤 User API - 마이페이지

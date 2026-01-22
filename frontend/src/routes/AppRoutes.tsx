@@ -6,6 +6,7 @@ import LoginPage from '@/features/auth/components/LoginPage';
 import EmailLoginPage from '@/features/auth/components/EmailLoginPage';
 import SignupPage from '@/features/auth/components/SignupPage';
 import SignupCompletePage from '@/features/auth/components/SignupCompletePage';
+import OAuthCallbackPage from '@/features/auth/components/OAuthCallbackPage';
 import FindIdPage from '@/features/auth/components/FindIdPage';
 import FindPwPage from '@/features/auth/components/FindPwPage';
 import InterestPage from '@/features/onboarding/components/InterestPage';
@@ -16,7 +17,8 @@ import MeetingDetailPage from '@/features/meeting/components/MeetingDetailPage';
 import MeetingSearchPage from '@/features/meeting/components/MeetingSearchPage';
 import MemberManagePage from '@/features/meeting/components/MemberManagePage';
 import EventCreatePage from '@/features/meeting/components/EventCreatePage';
-import ChatListPage from '@/features/chat/components/ChatListPage';
+// import ChatListPage from '@/features/chat/components/ChatListPage';
+import ChatRoomPage from '@/features/chat/components/ChatRoomPage';
 import MyPageView from '@/features/mypage/components/MyPageView';
 import ProfileEditPage from '@/features/mypage/components/ProfileEditPage';
 import MyMeetingsPage from '@/features/mypage/components/MyMeetingsPage';
@@ -55,12 +57,14 @@ const AppRoutes: React.FC = () => {
             <Route path="/login/email" element={<EmailLoginPage />} />
             <Route path="/signup" element={<SignupPage />} />
             <Route path="/signup/complete" element={<SignupCompletePage />} />
+            <Route path="/oauth/callback" element={<OAuthCallbackPage />} />
             <Route path="/find-id" element={<FindIdPage />} />
             <Route path="/find-pw" element={<FindPwPage />} />
           </Route>
           
           {/* Onboarding Routes */}
           <Route path="/onboarding/interest" element={<InterestPage />} />
+          <Route path="/chat" element={<ChatRoomPage />} />
         </Route>
 
         {/* Main App Routes (With Bottom Navigation) */}
@@ -68,7 +72,7 @@ const AppRoutes: React.FC = () => {
           <Route element={<MainLayout />}>
             <Route path="/shorts" element={<ShortsPage />} />
             <Route path="/meetings" element={<MeetingListPage />} />
-            <Route path="/chat" element={<ChatListPage />} />
+            <Route path="/chat/:meetingId" element={<ChatRoomPage />} />
             <Route path="/mypage" element={<MyPageView />} />
           </Route>
         </Route>
@@ -88,7 +92,7 @@ const AppRoutes: React.FC = () => {
         </Route>
           
         {/* Default Redirect */}
-        <Route path="/" element={<Navigate to="/shorts" replace />} />
+        <Route path="/" element={<Navigate to="/login" replace />} />
       </Routes>
     </>
   );

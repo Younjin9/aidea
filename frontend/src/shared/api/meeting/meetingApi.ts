@@ -9,7 +9,7 @@ import type {
   JoinMeetingRequest,
   JoinMeetingResponse,
   MeetingStats,
-} from '@/shared/types/meeting.types';
+} from '@/shared/types/Meeting.types';
 
 // ============================================
 // 📍 모임 CRUD & 기능

@@ -38,7 +38,7 @@ const MyPageView: React.FC<{ onUnlike?: (id: number) => void }> = ({ onUnlike })
     setDisplayedLikedMeetings(prev => prev.map(m => m.id === id ? { ...m, isLiked: false } : m));
 
     timeoutRef.current = window.setTimeout(() => {
-      const originalMeeting = likedMeetings.find(m => parseInt(m.groupId, 10) === id);
+      const originalMeeting = likedMeetings.find((m: any) => parseInt(m.groupId, 10) === id);
       if (originalMeeting) unlikeMeeting(originalMeeting.groupId);
       setDisplayedLikedMeetings(prev => prev.filter(m => m.id !== id));
       onUnlike?.(id);

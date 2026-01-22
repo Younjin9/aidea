@@ -49,7 +49,7 @@ const MyMeetingsPage: React.FC = () => {
 
     // 1초 후에 목록에서 제거 및 API 호출
     timeoutRef.current = window.setTimeout(() => {
-      const originalMeeting = likedMeetings.find(m => parseInt(m.groupId, 10) === id);
+      const originalMeeting = likedMeetings.find((m: any) => parseInt(m.groupId, 10) === id);
       if (originalMeeting) {
         unlikeMeeting(originalMeeting.groupId);
       }

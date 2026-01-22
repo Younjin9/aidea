@@ -82,15 +82,16 @@ export const useMyMeetings = () => {
  * 내가 찜한 모임 목록
  */
 export const useLikedMeetings = () => {
-  const setLikedMeetings = useMyPageStore((state) => state.setLikedMeetings);
+  // const setLikedMeetings = useMyPageStore((state) => state.setLikedMeetings);
 
   return useQuery({
     queryKey: myPageKeys.likedMeetings(),
     queryFn: async () => {
-      const response = await mypageApi.getLikedMeetings();
-      const meetings = response.data;
-      setLikedMeetings(meetings);
-      return meetings;
+      // const response = await mypageApi.getLikedMeetings();
+      // const meetings = response.data;
+      // setLikedMeetings(meetings);
+      // return meetings;
+      return [];
     },
     staleTime: 1000 * 60 * 3, // 3분
   });

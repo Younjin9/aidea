@@ -6,6 +6,7 @@ import BackButton from '@/shared/components/ui/BackButton';
 import ProfileImage from '@/shared/components/ui/ProfileImage';
 import Button from '@/shared/components/ui/Button';
 import Modal from '@/shared/components/ui/Modal';
+import ChatRoomPage from '@/features/chat/components/ChatRoomPage';
 import type { MeetingDetail, MeetingEvent } from '@/shared/types/Meeting.types';
 
 // TODO: API로 대체
@@ -119,12 +120,21 @@ const MeetingDetailPage: React.FC = () => {
           <BackButton />
           <h1 className="absolute left-1/2 -translate-x-1/2 font-semibold text-sm">{meeting.title}</h1>
           <div className="flex items-center gap-1 ml-auto">
-            <button onClick={() => setIsLiked(!isLiked)} className="p-2 hover:bg-gray-100 rounded-full transition">
-              <Heart size={20} fill={isLiked ? '#e91e63' : 'none'} stroke={isLiked ? '#e91e63' : 'currentColor'} />
-            </button>
-            <button onClick={() => setShowActionSheet(true)} className="p-2 hover:bg-gray-100 rounded-full transition">
-              <Ellipsis size={20} />
-            </button>
+            {activeTab === 'chat' ? (
+              <div className="flex items-center gap-1 text-gray-900 border border-gray-200 rounded-full px-2 py-0.5 text-xs font-semibold">
+                <UsersRound size={14} />
+                <span>{meeting.memberCount}</span>
+              </div>
+            ) : (
+              <>
+                <button onClick={() => setIsLiked(!isLiked)} className="p-2 hover:bg-gray-100 rounded-full transition">
+                  <Heart size={20} fill={isLiked ? '#e91e63' : 'none'} stroke={isLiked ? '#e91e63' : 'currentColor'} />
+                </button>
+                <button onClick={() => setShowActionSheet(true)} className="p-2 hover:bg-gray-100 rounded-full transition">
+                  <Ellipsis size={20} />
+                </button>
+              </>
+            )}
           </div>
         </div>
         <div className="flex px-4 border-t border-gray-100">
@@ -142,7 +152,7 @@ const MeetingDetailPage: React.FC = () => {
       </header>
 
       {/* Content */}
-      <main className="flex-1 overflow-y-auto pb-20">
+      <main className={`flex-1 flex flex-col relative ${activeTab === 'home' ? 'overflow-y-auto pb-20' : 'overflow-hidden pb-0'}`}>
         {activeTab === 'home' ? (
           <>
             {/* Meeting Image */}
@@ -237,9 +247,7 @@ const MeetingDetailPage: React.FC = () => {
             </section>
           </>
         ) : (
-          <div className="p-4 text-center py-20">
-            <p className="text-gray-500">채팅 기능은 준비 중입니다.</p>
-          </div>
+          <ChatRoomPage />
         )}
       </main>
 
