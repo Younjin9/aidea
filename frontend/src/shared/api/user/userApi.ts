@@ -2,7 +2,7 @@ import apiClient from '../client';
 import type { ApiResponse } from '@/shared/types/common.types';
 import type { LocationUpdate } from '@/shared/types/common.types';
 import type {
-  User,
+  // User,
   UserProfile,
   UpdateProfileRequest,
   UpdateProfileImageResponse,
@@ -22,7 +22,7 @@ import type { Meeting } from '@/shared/types/Meeting.types';
  * GET /api/users/me
  */
 export const getMyProfile = async (): Promise<ApiResponse<UserProfile>> => {
-  return apiClient.get('/users/me');
+  return apiClient.get('/api/users/me');
 };
 
 /**
@@ -30,7 +30,7 @@ export const getMyProfile = async (): Promise<ApiResponse<UserProfile>> => {
  * PATCH /api/users/me
  */
 export const updateProfile = async (data: UpdateProfileRequest): Promise<ApiResponse<UserProfile>> => {
-  return apiClient.patch('/users/me', data);
+  return apiClient.patch('/api/users/me', data);
 };
 
 /**
@@ -41,7 +41,7 @@ export const updateProfileImage = async (image: File): Promise<ApiResponse<Updat
   const formData = new FormData();
   formData.append('image', image);
 
-  return apiClient.post('/users/me/profile-image', formData, {
+  return apiClient.post('/api/users/me/profile-image', formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
   });
 };
@@ -51,7 +51,7 @@ export const updateProfileImage = async (image: File): Promise<ApiResponse<Updat
  * PUT /api/users/me/location
  */
 export const updateLocation = async (data: LocationUpdate): Promise<ApiResponse<{ updated: boolean; location: any }>> => {
-  return apiClient.put('/users/me/location', data);
+  return apiClient.put('/api/users/me/location', data);
 };
 
 /**
@@ -60,7 +60,7 @@ export const updateLocation = async (data: LocationUpdate): Promise<ApiResponse<
  */
 export const getMyMeetings = async (status?: 'active' | 'all'): Promise<ApiResponse<Meeting[]>> => {
   const params = status ? `?status=${status}` : '';
-  return apiClient.get(`/users/me/groups${params}`);
+  return apiClient.get(`/api/users/me/groups${params}`);
 };
 
 /**
@@ -68,7 +68,7 @@ export const getMyMeetings = async (status?: 'active' | 'all'): Promise<ApiRespo
  * GET /api/users/me/groups/hosting
  */
 export const getMyHostingMeetings = async (): Promise<ApiResponse<Meeting[]>> => {
-  return apiClient.get('/users/me/groups/hosting');
+  return apiClient.get('/api/users/me/groups/hosting');
 };
 
 /**
@@ -76,7 +76,7 @@ export const getMyHostingMeetings = async (): Promise<ApiResponse<Meeting[]>> =>
  * GET /api/users/me/stats
  */
 export const getMyStats = async (): Promise<ApiResponse<UserStats>> => {
-  return apiClient.get('/users/me/stats');
+  return apiClient.get('/api/users/me/stats');
 };
 
 /**
@@ -84,7 +84,7 @@ export const getMyStats = async (): Promise<ApiResponse<UserStats>> => {
  * GET /api/users/me/notifications/settings
  */
 export const getNotificationSettings = async (): Promise<ApiResponse<NotificationSettings>> => {
-  return apiClient.get('/users/me/notifications/settings');
+  return apiClient.get('/api/users/me/notifications/settings');
 };
 
 /**
@@ -94,7 +94,7 @@ export const getNotificationSettings = async (): Promise<ApiResponse<Notificatio
 export const updateNotificationSettings = async (
   data: UpdateNotificationSettingsRequest
 ): Promise<ApiResponse<NotificationSettings>> => {
-  return apiClient.patch('/users/me/notifications/settings', data);
+  return apiClient.patch('/api/users/me/notifications/settings', data);
 };
 
 /**
@@ -102,7 +102,7 @@ export const updateNotificationSettings = async (
  * DELETE /api/users/me
  */
 export const deleteAccount = async (data?: DeleteAccountRequest): Promise<ApiResponse<void>> => {
-  return apiClient.delete('/users/me', { data });
+  return apiClient.delete('/api/users/me', { data });
 };
 
 const userApi = {

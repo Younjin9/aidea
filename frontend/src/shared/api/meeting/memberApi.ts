@@ -7,7 +7,7 @@ import type {
   TransferHostRequest,
   MemberStats,
   MemberRole,
-} from '@/shared/types/member.types';
+} from '@/shared/types/Member.types';
 
 // ============================================
 // 👥 멤버 관리

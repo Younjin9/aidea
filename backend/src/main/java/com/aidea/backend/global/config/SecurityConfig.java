@@ -40,7 +40,11 @@ public class SecurityConfig {
         @Bean
         public CorsConfigurationSource corsConfigurationSource() {
                 CorsConfiguration configuration = new CorsConfiguration();
-                configuration.setAllowedOrigins(Arrays.asList("http://localhost:5173", "http://localhost:5174"));
+                configuration.setAllowedOrigins(Arrays.asList(
+                                "http://localhost:5173",
+                                "https://aidea.site",
+                                "https://d125n74xsjeyc3.cloudfront.net",
+                                "http://localhost:8080"));
                 configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
                 configuration.setAllowedHeaders(Arrays.asList("*"));
                 configuration.setAllowCredentials(true);
@@ -74,7 +78,7 @@ public class SecurityConfig {
                                                                 "/home", // 홈 페이지
                                                                 "/test/login",
                                                                 "/test/**",
-                                                                "/api/v1/**",
+                                                                "/api/**",
                                                                 "/swagger-ui/**",
                                                                 "/swagger-ui.html",
                                                                 "/v3/api-docs/**", // ✅ Swagger API 문서
@@ -82,6 +86,8 @@ public class SecurityConfig {
                                                                 "/ws/**", // ✅ WebSocket 연결
                                                                 "/app/**", // ✅ STOMP 메시지
                                                                 "/topic/**", // ✅ STOMP 브로드캐스트
+                                                                "/actuator/**", // ✅ Actuator Health Check
+                                                                "/health", // ✅ Health Check
                                                                 "/login/oauth2/**", // OAuth2 콜백 경로
                                                                 "/oauth2/**", // OAuth2 인증 경로
                                                                 "/api/groups/**", // ✅ 모임 API (테스트용)
