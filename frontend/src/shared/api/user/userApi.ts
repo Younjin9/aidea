@@ -2,7 +2,7 @@ import apiClient from '../client';
 import type { ApiResponse } from '@/shared/types/common.types';
 import type { LocationUpdate } from '@/shared/types/common.types';
 import type {
-  User,
+  // User,
   UserProfile,
   UpdateProfileRequest,
   UpdateProfileImageResponse,

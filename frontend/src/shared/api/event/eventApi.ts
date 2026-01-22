@@ -9,7 +9,7 @@ import type {
   ParticipateResponse,
   AttendanceRecord,
   CheckAttendanceRequest,
-} from '@/shared/types/event.types';
+} from '@/shared/types/Event.types';
 
 // ============================================
 // 📅 일정(정모) 관리

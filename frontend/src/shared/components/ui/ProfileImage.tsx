@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { UserRound, Camera } from 'lucide-react';
-import type { ProfileImageProps } from '@/shared/types/component.types';
+import type { ProfileImageProps } from '@/shared/types/Component.types';
 
 const sizeClasses = {
   xs: 'w-6 h-6 text-xs',
@@ -14,7 +14,7 @@ const ProfileImage: React.FC<ProfileImageProps> = ({
   src,
   alt = 'Profile',
   size = 'md',
-  fallback,
+  // fallback,
   onClick,
   className = '',
   showBadge = false,
