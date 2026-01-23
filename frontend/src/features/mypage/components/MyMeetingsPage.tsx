@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import BackButton from '@/shared/components/ui/BackButton';
 import MeetingCard from '@/shared/components/ui/MeetingCard';
@@ -86,21 +86,19 @@ const MyMeetingsPage: React.FC = () => {
         <div className="flex gap-2">
           <button
             onClick={() => handleTabChange('my')}
-            className={`px-4 py-2 rounded-full text-sm font-medium transition ${
-              activeTab === 'my'
+            className={`px-4 py-2 rounded-full text-sm font-medium transition ${activeTab === 'my'
                 ? 'bg-primary text-white'
                 : 'bg-gray-100 text-gray-500'
-            }`}
+              }`}
           >
             내 모임
           </button>
           <button
             onClick={() => handleTabChange('liked')}
-            className={`px-4 py-2 rounded-full text-sm font-medium transition ${
-              activeTab === 'liked'
+            className={`px-4 py-2 rounded-full text-sm font-medium transition ${activeTab === 'liked'
                 ? 'bg-primary text-white'
                 : 'bg-gray-100 text-gray-500'
-            }`}
+              }`}
           >
             찜 모임
           </button>

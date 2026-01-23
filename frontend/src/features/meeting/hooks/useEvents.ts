@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import eventApi from '@/shared/api/event/eventApi';
-import type { CreateEventRequest, UpdateEventRequest } from '@/shared/types/event.types';
+import type { CreateEventRequest, UpdateEventRequest } from '@/shared/types/Event.types';
 
 /**
  * 정모 생성 훅
