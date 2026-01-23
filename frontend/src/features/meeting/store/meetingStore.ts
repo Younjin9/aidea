@@ -3,7 +3,7 @@ import type { MeetingUI, MeetingEvent } from '@/shared/types/Meeting.types';
 
 // Mock 초기 데이터 - myStatus, myRole 포함
 // Mock 이벤트 데이터
-const MOCK_EVENTS: Record<string, MeetingEvent[]> = {
+export const MOCK_EVENTS: Record<string, MeetingEvent[]> = {
   '1': [{
     eventId: '1',
     title: '성수 맛집 탐방',
