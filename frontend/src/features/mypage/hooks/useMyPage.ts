@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import mypageApi from '@/shared/api/user/userApi';
 import { useMyPageStore } from '../store/myPageStore';
 import { useMeetingStore } from '@/features/meeting/store/meetingStore';
@@ -31,8 +31,7 @@ export const useMyPage = () => {
   const isUserInitialized = useMyPageStore((state) => state.isInitialized);
 
   // Meeting Store (모임 정보)
-  const getMyMeetings = useMeetingStore((state) => state.getMyMeetings);
-  const getLikedMeetings = useMeetingStore((state) => state.getLikedMeetings);
+  const meetings = useMeetingStore((state) => state.meetings);
   const toggleLikeByGroupId = useMeetingStore((state) => state.toggleLikeByGroupId);
   const initializeMeetingMockData = useMeetingStore((state) => state.initializeMockData);
   const isMeetingInitialized = useMeetingStore((state) => state.isInitialized);
@@ -70,9 +69,9 @@ export const useMyPage = () => {
     }
   }, [isMeetingInitialized, initializeMeetingMockData]);
 
-  // meetingStore에서 파생된 데이터
-  const myMeetings = getMyMeetings();
-  const likedMeetings = getLikedMeetings();
+  // meetingStore에서 파생된 데이터 (useMemo로 참조 안정성 보장)
+  const myMeetings = useMemo(() => meetings.filter((m) => m.myStatus === 'APPROVED'), [meetings]);
+  const likedMeetings = useMemo(() => meetings.filter((m) => m.isLiked), [meetings]);
 
   return {
     // 사용자 정보
@@ -80,10 +79,10 @@ export const useMyPage = () => {
     isLoading: isLoadingProfile,
     error: profileError,
 
-    // 내 모임 (meetingStore에서 파생)
+    // 내 모임
     myMeetings,
 
-    // 찜한 모임 (meetingStore에서 파생)
+    // 찜한 모임
     likedMeetings,
 
     // Actions
