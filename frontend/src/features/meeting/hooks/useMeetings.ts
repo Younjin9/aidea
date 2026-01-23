@@ -26,7 +26,7 @@ const transformMeetingToUI = (meeting: Meeting): MeetingUI => {
   };
 };
 
-const transformMeetingsToUI = (meetings: Meeting[]): MeetingUI[] => {
+export const transformMeetingsToUI = (meetings: Meeting[]): MeetingUI[] => {
   return meetings.map(transformMeetingToUI);
 };
 

@@ -74,16 +74,28 @@ const KakaoMapModal: React.FC<KakaoMapModalProps> = ({ isOpen, onClose, onSelect
   const [selectedPlace, setSelectedPlace] = useState<PlaceResult | null>(null);
   const [isMapLoaded, setIsMapLoaded] = useState(false);
 
+  const KAKAO_APP_KEY = '97ee84f3e04807b83288f04ea5f414a8';
+
+  // 카카오 SDK 스크립트 동적 로드
+  useEffect(() => {
+    // 이미 로드되어 있으면 스킵
+    if (window.kakao && window.kakao.maps) return;
+
+    const script = document.createElement('script');
+    script.src = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${KAKAO_APP_KEY}&autoload=false&libraries=services`;
+    script.async = true;
+    document.head.appendChild(script);
+
+    return () => {
+      // cleanup은 하지 않음 (한번 로드하면 유지)
+    };
+  }, []);
+
   // 지도 초기화
   useEffect(() => {
     if (!isOpen || !mapContainerRef.current) return;
 
     const initMap = () => {
-      if (!window.kakao?.maps) {
-        console.warn('카카오 지도 API가 로드되지 않았습니다. API 키를 확인해주세요.');
-        return;
-      }
-
       const options = {
         center: new window.kakao.maps.LatLng(37.5665, 126.978), // 서울 시청
         level: 3,
@@ -98,11 +110,17 @@ const KakaoMapModal: React.FC<KakaoMapModalProps> = ({ isOpen, onClose, onSelect
       setIsMapLoaded(true);
     };
 
-    if (window.kakao?.maps) {
-      window.kakao.maps.load(initMap);
-    } else {
-      console.warn('카카오 지도 API가 로드되지 않았습니다.');
-    }
+    // kakao 객체가 로드될 때까지 대기
+    const checkKakao = () => {
+      if (window.kakao && window.kakao.maps) {
+        window.kakao.maps.load(initMap);
+      } else {
+        // 100ms 후 다시 체크
+        setTimeout(checkKakao, 100);
+      }
+    };
+
+    checkKakao();
   }, [isOpen]);
 
   // 모달 닫힐 때 상태 초기화
