@@ -1,6 +1,8 @@
 package com.aidea.backend.domain.meeting.entity;
 
+import com.aidea.backend.domain.meeting.entity.enums.MeetingCategory;
 import com.aidea.backend.domain.meeting.entity.enums.MeetingStatus;
+import com.aidea.backend.domain.meeting.entity.enums.Region;
 import com.aidea.backend.domain.user.entity.User;
 import jakarta.persistence.*;
 import lombok.*;
@@ -36,14 +38,23 @@ public class Meeting {
 
     private String imageUrl; // 모임 대표 이미지
 
-    // ========== 위치 정보 ==========
-    @Column(nullable = false, length = 200)
+    // ========== 카테고리 및 지역 ==========
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 30)
+    private MeetingCategory category; // 모임 카테고리
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 50)
+    private Region region; // 지역 (시/도 + 구)
+
+    // ========== 위치 정보 (정모용, 선택) ==========
+    @Column(length = 200)
     private String location; // 주소 (예: "서울 강남구 강남대로 396")
 
-    @Column(nullable = false)
+    @Column
     private Double latitude; // 위도
 
-    @Column(nullable = false)
+    @Column
     private Double longitude; // 경도
 
     private String locationDetail; // 상세 위치 (예: "강남역 2번 출구")
@@ -85,6 +96,8 @@ public class Meeting {
             String title,
             String description,
             String imageUrl,
+            MeetingCategory category,
+            Region region,
             String location,
             Double latitude,
             Double longitude,
@@ -96,6 +109,8 @@ public class Meeting {
         this.title = title;
         this.description = description;
         this.imageUrl = imageUrl;
+        this.category = category;
+        this.region = region;
         this.location = location;
         this.latitude = latitude;
         this.longitude = longitude;
@@ -148,16 +163,30 @@ public class Meeting {
      * - HOST만 수정 가능 (권한 검증은 Service에서 수행)
      */
     public void update(com.aidea.backend.domain.meeting.dto.request.UpdateMeetingRequest request) {
-        this.title = request.getTitle();
-        this.description = request.getDescription();
-        this.imageUrl = request.getImageUrl();
-        this.location = request.getLocation();
-        this.latitude = request.getLatitude();
-        this.longitude = request.getLongitude();
-        this.locationDetail = request.getLocationDetail();
-        this.maxMembers = request.getMaxMembers();
-        this.meetingDate = request.getMeetingDate();
-        this.isApprovalRequired = request.getIsApprovalRequired();
+        if (request.getTitle() != null)
+            this.title = request.getTitle();
+        if (request.getDescription() != null)
+            this.description = request.getDescription();
+        if (request.getImageUrl() != null)
+            this.imageUrl = request.getImageUrl();
+        if (request.getCategory() != null)
+            this.category = request.getCategory();
+        if (request.getRegion() != null)
+            this.region = request.getRegion();
+        if (request.getLocation() != null)
+            this.location = request.getLocation();
+        if (request.getLatitude() != null)
+            this.latitude = request.getLatitude();
+        if (request.getLongitude() != null)
+            this.longitude = request.getLongitude();
+        if (request.getLocationDetail() != null)
+            this.locationDetail = request.getLocationDetail();
+        if (request.getMaxMembers() != null)
+            this.maxMembers = request.getMaxMembers();
+        if (request.getMeetingDate() != null)
+            this.meetingDate = request.getMeetingDate();
+        if (request.getIsApprovalRequired() != null)
+            this.isApprovalRequired = request.getIsApprovalRequired();
     }
 
     // ========== DTO 변환 메서드 ==========
@@ -171,6 +200,10 @@ public class Meeting {
                 .title(this.title)
                 .description(this.description)
                 .imageUrl(this.imageUrl)
+                .category(this.category)
+                .categoryDisplayName(this.category.getDisplayName())
+                .region(this.region)
+                .regionFullName(this.region.getFullName())
                 .location(this.location)
                 .latitude(this.latitude)
                 .longitude(this.longitude)
@@ -198,6 +231,10 @@ public class Meeting {
                 .meetingId(this.id)
                 .title(this.title)
                 .imageUrl(this.imageUrl)
+                .category(this.category)
+                .categoryDisplayName(this.category.getDisplayName())
+                .region(this.region)
+                .regionFullName(this.region.getFullName())
                 .location(this.location)
                 .meetingDate(this.meetingDate)
                 .currentMembers(this.currentMembers)

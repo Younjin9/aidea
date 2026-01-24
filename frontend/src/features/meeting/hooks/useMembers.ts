@@ -59,7 +59,7 @@ export const useRejectMember = (groupId: string) => {
 
   return useMutation({
     mutationFn: async ({ memberId, responseMessage }: { memberId: string; responseMessage?: string }) => {
-      await memberApi.rejectMember(groupId, { memberId, responseMessage });
+      await memberApi.rejectMember(groupId, { memberId, responseMessage: responseMessage || '' });
       return memberId;
     },
     onSuccess: () => {
@@ -100,7 +100,7 @@ export const useTransferHost = (groupId: string) => {
 
   return useMutation({
     mutationFn: async (newHostId: string) => {
-      await memberApi.transferHost(groupId, { newHostId });
+      await memberApi.transferHost(groupId, { newHostUserId: newHostId });
       return newHostId;
     },
     onSuccess: () => {

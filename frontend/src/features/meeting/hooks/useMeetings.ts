@@ -5,6 +5,7 @@ import meetingApi from '@/shared/api/meeting/meetingApi';
 import { useMeetingStore } from '../store/meetingStore';
 import { myPageKeys } from '@/features/mypage/hooks/useMyPage';
 import type { Meeting, MeetingUI, MeetingListParams, CreateMeetingRequest } from '@/shared/types/Meeting.types';
+import type { PaginatedResponse } from '@/shared/types/common.types';
 
 // ============================================
 // Helper Functions
@@ -26,7 +27,7 @@ const transformMeetingToUI = (meeting: Meeting): MeetingUI => {
   };
 };
 
-const transformMeetingsToUI = (meetings: Meeting[]): MeetingUI[] => {
+export const transformMeetingsToUI = (meetings: Meeting[]): MeetingUI[] => {
   return meetings.map(transformMeetingToUI);
 };
 
@@ -59,8 +60,8 @@ export const useMeetings = (params: MeetingListParams = {}) => {
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: meetingKeys.list(),
     queryFn: async () => {
-      const response = await meetingApi.getList(params);
-      return transformMeetingsToUI(response.data.items);
+      const response = await meetingApi.getList(params) as unknown as PaginatedResponse<Meeting>;
+      return transformMeetingsToUI(response.content || []);
     },
     staleTime: 1000 * 60 * 3,
     retry: 1,

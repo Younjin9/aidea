@@ -3,7 +3,7 @@ import type { UserProfile } from '@/shared/types/User.types';
 
 // Mock 초기 데이터
 const MOCK_USER: UserProfile = {
-  userId: 'user1',
+  userId: '1',
   email: 'user@example.com',
   nickname: '김구름',
   bio: '맛집 탐방을 좋아하는 사람입니다.',
