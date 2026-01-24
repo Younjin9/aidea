@@ -61,9 +61,10 @@ interface KakaoMapModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSelect: (place: SelectedPlace) => void;
+  currentLocation?: { latitude: number; longitude: number };
 }
 
-const KakaoMapModal: React.FC<KakaoMapModalProps> = ({ isOpen, onClose, onSelect }) => {
+const KakaoMapModal: React.FC<KakaoMapModalProps> = ({ isOpen, onClose, onSelect, currentLocation }) => {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<KakaoMap | null>(null);
   const markerRef = useRef<Marker | null>(null);
@@ -74,62 +75,46 @@ const KakaoMapModal: React.FC<KakaoMapModalProps> = ({ isOpen, onClose, onSelect
   const [selectedPlace, setSelectedPlace] = useState<PlaceResult | null>(null);
   const [isMapLoaded, setIsMapLoaded] = useState(false);
 
-  const KAKAO_APP_KEY = import.meta.env.VITE_KAKAO_MAP_API_KEY;
+  const resetState = () => {
+    setTimeout(() => {
+      setSearchQuery('');
+      setSearchResults([]);
+      setSelectedPlace(null);
+    }, 0);
+  };
 
-
-  // 카카오 SDK 스크립트 동적 로드
   useEffect(() => {
-    // 이미 로드되어 있으면 스킵
-    if (window.kakao && window.kakao.maps) return;
+    if (!isOpen) {
+      resetState();
+      return;
+    }
 
-    const script = document.createElement('script');
-    script.src = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${KAKAO_APP_KEY}&autoload=false&libraries=services`;
-    script.async = true;
-    document.head.appendChild(script);
+    if (!mapContainerRef.current) return;
 
-    return () => {
-      // cleanup은 하지 않음 (한번 로드하면 유지)
-    };
-  }, []);
-
-  // 지도 초기화
-  useEffect(() => {
-    if (!isOpen || !mapContainerRef.current) return;
-
-    const initMap = () => {
-      const options = {
-        center: new window.kakao.maps.LatLng(37.5665, 126.978), // 서울 시청
+    const kakao = window.kakao;
+    kakao.maps.load(() => {
+      const map = new kakao.maps.Map(mapContainerRef.current as HTMLElement, {
+        center: currentLocation
+          ? new kakao.maps.LatLng(currentLocation.latitude, currentLocation.longitude)
+          : new kakao.maps.LatLng(37.5665, 126.978), // Default to Seoul
         level: 3,
-      };
-
-      mapRef.current = new window.kakao.maps.Map(mapContainerRef.current!, options);
-      markerRef.current = new window.kakao.maps.Marker({
-        position: options.center,
-        map: mapRef.current,
       });
-      placesRef.current = new window.kakao.maps.services.Places();
+
+      mapRef.current = map;
+      markerRef.current = new kakao.maps.Marker({
+        position: new kakao.maps.LatLng(37.5665, 126.978), // Default position
+        map,
+      });
+
+      placesRef.current = new kakao.maps.services.Places();
       setIsMapLoaded(true);
-    };
-
-    // kakao 객체가 로드될 때까지 대기
-    const checkKakao = () => {
-      if (window.kakao && window.kakao.maps) {
-        window.kakao.maps.load(initMap);
-      } else {
-        // 100ms 후 다시 체크
-        setTimeout(checkKakao, 100);
-      }
-    };
-
-    checkKakao();
-  }, [isOpen]);
+    });
+  }, [isOpen, currentLocation]);
 
   // 모달 닫힐 때 상태 초기화
   useEffect(() => {
     if (!isOpen) {
-      setSearchQuery('');
-      setSearchResults([]);
-      setSelectedPlace(null);
+      resetState();
     }
   }, [isOpen]);
 
