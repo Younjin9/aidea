@@ -74,7 +74,8 @@ const KakaoMapModal: React.FC<KakaoMapModalProps> = ({ isOpen, onClose, onSelect
   const [selectedPlace, setSelectedPlace] = useState<PlaceResult | null>(null);
   const [isMapLoaded, setIsMapLoaded] = useState(false);
 
-  const KAKAO_APP_KEY = '97ee84f3e04807b83288f04ea5f414a8';
+  const KAKAO_APP_KEY = import.meta.env.VITE_KAKAO_MAP_API_KEY;
+
 
   // 카카오 SDK 스크립트 동적 로드
   useEffect(() => {

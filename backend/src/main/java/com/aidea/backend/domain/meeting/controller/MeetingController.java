@@ -21,11 +21,12 @@ import org.springframework.web.bind.annotation.*;
  */
 @Tag(name = "Meeting", description = "모임 API")
 @RestController
-@RequestMapping("/api/meetings")
+@RequestMapping("/api/groups")
 @RequiredArgsConstructor
 public class MeetingController {
 
     private final MeetingService meetingService;
+    private final com.aidea.backend.domain.user.repository.UserRepository userRepository;
 
     /**
      * 모임 생성
@@ -34,10 +35,11 @@ public class MeetingController {
     @PostMapping
     public ResponseEntity<MeetingResponse> createMeeting(
             @Valid @RequestBody CreateMeetingRequest request) {
-        // TODO: 인증 구현 후 실제 userId 사용
-        Long userId = 1L; // 임시 하드코딩
+        String email = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication().getName();
+        com.aidea.backend.domain.user.entity.User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
 
-        MeetingResponse response = meetingService.createMeeting(userId, request);
+        MeetingResponse response = meetingService.createMeeting(user.getUserId(), request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
@@ -66,13 +68,31 @@ public class MeetingController {
     }
 
     /**
+     * 모임 검색 (조건별 통합 검색)
+     */
+    @Operation(summary = "모임 검색", description = "카테고리, 지역 조건으로 모임을 검색합니다")
+    @GetMapping("/search")
+    public ResponseEntity<Page<MeetingSummaryResponse>> searchMeetings(
+            @RequestParam(required = false) com.aidea.backend.domain.meeting.entity.enums.MeetingCategory category,
+            @RequestParam(required = false) com.aidea.backend.domain.meeting.entity.enums.Region region,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        Page<MeetingSummaryResponse> response = meetingService.searchMeetings(category, region, pageable);
+        return ResponseEntity.ok(response);
+    }
+
+    /**
      * 모임 삭제
      */
     @Operation(summary = "모임 삭제", description = "모임을 삭제합니다 (HOST만 가능)")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteMeeting(@PathVariable Long id) {
-        Long userId = 1L; // TODO: 인증 구현 후 실제 userId 사용
-        meetingService.deleteMeeting(id, userId);
+        String email = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication().getName();
+        com.aidea.backend.domain.user.entity.User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
+        
+        meetingService.deleteMeeting(id, user.getUserId());
         return ResponseEntity.noContent().build();
     }
 
@@ -84,8 +104,11 @@ public class MeetingController {
     public ResponseEntity<MeetingResponse> updateMeeting(
             @PathVariable Long id,
             @Valid @RequestBody UpdateMeetingRequest request) {
-        Long userId = 1L; // TODO: 인증 구현 후 실제 userId 사용
-        MeetingResponse response = meetingService.updateMeeting(id, userId, request);
+        String email = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication().getName();
+        com.aidea.backend.domain.user.entity.User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
+
+        MeetingResponse response = meetingService.updateMeeting(id, user.getUserId(), request);
         return ResponseEntity.ok(response);
     }
 
@@ -98,8 +121,11 @@ public class MeetingController {
     @PostMapping("/{id}/join")
     public ResponseEntity<com.aidea.backend.domain.meeting.dto.response.MemberResponse> joinMeeting(
             @PathVariable Long id) {
-        Long userId = 1L; // TODO: 인증 구현 후 실제 userId 사용
-        com.aidea.backend.domain.meeting.dto.response.MemberResponse response = meetingService.joinMeeting(id, userId);
+        String email = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication().getName();
+        com.aidea.backend.domain.user.entity.User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
+
+        com.aidea.backend.domain.meeting.dto.response.MemberResponse response = meetingService.joinMeeting(id, user.getUserId());
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
@@ -122,9 +148,12 @@ public class MeetingController {
     @GetMapping("/{id}/join-requests")
     public ResponseEntity<java.util.List<com.aidea.backend.domain.meeting.dto.response.JoinRequestResponse>> getPendingRequests(
             @PathVariable Long id) {
-        Long userId = 1L; // TODO: 인증 구현 후 실제 userId 사용
+        String email = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication().getName();
+        com.aidea.backend.domain.user.entity.User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
+
         java.util.List<com.aidea.backend.domain.meeting.dto.response.JoinRequestResponse> response = meetingService
-                .getPendingRequests(id, userId);
+                .getPendingRequests(id, user.getUserId());
         return ResponseEntity.ok(response);
     }
 
@@ -136,9 +165,12 @@ public class MeetingController {
     public ResponseEntity<com.aidea.backend.domain.meeting.dto.response.MemberResponse> approveJoinRequest(
             @PathVariable Long id,
             @PathVariable Long memberId) {
-        Long userId = 1L; // TODO: 인증 구현 후 실제 userId 사용
+        String email = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication().getName();
+        com.aidea.backend.domain.user.entity.User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
+
         com.aidea.backend.domain.meeting.dto.response.MemberResponse response = meetingService.approveJoinRequest(id,
-                memberId, userId);
+                memberId, user.getUserId());
         return ResponseEntity.ok(response);
     }
 
@@ -150,8 +182,11 @@ public class MeetingController {
     public ResponseEntity<Void> rejectJoinRequest(
             @PathVariable Long id,
             @PathVariable Long memberId) {
-        Long userId = 1L; // TODO: 인증 구현 후 실제 userId 사용
-        meetingService.rejectJoinRequest(id, memberId, userId);
+        String email = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication().getName();
+        com.aidea.backend.domain.user.entity.User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
+
+        meetingService.rejectJoinRequest(id, memberId, user.getUserId());
         return ResponseEntity.noContent().build();
     }
 
@@ -161,8 +196,11 @@ public class MeetingController {
     @Operation(summary = "모임 탈퇴", description = "모임에서 탈퇴합니다")
     @DeleteMapping("/{id}/leave")
     public ResponseEntity<Void> leaveMeeting(@PathVariable Long id) {
-        Long userId = 1L; // TODO: 인증 구현 후 실제 userId 사용
-        meetingService.leaveMeeting(id, userId);
+        String email = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication().getName();
+        com.aidea.backend.domain.user.entity.User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
+
+        meetingService.leaveMeeting(id, user.getUserId());
         return ResponseEntity.noContent().build();
     }
 
@@ -174,8 +212,11 @@ public class MeetingController {
     public ResponseEntity<Void> removeMember(
             @PathVariable Long id,
             @PathVariable Long memberId) {
-        Long userId = 1L; // TODO: 인증 구현 후 실제 userId 사용
-        meetingService.removeMember(id, memberId, userId);
+        String email = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication().getName();
+        com.aidea.backend.domain.user.entity.User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
+
+        meetingService.removeMember(id, memberId, user.getUserId());
         return ResponseEntity.noContent().build();
     }
 }

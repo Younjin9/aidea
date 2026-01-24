@@ -47,6 +47,7 @@ export interface CreateEventRequest {
     lng: number;
   };
   maxParticipants: number;
+  cost?: string;
   notes?: string;
 }
 
@@ -59,6 +60,7 @@ export interface UpdateEventRequest {
     lng: number;
   };
   maxParticipants?: number;
+  cost?: string;
   notes?: string;
 }
 

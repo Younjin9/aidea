@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation } from '@tanstack/react-query';
 import { Send, Users, ChevronLeft } from 'lucide-react';
 import { chatApi } from '@/shared/api/chatAPI';
 import { useAuthStore } from '@/features/auth/store/authStore';
@@ -12,7 +12,7 @@ const ChatRoomPage: React.FC = () => {
     const navigate = useNavigate();
     // const queryClient = useQueryClient();
     const user = useAuthStore((state) => state.user);
-    const myId = user?.userId || 999; // Fallback ID
+    const myId = user?.userId ? String(user.userId) : '999'; // Fallback ID
 
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [inputMessage, setInputMessage] = useState('');
@@ -40,11 +40,11 @@ const ChatRoomPage: React.FC = () => {
             try {
                 const response = await chatApi.getMessages(parsedMeetingId);
                 // @ts-ignore
-                return response.result || response.data || []; 
+                return response.result || response.data || [];
             } catch (e) {
                 // Fallback Dummy Data for UI Dev
                 return [
-                    { messageId: '1', senderId: 101, senderName: '김철수', content: '같이 가요!', createdAt: '2023-10-25T10:00:00', senderProfileImage: undefined }, 
+                    { messageId: '1', senderId: 101, senderName: '김철수', content: '같이 가요!', createdAt: '2023-10-25T10:00:00', senderProfileImage: undefined },
                     { messageId: '2', senderId: 202, senderName: '김쩌고', content: '다른 사람이 말하는 버전 1줄 버전!', createdAt: '2023-10-25T10:05:00', senderProfileImage: undefined },
                     { messageId: '3', senderId: 202, senderName: '김쩌고', content: '다른 사람이 말하는 버전 2줄 버전!\n다른 사람이 말하는 버전 2줄 버전!', createdAt: '2023-10-25T10:06:00', senderProfileImage: undefined },
                     { messageId: '4', senderId: myId, senderName: '나', content: '자신이 말하는 버전 2줄 버전!\n자신이 말하는 버전 2줄 버전!', createdAt: '2023-10-25T10:07:00' },
@@ -113,7 +113,7 @@ const ChatRoomPage: React.FC = () => {
     // 3. 메시지 전송
     const handleSendMessage = () => {
         if (!inputMessage.trim()) return;
-        
+
         // Optimistic UI Update (즉시 추가)
         const tempMessage: ChatMessage = {
             messageId: Date.now().toString(),
@@ -122,6 +122,7 @@ const ChatRoomPage: React.FC = () => {
             senderProfileImage: user?.profileImage,
             content: inputMessage,
             createdAt: new Date().toISOString(),
+            type: 'TALK',
         };
         setMessages((prev) => [...prev, tempMessage]);
         setInputMessage('');
@@ -180,27 +181,26 @@ const ChatRoomPage: React.FC = () => {
                     </div>
                 ) : (
                     messages.map((msg, idx) => {
-                        const isMe = msg.senderName === '나' || msg.senderId === user?.userId || msg.senderId === 999;
-                        
+                        const isMe = msg.senderName === '나' || msg.senderId === (user?.userId ? String(user.userId) : undefined) || msg.senderId === '999';
+
                         return (
                             <div key={idx} className={`flex w-full ${isMe ? 'justify-end' : 'justify-start'} items-end mb-4`}>
                                 {!isMe && (
                                     <div className="flex flex-col items-center mr-3">
                                         <div className="w-10 h-10 rounded-full bg-gray-300 overflow-hidden mb-1">
-                                            {msg.senderProfileImage ? <img src={msg.senderProfileImage} alt="profile" className="w-full h-full object-cover"/> : <div className="w-full h-full bg-gray-300" />}
+                                            {msg.senderProfileImage ? <img src={msg.senderProfileImage} alt="profile" className="w-full h-full object-cover" /> : <div className="w-full h-full bg-gray-300" />}
                                         </div>
                                     </div>
                                 )}
-                                
+
                                 <div className={`flex flex-col max-w-[70%] ${isMe ? 'items-end' : 'items-start'}`}>
                                     {!isMe && <span className="text-xs text-gray-600 mb-1 ml-1">{msg.senderName}</span>}
                                     <div className="flex items-end gap-1">
                                         {isMe && <span className="text-[10px] text-gray-400 min-w-fit mb-1">{formatTime(msg.createdAt)}</span>}
-                                        <div className={`p-3 text-sm whitespace-pre-wrap leading-relaxed ${
-                                            isMe 
-                                            ? 'bg-[#FF206E] text-white rounded-[20px] rounded-tr-none' 
-                                            : 'bg-[#BDBDBD] text-white rounded-[20px] rounded-tl-none' 
-                                        }`}>
+                                        <div className={`p-3 text-sm whitespace-pre-wrap leading-relaxed ${isMe
+                                                ? 'bg-[#FF206E] text-white rounded-[20px] rounded-tr-none'
+                                                : 'bg-[#BDBDBD] text-white rounded-[20px] rounded-tl-none'
+                                            }`}>
                                             {msg.content}
                                         </div>
                                         {!isMe && <span className="text-[10px] text-gray-400 min-w-fit mb-1">{formatTime(msg.createdAt)}</span>}
@@ -224,7 +224,7 @@ const ChatRoomPage: React.FC = () => {
                         placeholder="메시지를 입력하세요"
                         className="flex-1 bg-transparent outline-none text-sm placeholder-gray-400 text-black"
                     />
-                    <button 
+                    <button
                         onClick={handleSendMessage}
                         disabled={!inputMessage.trim()}
                         className="ml-2 text-black transition-colors disabled:opacity-30"

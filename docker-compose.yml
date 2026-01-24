@@ -1,3 +1,5 @@
+version: "3.8"
+
 services:
   mysql:
     image: mysql:8.0
@@ -23,6 +25,25 @@ services:
       --character-set-server=utf8mb4
       --collation-server=utf8mb4_unicode_ci
       --default-time-zone='+09:00'
+
+  # ✅ 추천 전용: Postgres + (Dockerfile에서 PostGIS + pgvector 설치)
+  postgres:
+    build:
+      context: .
+      dockerfile: docker/postgres/Dockerfile
+    container_name: aidea-postgres
+    environment:
+      POSTGRES_DB: ${PG_DB}
+      POSTGRES_USER: ${PG_USER}
+      POSTGRES_PASSWORD: ${PG_PASSWORD}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+      - ./db/postgres/init:/docker-entrypoint-initdb.d
+    networks:
+      - aidea-network
+    restart: unless-stopped
 
   redis:
     image: redis:7-alpine
@@ -56,6 +77,11 @@ services:
       JWT_SECRET: ${JWT_SECRET}
       KAKAO_CLIENT_ID: ${KAKAO_CLIENT_ID}
       KAKAO_CLIENT_SECRET: ${KAKAO_CLIENT_SECRET}
+      # ✅ 추천 전용 Postgres (필요하면 백엔드에서 사용)
+      PG_HOST: postgres
+      PG_DB: ${PG_DB}
+      PG_USER: ${PG_USER}
+      PG_PASSWORD: ${PG_PASSWORD}
     ports:
       - "8080:8080"
     depends_on:
@@ -79,6 +105,8 @@ volumes:
   mysql_data:
     driver: local
   redis-data:
+    driver: local
+  pg_data:
     driver: local
 
 networks:
