@@ -60,8 +60,9 @@ export const useMeetings = (params: MeetingListParams = {}) => {
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: meetingKeys.list(),
     queryFn: async () => {
-      const response = await meetingApi.getList(params) as unknown as PaginatedResponse<Meeting>;
-      return transformMeetingsToUI(response.content || []);
+      const response = await meetingApi.getList(params);
+      const content = (response as any)?.data?.content ?? response?.data?.data?.content ?? response?.data?.content;
+      return transformMeetingsToUI(content || []);
     },
     staleTime: 1000 * 60 * 3,
     retry: 1,
@@ -86,6 +87,38 @@ export const useMeetings = (params: MeetingListParams = {}) => {
     toggleLike: toggleLikeByGroupId,
     refetch,
   };
+};
+
+// ============================================
+// Like / Unlike (서버 반영)
+// ============================================
+
+export const useToggleLikeMeeting = () => {
+  const queryClient = useQueryClient();
+  const toggleLikeByGroupId = useMeetingStore((state) => state.toggleLikeByGroupId);
+
+  return useMutation({
+    mutationFn: async ({ groupId, isLiked }: { groupId: string; isLiked: boolean }) => {
+      if (isLiked) {
+        await meetingApi.unlike(groupId);
+      } else {
+        await meetingApi.like(groupId);
+      }
+      return { groupId };
+    },
+    onMutate: async ({ groupId }) => {
+      toggleLikeByGroupId(groupId);
+    },
+    onError: (err, { groupId }) => {
+      console.warn('모임 좋아요/취소 API 실패, 상태 복원:', err);
+      toggleLikeByGroupId(groupId);
+    },
+    onSuccess: (_, { groupId }) => {
+      queryClient.invalidateQueries({ queryKey: meetingKeys.all });
+      queryClient.invalidateQueries({ queryKey: myPageKeys.myMeetings() });
+      queryClient.invalidateQueries({ queryKey: ['members', groupId] });
+    },
+  });
 };
 
 // ============================================

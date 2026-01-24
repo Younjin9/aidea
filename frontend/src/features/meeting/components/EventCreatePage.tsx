@@ -8,6 +8,7 @@ import Input from '@/shared/components/ui/Input';
 import KakaoMapModal, { type SelectedPlace } from './KakaoMapModal';
 import { useMyPageStore } from '@/features/mypage/store/myPageStore';
 import { useCreateEvent } from '../hooks/useEvents';
+import LocationSearchModal from '../../meeting/components/LocationSearchModal';
 
 const EventCreatePage: React.FC = () => {
   const navigate = useNavigate();
@@ -32,6 +33,7 @@ const EventCreatePage: React.FC = () => {
   // Map State
   const [selectedLocation, setSelectedLocation] = useState<SelectedPlace | null>(null);
   const [showMapModal, setShowMapModal] = useState(false);
+  const [showLocationSearchModal, setShowLocationSearchModal] = useState(false);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -96,6 +98,31 @@ const EventCreatePage: React.FC = () => {
   };
 
   const isFormValid = eventName && shortDescription && date && time && location && description;
+
+  const handleLocationInputClick = () => {
+    setShowLocationSearchModal(true);
+  };
+
+  const handleOpenMapModal = () => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+          setCurrentLocation({ latitude, longitude });
+          setShowMapModal(true);
+        },
+        (error) => {
+          console.error('Error fetching current location:', error);
+          setShowMapModal(true); // 현재 위치를 가져오지 못해도 모달은 열림
+        }
+      );
+    } else {
+      console.error('Geolocation is not supported by this browser.');
+      setShowMapModal(true);
+    }
+  };
+
+  const [currentLocation, setCurrentLocation] = useState<{ latitude: number; longitude: number } | undefined>(undefined);
 
   return (
     <div className="min-h-screen bg-white flex flex-col">
@@ -167,14 +194,15 @@ const EventCreatePage: React.FC = () => {
             label="모임 장소"
             value={location}
             onChange={(e) => setLocation(e.target.value)}
+            onClick={handleLocationInputClick} // 클릭 시 모달 열기
             placeholder="주소 검색"
-            rightElement={<Search size={20} className="text-gray-400" />}
+            rightElement={<Search size={20} className="text-gray-400" onClick={handleLocationInputClick} />} // 아이콘 클릭 시 모달 열기
           />
         </div>
 
         {/* 지도 버튼 */}
         <button
-          onClick={() => setShowMapModal(true)}
+          onClick={handleOpenMapModal}
           className="flex items-center gap-2 px-3 py-2 mb-6 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50 transition"
         >
           <MapPin size={16} />
@@ -235,6 +263,17 @@ const EventCreatePage: React.FC = () => {
         isOpen={showMapModal}
         onClose={() => setShowMapModal(false)}
         onSelect={handleLocationSelect}
+        currentLocation={currentLocation} // 현재 위치 전달
+      />
+
+      {/* Location Search Modal */}
+      <LocationSearchModal
+        isOpen={showLocationSearchModal}
+        onClose={() => setShowLocationSearchModal(false)}
+        onSelectLocation={(selectedLocation) => {
+          setLocation(selectedLocation.address);
+          setShowLocationSearchModal(false);
+        }}
       />
     </div>
   );

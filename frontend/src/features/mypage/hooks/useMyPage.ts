@@ -1,8 +1,10 @@
 import { useQuery } from '@tanstack/react-query';
 import { useEffect, useMemo } from 'react';
 import mypageApi from '@/shared/api/user/userApi';
+import meetingApi from '@/shared/api/meeting/meetingApi';
 import { useMyPageStore } from '../store/myPageStore';
 import { useMeetingStore } from '@/features/meeting/store/meetingStore';
+import { transformMeetingsToUI } from '@/features/meeting/hooks/useMeetings';
 
 // ============================================
 // React Query Keys
@@ -62,6 +64,28 @@ export const useMyPage = () => {
     }
   }, [profileData, profileError, isUserInitialized, setUser, initializeMockData]);
 
+  // 내 모임 (API) - 실패 시 store fallback
+  const { data: myMeetingsData, error: myMeetingsError } = useQuery({
+    queryKey: myPageKeys.myMeetings(),
+    queryFn: async () => {
+      const response = await mypageApi.getMyMeetings('active');
+      return transformMeetingsToUI(response.data || []);
+    },
+    staleTime: 1000 * 60 * 3,
+    retry: 1,
+  });
+
+  // 찜한 모임 (API) - meetingApi.getLiked, 실패 시 store fallback
+  const { data: likedMeetingsData, error: likedMeetingsError } = useQuery({
+    queryKey: myPageKeys.likedMeetings(),
+    queryFn: async () => {
+      const response = await meetingApi.getLiked();
+      return transformMeetingsToUI(response.data || []);
+    },
+    staleTime: 1000 * 60 * 3,
+    retry: 1,
+  });
+
   // Meeting Mock 데이터 초기화
   useEffect(() => {
     if (!isMeetingInitialized) {
@@ -70,8 +94,15 @@ export const useMyPage = () => {
   }, [isMeetingInitialized, initializeMeetingMockData]);
 
   // meetingStore에서 파생된 데이터 (useMemo로 참조 안정성 보장)
-  const myMeetings = useMemo(() => meetings.filter((m) => m.myStatus === 'APPROVED'), [meetings]);
-  const likedMeetings = useMemo(() => meetings.filter((m) => m.isLiked), [meetings]);
+  const myMeetings = useMemo(() => {
+    if (myMeetingsData && !myMeetingsError) return myMeetingsData;
+    return meetings.filter((m) => m.myStatus === 'APPROVED');
+  }, [meetings, myMeetingsData, myMeetingsError]);
+
+  const likedMeetings = useMemo(() => {
+    if (likedMeetingsData && !likedMeetingsError) return likedMeetingsData;
+    return meetings.filter((m) => m.isLiked);
+  }, [meetings, likedMeetingsData, likedMeetingsError]);
 
   return {
     // 사용자 정보
