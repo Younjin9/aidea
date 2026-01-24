@@ -60,6 +60,7 @@ const MeetingCreatePage: React.FC = () => {
       return;
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const kakao = (window as any).kakao;
     if (!kakao || !kakao.maps) {
       alert('카카오 지도 API가 로드되지 않았습니다.');
@@ -74,6 +75,7 @@ const MeetingCreatePage: React.FC = () => {
         const geocoder = new kakao.maps.services.Geocoder();
         const coord = new kakao.maps.LatLng(latitude, longitude);
 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const callback = (result: any, status: any) => {
           if (status === kakao.maps.services.Status.OK) {
             // 행정동 주소 정보 가져오기
@@ -219,6 +221,19 @@ const MeetingCreatePage: React.FC = () => {
                 placeholder="장소를 검색하거나 현재 위치를 사용하세요"
                 onClick={() => setShowSearchModal(true)}
                 className="flex-1 bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                rightElement={
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowSearchModal(true);
+                    }}
+                    className="flex items-center justify-center h-full pr-1 text-gray-500 hover:text-gray-700 transition"
+                    aria-label="장소 검색"
+                  >
+                    <Search size={20} />
+                  </button>
+                }
               />
             </div>
             <button

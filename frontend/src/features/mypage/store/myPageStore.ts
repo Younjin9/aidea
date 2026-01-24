@@ -9,7 +9,7 @@ const MOCK_USER: UserProfile = {
   bio: '맛집 탐방을 좋아하는 사람입니다.',
   profileImage: undefined,
   location: { lat: 37.5665, lng: 126.978, region: '성수동' },
-  interests: ['맛집 탐방', '러닝'],
+  interests: ['맛집 탐방'],
   provider: 'KAKAO',
   createdAt: '2024-01-01',
   updatedAt: '2024-01-01',

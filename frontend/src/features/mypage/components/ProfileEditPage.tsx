@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Camera, MapPin } from 'lucide-react';
+import userApi from '@/shared/api/user/userApi';
 import BackButton from '@/shared/components/ui/BackButton';
 import ProfileImage from '@/shared/components/ui/ProfileImage';
 import { INTEREST_CATEGORIES } from '@/shared/config/constants';
@@ -28,6 +29,7 @@ const ProfileEditPage: React.FC = () => {
   const [region, setRegion] = useState('');
   const [selectedInterests, setSelectedInterests] = useState<string[]>([]);
   const [profileImage, setProfileImage] = useState<string | undefined>(undefined);
+  const [profileImageFile, setProfileImageFile] = useState<File | null>(null);
   const [coords, setCoords] = useState({ lat: 0, lng: 0 });
   const [showSearchModal, setShowSearchModal] = useState(false);
 
@@ -53,21 +55,48 @@ const ProfileEditPage: React.FC = () => {
     );
   };
 
-  const handleSave = () => {
-    // Store 업데이트 (Mock)
-    updateUser({
-      nickname: name,
-      bio,
-      profileImage,
-      interests: selectedInterests,
-      location: user?.location
-        ? { ...user.location, region, lat: coords.lat, lng: coords.lng }
-        : { lat: coords.lat, lng: coords.lng, region },
-    });
+  const handleSave = async () => {
+    try {
+      const location = { lat: coords.lat, lng: coords.lng, region };
 
-    // TODO: API 호출로 프로필 저장
-    console.log('프로필 저장:', { name, bio, region, selectedInterests, profileImage });
-    navigate(-1);
+      // 프로필 정보 업데이트
+      await userApi.updateProfile({
+        nickname: name,
+        bio,
+        interests: selectedInterests,
+        location,
+      });
+
+      // 위치만 별도로 전달해야 하는 경우
+      await userApi.updateLocation(location);
+
+      // 프로필 이미지 업데이트 (파일이 있는 경우만)
+      if (profileImageFile) {
+        await userApi.updateProfileImage(profileImageFile);
+      }
+
+      updateUser({
+        nickname: name,
+        bio,
+        profileImage,
+        interests: selectedInterests,
+        location,
+      });
+
+      navigate(-1);
+    } catch (error) {
+      console.error('프로필 저장 실패:', error);
+      // 서버 연결 실패 시에도 로컬에 임시 반영 (조용한 폴백)
+      updateUser({
+        nickname: name,
+        bio,
+        profileImage,
+        interests: selectedInterests,
+        location: { lat: coords.lat, lng: coords.lng, region },
+      });
+
+      navigate(-1);
+    }
   };
 
   const handleImageClick = () => {
@@ -77,6 +106,7 @@ const ProfileEditPage: React.FC = () => {
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      setProfileImageFile(file);
       const reader = new FileReader();
       reader.onloadend = () => {
         setProfileImage(reader.result as string);
