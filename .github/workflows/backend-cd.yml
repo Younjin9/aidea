@@ -2,7 +2,7 @@ name: Backend CD
 
 on:
   push:
-    branches: [ "develop" ]
+    branches: [ "backend-integration" ]
     paths:
       - 'backend/**'
       - 'docker-compose.yml'
@@ -47,7 +47,7 @@ jobs:
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          password: ${{ secrets.GHCR_TOKEN || secrets.GITHUB_TOKEN }}
 
       - name: Build and Push Docker Image
         uses: docker/build-push-action@v5
@@ -66,7 +66,7 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
             # Login to GHCR on EC2
-            echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u $(echo ${{ github.actor }} | tr '[:upper:]' '[:lower:]') --password-stdin
+            echo ${{ secrets.GHCR_TOKEN || secrets.GITHUB_TOKEN }} | docker login ghcr.io -u $(echo ${{ github.actor }} | tr '[:upper:]' '[:lower:]') --password-stdin
             
             # Pull latest image
             docker pull ${{ env.DOCKER_IMAGE }}:latest

@@ -60,6 +60,7 @@ const MeetingCreatePage: React.FC = () => {
       return;
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const kakao = (window as any).kakao;
     if (!kakao || !kakao.maps) {
       alert('카카오 지도 API가 로드되지 않았습니다.');
@@ -74,6 +75,7 @@ const MeetingCreatePage: React.FC = () => {
         const geocoder = new kakao.maps.services.Geocoder();
         const coord = new kakao.maps.LatLng(latitude, longitude);
 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const callback = (result: any, status: any) => {
           if (status === kakao.maps.services.Status.OK) {
             // 행정동 주소 정보 가져오기
@@ -180,6 +182,7 @@ const MeetingCreatePage: React.FC = () => {
               value={meetingName}
               onChange={(e) => setMeetingName(e.target.value)}
               placeholder="모임 이름을 입력하세요"
+              className="text-sm placeholder:text-sm"
             />
           </div>
         </div>
@@ -191,6 +194,7 @@ const MeetingCreatePage: React.FC = () => {
             value={shortDescription}
             onChange={(e) => setShortDescription(e.target.value)}
             placeholder="모임을 한 줄로 설명해주세요"
+            className="text-sm placeholder:text-sm"
           />
         </div>
 
@@ -202,21 +206,34 @@ const MeetingCreatePage: React.FC = () => {
             placeholder="선택해주세요"
             readOnly
             rightElement={<ChevronDown size={20} className="text-gray-400" />}
-            className="cursor-pointer"
+            className="cursor-pointer text-sm placeholder:text-sm"
           />
         </div>
 
         {/* 중심지역 */}
         <div className="mb-6">
           <div className="flex items-end gap-2">
-            <div className="flex-1" onClick={() => setShowSearchModal(true)}>
+            <div className="flex-1 relative">
               <Input
                 label="중심지역"
                 value={region}
                 readOnly
                 placeholder="장소를 검색하거나 현재 위치를 사용하세요"
-                rightElement={<Search size={20} className="text-gray-400" />}
-                className="cursor-pointer"
+                onClick={() => setShowSearchModal(true)}
+                className="flex-1 bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                rightElement={
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowSearchModal(true);
+                    }}
+                    className="flex items-center justify-center h-full pr-1 text-gray-500 hover:text-gray-700 transition"
+                    aria-label="장소 검색"
+                  >
+                    <Search size={20} />
+                  </button>
+                }
               />
             </div>
             <button
@@ -240,7 +257,7 @@ const MeetingCreatePage: React.FC = () => {
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             placeholder="모임에 대한 설명"
-            className="w-full bg-gray-50 border border-gray-100 rounded-lg px-4 py-3 text-gray-dark placeholder-gray-light focus:outline-none resize-none h-32"
+            className="w-full bg-gray-50 border border-gray-100 rounded-lg px-4 py-3 text-gray-dark placeholder-gray-light focus:outline-none resize-none h-32 text-sm placeholder:text-sm"
           />
         </div>
 
