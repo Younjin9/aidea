@@ -2,7 +2,7 @@ name: Frontend CD
 
 on:
   push:
-    branches: [ "develop" ]
+    branches: [ "backend/sejong" ]
     paths:
       - 'frontend/**'
   workflow_dispatch:  # 수동 실행 가능
