@@ -69,6 +69,22 @@ export const deleteAccount = async (data?: DeleteAccountRequest): Promise<ApiRes
   return apiClient.delete('/users/me', { data });
 };
 
+/**
+ * 관심사 카테고리 목록 조회
+ * GET /api/interests/categories
+ */
+export const getInterestCategories = async (): Promise<ApiResponse<Array<{ id: string; name: string }>>> => {
+  return apiClient.get('/interests/categories');
+};
+
+/**
+ * 사용자 관심사 업데이트
+ * PUT /api/users/interests
+ */
+export const updateUserInterests = async (interests: string[]): Promise<ApiResponse<void>> => {
+  return apiClient.put('/users/interests', { interests });
+};
+
 const userApi = {
   getMyProfile,
   updateProfile,
@@ -80,6 +96,8 @@ const userApi = {
   getNotificationSettings,
   updateNotificationSettings,
   deleteAccount,
+  getInterestCategories,
+  updateUserInterests,
 };
 
 export default userApi;

@@ -84,7 +84,6 @@ const EventCreatePage: React.FC = () => {
         location: selectedLocation
           ? { lat: Number(selectedLocation.lat), lng: Number(selectedLocation.lng) }
           : { lat: 0, lng: 0 },
-        cost,
         maxParticipants,
       },
       {
