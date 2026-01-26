@@ -63,12 +63,16 @@ const ProfileEditPage: React.FC = () => {
       await userApi.updateProfile({
         nickname: name,
         bio,
-        interests: selectedInterests,
         location,
       });
 
-      // 위치만 별도로 전달해야 하는 경우
+      // 위치 업데이트
       await userApi.updateLocation(location);
+
+      // 관심사 업데이트 (별도 API)
+      if (selectedInterests.length > 0) {
+        await userApi.updateUserInterests(selectedInterests);
+      }
 
       // 프로필 이미지 업데이트 (파일이 있는 경우만)
       if (profileImageFile) {
