@@ -28,7 +28,7 @@ const MeetingListPage: React.FC = () => {
           <img src={logo} alt="AIMO" className="w-8 h-8 object-contain" />
         </div>
         <button onClick={() => navigate('/search')}>
-          <Search size={24} className="text-gray-600" />
+          <Search size={20} className="text-gray-600" />
         </button>
       </header>
 
@@ -54,8 +54,8 @@ const MeetingListPage: React.FC = () => {
                   <MeetingCard
                     key={meeting.id}
                     meeting={meeting}
-                    onClick={() => navigate(`/meetings/${meeting.id}`)}
-                    onLike={() => toggleLike(String(meeting.id), meeting.isLiked || false)}
+                    onClick={() => navigate(`/meetings/${meeting.groupId}`)}
+                    onLike={() => toggleLike(meeting.groupId)}
                     showLikeButton={true}
                   />
                 ))}
@@ -81,4 +81,3 @@ const MeetingListPage: React.FC = () => {
   );
 };
 export default MeetingListPage;
-

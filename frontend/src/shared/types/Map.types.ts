@@ -4,7 +4,7 @@
 // ============================================
 
 import type { Location } from './common.types';
-import type { MapMeeting } from './meeting.types';
+import type { MapMeeting } from './Meeting.types';
 
 // ============================================
 // Map Query Types

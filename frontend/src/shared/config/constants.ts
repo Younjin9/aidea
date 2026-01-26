@@ -1,66 +1,42 @@
-export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api/v1';
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api';
 
 export const KAKAO_AUTH_URL = `https://kauth.kakao.com/oauth/authorize?client_id=${import.meta.env.VITE_KAKAO_CLIENT_ID}&redirect_uri=${import.meta.env.VITE_KAKAO_REDIRECT_URI}&response_type=code`;
 
 export const INTEREST_CATEGORIES = [
   {
+    id: 'hobby',
+    label: '취미 / 여가',
+    icon: '🎯',
+    items: ['만들기 / DIY', '보드게임 / 퍼즐', '사진 / 기록', '글쓰기 / 독서', '취미 공유', '체험 활동'],
+  },
+  {
     id: 'sports',
-    label: '운동/스포츠',
-    icon: '⚽',
-    items: ['축구', '풋살', '헬스', '배드민턴', '볼링'],
-  },
-  {
-    id: 'outdoor',
-    label: '아웃도어/여행',
-    icon: '✈️',
-    items: ['등산', '캠핑', '국내여행', '해외여행', '낚시'],
-  },
-  {
-    id: 'humanities',
-    label: '인문학/책/글',
-    icon: '📚',
-    items: ['독서모임', '글쓰기', '토론', '철학'],
-  },
-  {
-    id: 'language',
-    label: '외국어/언어',
-    icon: '🗣️',
-    items: ['영어회화(OPIc)', '일본어', '언어교환'],
-  },
-  {
-    id: 'music',
-    label: '음악/악기',
-    icon: '🎵',
-    items: ['노래', '밴드', '기타', '피아노', '작곡'],
+    label: '운동 / 액티비티',
+    icon: '🏃',
+    items: ['가벼운 운동', '야외 활동', '팀 스포츠', '개인 운동', '도전 / 챌린지'],
   },
   {
     id: 'culture',
-    label: '문화/공연/축제',
+    label: '문화 / 예술',
     icon: '🎨',
-    items: ['전시회 관람', '뮤지컬', '영화', '콘서트', '연극'],
+    items: ['전시 / 관람', '창작 활동', '예술 취향 공유', '공연 / 행사', '디자인 / 미감'],
   },
   {
-    id: 'crafts',
-    label: '공예/만들기',
-    icon: '🧶',
-    items: ['가죽공예', '목공', '도자기', '캘리그라피', '요리'],
+    id: 'self_improvement',
+    label: '자기계발 / 공부',
+    icon: '📚',
+    items: ['스터디', '습관 형성', '지식 공유', '목표 관리', '커리어 탐색'],
   },
   {
-    id: 'dance',
-    label: '댄스/무용',
-    icon: '💃',
-    items: ['방송댄스', '라틴댄스', '발레', '스윙'],
+    id: 'travel',
+    label: '여행 / 나들이',
+    icon: '✈️',
+    items: ['근교 나들이', '산책 / 걷기', '맛집 탐방', '기록 여행', '테마 여행'],
   },
   {
-    id: 'photography',
-    label: '사진/영상',
-    icon: '📸',
-    items: ['출사', '영상 편집', '숏폼 제작'],
-  },
-  {
-    id: 'social',
-    label: '사교/인맥',
-    icon: '🤝',
-    items: ['직장인 모임', '와인 파티', '맛집 탐방', '또래 모임'],
+    id: 'contents',
+    label: '콘텐츠 / 미디어',
+    icon: '🎬',
+    items: ['영화 / 드라마', '애니 / 만화', '게임', '유튜브 / 스트리밍', '콘텐츠 토크'],
   },
 ] as const;

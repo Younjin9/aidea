@@ -2,9 +2,10 @@ name: Frontend CD
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "backend/sejong" ]
     paths:
       - 'frontend/**'
+  workflow_dispatch:  # 수동 실행 가능
 
 jobs:
   build-and-deploy:
@@ -32,7 +33,7 @@ jobs:
       # 2. Build
       - name: Build
         env:
-          VITE_API_URL: https://api.aidea.site # Change this to your actual API domain if needed
+          VITE_API_URL: http://13.125.49.100:8080 # Change this to your actual API domain if needed
         run: npm run build
 
       # 3. Deploy to S3

@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.*;
 
 @Tag(name = "User Interest", description = "사용자 관심사 API")
 @RestController
-@RequestMapping("/api/v1/users/interests")
+@RequestMapping("/api/users/interests")
 @RequiredArgsConstructor
 public class UserInterestController {
 

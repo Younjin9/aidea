@@ -4,6 +4,7 @@
 // ============================================
 
 import type { Location } from './common.types';
+import type { Member } from './Member.types';
 
 export type MeetingStatus = 'RECRUITING' | 'CONFIRMED' | 'COMPLETED' | 'CANCELLED';
 
@@ -30,25 +31,14 @@ export interface Meeting {
 }
 
 export interface MeetingDetail extends Meeting {
-  members: MeetingMember[];
+  members: Member[];
   events: MeetingEvent[];
-  myRole?: 'HOST' | 'MEMBER';
+  myRole?: 'HOST' | 'USER';
   myStatus?: 'PENDING' | 'APPROVED';
 }
 
-export interface MeetingMember {
-  userId: string;
-  nickname: string;
-  profileImage?: string;
-  role: 'HOST' | 'MEMBER';
-  status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'LEFT';
-  joinedAt?: string;
-  requestMessage?: string;
-  responseMessage?: string;
-}
-
 // ============================================
-// MapMeeting - 지도 위치 기반 검색용
+// MapMeeting - 지도 위치 기반 검색용 (Moved to Map Types below)
 // ============================================
 
 export interface MapMeeting {
@@ -60,13 +50,27 @@ export interface MapMeeting {
   location: Location;
   distanceKm?: number;
   isPublic: boolean;
+  markerColor?: string;
+  clustered?: boolean;
 }
 
 export interface MeetingEvent {
   eventId: string;
   title: string;
+  description?: string;
   scheduledAt: string;
+  location?: string;
+  mapUrl?: string;
+  cost?: string;
+  maxParticipants?: number;
   participantCount: number;
+  imageUrl?: string;
+  participants?: Array<{
+    userId: string;
+    nickname: string;
+    profileImage?: string;
+    isHost?: boolean;
+  }>;
 }
 
 export interface MeetingTag {
@@ -123,15 +127,6 @@ export interface JoinMeetingResponse {
 }
 
 // ============================================
-// Map Types
-// ============================================
-
-export interface MapMeeting extends Meeting {
-  markerColor?: string;
-  clustered?: boolean;
-}
-
-// ============================================
 // Stats Types
 // ============================================
 
@@ -151,11 +146,19 @@ export interface MeetingStats {
  */
 export interface MeetingUI {
   id: number;
+  groupId: string; // 원본 groupId (네비게이션용)
   image: string;
   title: string;
   category: string;
   location: string;
   members: number;
+  maxMembers?: number;
+  description?: string;
   date?: string;
   isLiked?: boolean;
+
+  ownerUserId?: string; // 모임 생성자 ID
+  myStatus?: 'PENDING' | 'APPROVED'; // 내 가입 상태
+  myRole?: 'HOST' | 'MEMBER'; // 내 역할
 }
+

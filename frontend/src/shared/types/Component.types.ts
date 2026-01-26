@@ -1,4 +1,4 @@
-import { ReactNode } from 'react';
+import type { ReactNode } from 'react';
 
 // Common component prop types
 
@@ -22,29 +22,30 @@ export interface ProfileImageProps {
   className?: string;
   showBadge?: boolean;
   badgeContent?: ReactNode;
+  showEditIcon?: boolean;
 }
 
 export interface MeetingCardProps {
   meeting: {
-    meeting_id: number;
+    groupId: string;
     title: string;
     description: string;
-    image_url?: string;
+    imageUrl?: string;
     location: string;
-    max_members: number;
-    current_members: number;
-    meeting_date: string;
+    maxMembers: number;
+    memberCount: number;
+    meetingDate?: string;
     status: 'RECRUITING' | 'CONFIRMED' | 'COMPLETED' | 'CANCELLED';
-    tags?: Array<{ interest_id: number; interest_name: string }>;
+    tags?: Array<{ interestId: string; interestName: string }>;
     creator?: {
-      user_id: number;
+      userId: string;
       nickname: string;
-      profile_image?: string;
+      profileImage?: string;
     };
   };
   variant?: 'card' | 'list' | 'compact';
-  onClick?: (meetingId: number) => void;
-  onLike?: (meetingId: number) => void;
+  onClick?: (meetingId: string) => void;
+  onLike?: (meetingId: string) => void;
   isLiked?: boolean;
   className?: string;
 }
