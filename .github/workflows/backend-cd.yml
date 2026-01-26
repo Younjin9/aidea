@@ -2,7 +2,7 @@ name: Backend CD
 
 on:
   push:
-    branches: [ "develop" ]
+    branches: [ "backend/sejong" ]
     paths:
       - 'backend/**'
       - 'docker-compose.yml'
