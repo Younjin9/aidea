@@ -3,6 +3,9 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Edit2 } from 'lucide-react';
 import meetingApi from '@/shared/api/meeting/meetingApi';
+import userApi from '@/shared/api/user/userApi';
+import { authApi } from '@/shared/api/authApi';
+import { useAuthStore } from '@/features/auth/store/authStore';
 import ProfileImage from '@/shared/components/ui/ProfileImage';
 import MeetingCard from '@/shared/components/ui/MeetingCard';
 import Modal from '@/shared/components/ui/Modal';
@@ -17,6 +20,7 @@ const MyPageView: React.FC<{ onUnlike?: (id: number) => void }> = ({ onUnlike })
   const { user, myMeetings, likedMeetings, isLoading, unlikeMeeting, refetchLikedMeetings } = useMyPage();
   const clearUser = useMyPageStore((state) => state.clearUser);
   const initializeMeetingMockData = useMeetingStore((state) => state.initializeMockData);
+  const logoutAuth = useAuthStore((state) => state.logout);
 
   // 로그아웃/회원탈퇴 모달 상태
   const [showLogoutModal, setShowLogoutModal] = useState(false);
@@ -70,20 +74,28 @@ const MyPageView: React.FC<{ onUnlike?: (id: number) => void }> = ({ onUnlike })
   };
 
   // 로그아웃 핸들러
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      await authApi.logout();
+    } catch (error) {
+      console.warn('로그아웃 API 실패, 로컬만 정리:', error);
+    }
+    logoutAuth();
     clearUser();
     setShowLogoutModal(false);
-    // TODO: API 호출 (토큰 삭제 등)
-    console.log('로그아웃 완료');
     navigate('/');
   };
 
   // 회원탈퇴 핸들러
-  const handleWithdraw = () => {
+  const handleWithdraw = async () => {
+    try {
+      await userApi.deleteAccount();
+    } catch (error) {
+      console.warn('회원탈퇴 API 실패, 로컬만 정리:', error);
+    }
+    logoutAuth();
     clearUser();
     setShowWithdrawModal(false);
-    // TODO: API 호출 (회원탈퇴 요청)
-    console.log('회원탈퇴 완료');
     navigate('/');
   };
 
