@@ -264,11 +264,10 @@ const ProfileEditPage: React.FC = () => {
                   <button
                     key={item}
                     onClick={() => handleInterestToggle(item)}
-                    className={`px-3 py-1.5 rounded-full text-xs font-medium transition ${
-                      selectedInterests.includes(item)
+                    className={`px-3 py-1.5 rounded-full text-xs font-medium transition ${selectedInterests.includes(item)
                         ? 'bg-primary text-white'
                         : 'bg-gray-100 text-gray-700'
-                    }`}
+                      }`}
                   >
                     {item}
                   </button>

@@ -17,15 +17,14 @@ services:
     networks:
       - aidea-network
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u${DB_USER}", "-p${DB_PASSWORD}"]
+      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost", "-u${DB_USER}", "-p${DB_PASSWORD}" ]
       interval: 10s
       timeout: 5s
       retries: 10
     command: >
-      --character-set-server=utf8mb4
-      --collation-server=utf8mb4_unicode_ci
-      --default-time-zone='+09:00'
+      --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci --default-time-zone='+09:00'
 
+  # ✅ 추천 전용: Postgres + (Dockerfile에서 PostGIS + pgvector 설치)
   postgres:
     build:
       context: .
@@ -55,7 +54,7 @@ services:
       - aidea-network
     command: redis-server --appendonly yes
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: [ "CMD", "redis-cli", "ping" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -67,7 +66,6 @@ services:
     container_name: aidea-backend
     restart: unless-stopped
     environment:
-      SPRING_JPA_HIBERNATE_DDL_AUTO: update
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-dev}
       DB_HOST: mysql
       DB_NAME: ${DB_NAME}
@@ -77,6 +75,7 @@ services:
       JWT_SECRET: ${JWT_SECRET}
       KAKAO_CLIENT_ID: ${KAKAO_CLIENT_ID}
       KAKAO_CLIENT_SECRET: ${KAKAO_CLIENT_SECRET}
+      # ✅ 추천 전용 Postgres (필요하면 백엔드에서 사용)
       PG_HOST: postgres
       PG_DB: ${PG_DB}
       PG_USER: ${PG_USER}
@@ -92,8 +91,9 @@ services:
       - aidea-network
     volumes:
       - ./backend/logs:/app/logs
+    # ⭐ 커스텀 헬스체크 엔드포인트 사용
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/api/users/health"]
+      test: [ "CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/api/users/health" ]
       interval: 10s
       timeout: 5s
       retries: 5

@@ -11,7 +11,7 @@ import type { Report, ReportUserRequest, Block, BlockUserRequest } from '@/share
  * POST /api/safety/reports
  */
 export const reportUser = async (data: ReportUserRequest): Promise<ApiResponse<Report>> => {
-  return apiClient.post('/safety/reports', data);
+  return apiClient.post('/api/safety/reports', data);
 };
 
 /**
@@ -19,7 +19,7 @@ export const reportUser = async (data: ReportUserRequest): Promise<ApiResponse<R
  * GET /api/safety/reports
  */
 export const getMyReports = async (): Promise<ApiResponse<Report[]>> => {
-  return apiClient.get('/safety/reports');
+  return apiClient.get('/api/safety/reports');
 };
 
 /**
@@ -27,7 +27,7 @@ export const getMyReports = async (): Promise<ApiResponse<Report[]>> => {
  * POST /api/safety/blocks
  */
 export const blockUser = async (data: BlockUserRequest): Promise<ApiResponse<Block>> => {
-  return apiClient.post('/safety/blocks', data);
+  return apiClient.post('/api/safety/blocks', data);
 };
 
 /**
@@ -35,7 +35,7 @@ export const blockUser = async (data: BlockUserRequest): Promise<ApiResponse<Blo
  * DELETE /api/safety/blocks/{userId}
  */
 export const unblockUser = async (userId: string): Promise<ApiResponse<void>> => {
-  return apiClient.delete(`/safety/blocks/${userId}`);
+  return apiClient.delete(`/api/safety/blocks/${userId}`);
 };
 
 /**
@@ -43,7 +43,7 @@ export const unblockUser = async (userId: string): Promise<ApiResponse<void>> =>
  * GET /api/safety/blocks
  */
 export const getBlockedUsers = async (): Promise<ApiResponse<Block[]>> => {
-  return apiClient.get('/safety/blocks');
+  return apiClient.get('/api/safety/blocks');
 };
 
 const safetyApi = {
