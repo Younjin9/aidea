@@ -34,6 +34,7 @@ jobs:
       - name: Build
         env:
           VITE_API_URL: http://13.125.49.100:8080 # Change this to your actual API domain if needed
+          VITE_KAKAO_MAP_API_KEY: ${{ secrets.KAKAO_MAP_API_KEY }}
         run: npm run build
 
       # 3. Deploy to S3
