@@ -10,29 +10,31 @@ const BottomNavigation: React.FC = () => {
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 flex justify-around items-center h-[60px] max-w-[430px] mx-auto z-50">
-      {navItems.map((item) => (
-        <NavLink
-          key={item.path}
-          to={item.path}
-          className={({ isActive }) =>
-            `flex flex-col items-center justify-center w-full h-full gap-1 transition-colors ${
-              isActive ? 'text-black' : 'text-gray-400'
-            }`
-          }
-        >
-          {({ isActive }) => (
-            <>
-              <item.icon 
-                size={28} 
-                strokeWidth={isActive ? 2.5 : 2} 
-                className={isActive ? 'text-black' : 'text-gray-400'}
-              />
-              <span className="text-[10px] font-medium">{item.label}</span>
-            </>
-          )}
-        </NavLink>
-      ))}
+    <nav className="fixed bottom-0 left-0 right-0 h-[60px] z-50 flex justify-center items-center">
+      <div className="w-full max-w-[430px] bg-white border-t border-gray-100 flex justify-around items-center h-full">
+        {navItems.map((item) => (
+          <NavLink
+            key={item.path}
+            to={item.path}
+            className={({ isActive }) =>
+              `flex flex-col items-center justify-center flex-1 h-full gap-1 transition-colors ${
+                isActive ? 'text-black' : 'text-gray-400'
+              }`
+            }
+          >
+            {({ isActive }) => (
+              <>
+                <item.icon 
+                  size={28} 
+                  strokeWidth={isActive ? 2.5 : 2} 
+                  className={isActive ? 'text-black' : 'text-gray-400'}
+                />
+                <span className="text-[10px] font-medium">{item.label}</span>
+              </>
+            )}
+          </NavLink>
+        ))}
+      </div>
     </nav>
   );
 };

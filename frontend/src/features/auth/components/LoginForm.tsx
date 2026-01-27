@@ -6,7 +6,7 @@ import Button from '@/shared/components/ui/Button';
 const LoginForm: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const { mutate: login, isPending, isError, error } = useLogin();
+  const { mutate: login, isPending, isError } = useLogin();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

@@ -9,7 +9,7 @@ import type {
   ParticipateResponse,
   AttendanceRecord,
   CheckAttendanceRequest,
-} from '@/shared/types/event.types';
+} from '@/shared/types/Event.types';
 
 // ============================================
 // 📅 일정(정모) 관리
@@ -24,7 +24,7 @@ export const getEvents = async (
   filter?: 'upcoming' | 'past' | 'all'
 ): Promise<ApiResponse<Event[]>> => {
   const params = filter ? `?filter=${filter}` : '';
-  return apiClient.get(`/groups/${groupId}/events${params}`);
+  return apiClient.get(`/api/groups/${groupId}/events${params}`);
 };
 
 /**
@@ -32,7 +32,7 @@ export const getEvents = async (
  * GET /api/groups/{groupId}/events/{eventId}
  */
 export const getEventDetail = async (groupId: string, eventId: string): Promise<ApiResponse<EventDetail>> => {
-  return apiClient.get(`/groups/${groupId}/events/${eventId}`);
+  return apiClient.get(`/api/groups/${groupId}/events/${eventId}`);
 };
 
 /**
@@ -40,7 +40,7 @@ export const getEventDetail = async (groupId: string, eventId: string): Promise<
  * POST /api/groups/{groupId}/events
  */
 export const createEvent = async (groupId: string, data: CreateEventRequest): Promise<ApiResponse<EventDetail>> => {
-  return apiClient.post(`/groups/${groupId}/events`, data);
+  return apiClient.post(`/api/groups/${groupId}/events`, data);
 };
 
 /**
@@ -52,7 +52,7 @@ export const updateEvent = async (
   eventId: string,
   data: UpdateEventRequest
 ): Promise<ApiResponse<EventDetail>> => {
-  return apiClient.patch(`/groups/${groupId}/events/${eventId}`, data);
+  return apiClient.patch(`/api/groups/${groupId}/events/${eventId}`, data);
 };
 
 /**
@@ -60,7 +60,7 @@ export const updateEvent = async (
  * DELETE /api/groups/{groupId}/events/{eventId}
  */
 export const cancelEvent = async (groupId: string, eventId: string): Promise<ApiResponse<void>> => {
-  return apiClient.delete(`/groups/${groupId}/events/${eventId}`);
+  return apiClient.delete(`/api/groups/${groupId}/events/${eventId}`);
 };
 
 /**
@@ -68,7 +68,7 @@ export const cancelEvent = async (groupId: string, eventId: string): Promise<Api
  * POST /api/groups/{groupId}/events/{eventId}/participate
  */
 export const participateEvent = async (groupId: string, eventId: string): Promise<ApiResponse<ParticipateResponse>> => {
-  return apiClient.post(`/groups/${groupId}/events/${eventId}/participate`);
+  return apiClient.post(`/api/groups/${groupId}/events/${eventId}/participate`);
 };
 
 /**
@@ -76,7 +76,7 @@ export const participateEvent = async (groupId: string, eventId: string): Promis
  * DELETE /api/groups/{groupId}/events/{eventId}/participate
  */
 export const cancelParticipation = async (groupId: string, eventId: string): Promise<ApiResponse<void>> => {
-  return apiClient.delete(`/groups/${groupId}/events/${eventId}/participate`);
+  return apiClient.delete(`/api/groups/${groupId}/events/${eventId}/participate`);
 };
 
 /**
@@ -84,7 +84,7 @@ export const cancelParticipation = async (groupId: string, eventId: string): Pro
  * GET /api/groups/{groupId}/events/{eventId}/participants
  */
 export const getEventParticipants = async (groupId: string, eventId: string): Promise<ApiResponse<EventParticipant[]>> => {
-  return apiClient.get(`/groups/${groupId}/events/${eventId}/participants`);
+  return apiClient.get(`/api/groups/${groupId}/events/${eventId}/participants`);
 };
 
 /**
@@ -96,7 +96,7 @@ export const confirmParticipant = async (
   eventId: string,
   userId: string
 ): Promise<ApiResponse<void>> => {
-  return apiClient.post(`/groups/${groupId}/events/${eventId}/participants/${userId}/confirm`);
+  return apiClient.post(`/api/groups/${groupId}/events/${eventId}/participants/${userId}/confirm`);
 };
 
 /**
@@ -108,7 +108,7 @@ export const checkAttendance = async (
   eventId: string,
   data: CheckAttendanceRequest
 ): Promise<ApiResponse<void>> => {
-  return apiClient.post(`/groups/${groupId}/events/${eventId}/attendance`, data);
+  return apiClient.post(`/api/groups/${groupId}/events/${eventId}/attendance`, data);
 };
 
 /**
@@ -116,7 +116,7 @@ export const checkAttendance = async (
  * GET /api/groups/{groupId}/events/{eventId}/attendance
  */
 export const getAttendance = async (groupId: string, eventId: string): Promise<ApiResponse<AttendanceRecord[]>> => {
-  return apiClient.get(`/groups/${groupId}/events/${eventId}/attendance`);
+  return apiClient.get(`/api/groups/${groupId}/events/${eventId}/attendance`);
 };
 
 const eventApi = {

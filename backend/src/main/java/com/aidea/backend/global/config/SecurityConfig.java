@@ -12,6 +12,7 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
@@ -40,7 +41,11 @@ public class SecurityConfig {
         @Bean
         public CorsConfigurationSource corsConfigurationSource() {
                 CorsConfiguration configuration = new CorsConfiguration();
-                configuration.setAllowedOrigins(Arrays.asList("http://localhost:5173", "http://localhost:5174"));
+                configuration.setAllowedOrigins(Arrays.asList(
+                                "http://localhost:5173", "http://localhost:5174",
+                                "http://localhost:3000", "http://localhost:3001",
+                                "https://aimo.ai.kr", "https://www.aimo.ai.kr",
+                                "https://d125n74xsjeyc3.cloudfront.net"));
                 configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
                 configuration.setAllowedHeaders(Arrays.asList("*"));
                 configuration.setAllowCredentials(true);
@@ -69,31 +74,41 @@ public class SecurityConfig {
 
                                 // Public Endpoints
                                 .authorizeHttpRequests(auth -> auth
-                                                .requestMatchers(
-                                                                "/", // ✅ 메인 페이지 추가 (성공 후 리다이렉트 경로)
-                                                                "/home", // 홈 페이지
-                                                                "/test/login",
-                                                                "/test/**",
-                                                                "/api/v1/**",
-                                                                "/swagger-ui/**",
-                                                                "/swagger-ui.html",
-                                                                "/v3/api-docs/**", // ✅ Swagger API 문서
-                                                                "/swagger-resources/**", // ✅ Swagger 리소스
-                                                                "/ws/**", // ✅ WebSocket 연결
-                                                                "/app/**", // ✅ STOMP 메시지
-                                                                "/topic/**", // ✅ STOMP 브로드캐스트
-                                                                "/login/oauth2/**", // OAuth2 콜백 경로
-                                                                "/oauth2/**", // OAuth2 인증 경로
-                                                                "/api/groups/**", // ✅ 모임 API (테스트용)
-                                                                "/error" // 에러 페이지
-                                                ).permitAll()
+
+                                                // Swagger
+                                                .requestMatchers("/swagger-ui/**", "/swagger-ui.html",
+                                                                "/v3/api-docs/**", "/swagger-resources/**")
+                                                .permitAll()
+
+                                                // WebSocket
+                                                .requestMatchers("/ws/**", "/app/**", "/topic/**").permitAll()
+
+                                                // Health Check
+                                                .requestMatchers("/actuator/**", "/health").permitAll()
+
+                                                // OAuth2
+                                                .requestMatchers("/login/oauth2/**", "/oauth2/**").permitAll()
+
+                                                // User
+                                                .requestMatchers("/api/users/join", "/api/users/login",
+                                                                "/api/users/nickname-check", "/api/users/refresh",
+                                                                "/api/users/health")
+                                                .permitAll()
+
+                                                // Interest
+                                                .requestMatchers(HttpMethod.GET, "/api/interests").permitAll()
+
+                                                // Group
+                                                .requestMatchers(HttpMethod.GET, "/api/groups", "/api/groups/{id}",
+                                                                "/api/groups/search", "/api/groups/{id}/members")
+                                                .permitAll()
+
                                                 .anyRequest().authenticated())
                                 .oauth2Login(oauth2 -> oauth2
                                                 .userInfoEndpoint(userInfo -> userInfo
                                                                 .userService(customOAuth2UserService))
                                                 .successHandler(oAuth2SuccessHandler))
-                                .addFilterBefore(jwtAuthenticationFilter,
-                                                UsernamePasswordAuthenticationFilter.class);
+                                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
                 return http.build();
         }

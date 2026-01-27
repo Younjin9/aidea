@@ -11,4 +11,5 @@ public class TokenRefreshResponse {
     private String accessToken;
     private String refreshToken;
     private long expiresIn;
+    private UserResponse user;
 }

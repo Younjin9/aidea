@@ -1,27 +1,69 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Heart } from 'lucide-react';
 import Button from '@/shared/components/ui/Button';
-
-// Mock Data Type
-interface Meeting {
-  id: number;
-  title: string;
-  image: string;
-  location: string;
-  category: string;
-  members: number;
-  description: string;
-}
+import { useToggleLikeMeeting } from '@/features/meeting/hooks/useMeetings';
+import { useMeetingStore } from '@/features/meeting/store/meetingStore';
+import { INTEREST_CATEGORIES } from '@/shared/config/constants';
+import type { MeetingUI } from '@/shared/types/Meeting.types';
 
 interface RecommendedMeetingCardProps {
-  meeting: Meeting;
+  meeting: MeetingUI;
 }
 
+// 카테고리에 따라 이모티콘 반환하는 함수
+const getCategoryEmoji = (category: string): string => {
+  // 정규화 함수: 공백 제거 및 소문자 변환
+  const normalize = (str: string) => str.replace(/\s/g, '').toLowerCase();
+  const normalizedCategory = normalize(category);
+  
+  // INTEREST_CATEGORIES에서 매칭 찾기
+  for (const interestCategory of INTEREST_CATEGORIES) {
+    // label과 매칭 (예: '운동 / 액티비티' vs '운동/스포츠')
+    if (normalize(interestCategory.label).includes(normalizedCategory.split('/')[0]) ||
+        normalizedCategory.includes(normalize(interestCategory.label).split('/')[0])) {
+      return interestCategory.icon;
+    }
+    
+    // items 배열에서 정확히 매칭되는지 확인 (예: '맛집 탐방')
+    if (interestCategory.items.some(item => normalize(item) === normalizedCategory)) {
+      return interestCategory.icon;
+    }
+  }
+  
+  // 매칭되지 않으면 기본 이모티콘
+  return '✨';
+};
+
 const RecommendedMeetingCard: React.FC<RecommendedMeetingCardProps> = ({ meeting }) => {
-  const [isLiked, setIsLiked] = useState(false);
+  const navigate = useNavigate();
+  const [isLiked, setIsLiked] = useState(meeting.isLiked || false);
+  const { mutate: toggleLike } = useToggleLikeMeeting();
+  const toggleLikeByGroupId = useMeetingStore((state) => state.toggleLikeByGroupId);
 
   const handleLike = () => {
-    setIsLiked(!isLiked);
+    const currentLikedState = isLiked;
+    const newLikedState = !currentLikedState;
+    setIsLiked(newLikedState);
+    
+    // 스토어 업데이트 (마이페이지 찜 목록 반영용)
+    toggleLikeByGroupId(meeting.groupId);
+    
+    // API 호출
+    toggleLike(
+      { groupId: meeting.groupId, isLiked: currentLikedState },
+      {
+        onError: () => {
+          // API 실패 시 상태 복원
+          setIsLiked(currentLikedState);
+          toggleLikeByGroupId(meeting.groupId);
+        },
+      }
+    );
+  };
+
+  const handleGoToMeeting = () => {
+    navigate(`/meetings/${meeting.groupId}`);
   };
 
   return (
@@ -42,7 +84,7 @@ const RecommendedMeetingCard: React.FC<RecommendedMeetingCardProps> = ({ meeting
         {/* Header Section (Fixed Height) */}
         <div className="shrink-0 flex flex-col items-center gap-2 mb-2 w-full">
           <h2 className="text-white text-xl font-bold flex items-center justify-center gap-2 drop-shadow-md text-center w-full truncate">
-             ✈️ {meeting.title}
+             {getCategoryEmoji(meeting.category)} {meeting.title}
           </h2>
           <div className="flex flex-wrap justify-center gap-2">
             <span className="bg-secondary/90 text-white text-xs px-3 py-1 rounded-full font-medium shadow-sm backdrop-blur-md">
@@ -81,12 +123,13 @@ const RecommendedMeetingCard: React.FC<RecommendedMeetingCardProps> = ({ meeting
         {/* Bottom Section: Description & CTA (Fixed Height) */}
         <div className="shrink-0 w-full flex flex-col gap-4">
           <p className="text-white text-[15px] font-medium text-center leading-relaxed drop-shadow-lg px-2 line-clamp-2 break-keep opacity-95">
-            "{meeting.description}"
+            "{meeting.description || '모임 설명이 없습니다.'}"
           </p>
 
           <Button 
             fullWidth 
             size="lg" 
+            onClick={handleGoToMeeting}
             className="bg-primary hover:bg-rose-600 border-none text-white font-bold text-lg shadow-xl h-[52px] rounded-xl z-30"
           >
             모임 바로가기

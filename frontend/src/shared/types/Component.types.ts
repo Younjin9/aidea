@@ -1,4 +1,4 @@
-import { ReactNode } from 'react';
+import type { ReactNode } from 'react';
 
 // Common component prop types
 
@@ -22,6 +22,7 @@ export interface ProfileImageProps {
   className?: string;
   showBadge?: boolean;
   badgeContent?: ReactNode;
+  showEditIcon?: boolean;
 }
 
 export interface MeetingCardProps {

@@ -7,7 +7,7 @@ import type {
   TransferHostRequest,
   MemberStats,
   MemberRole,
-} from '@/shared/types/member.types';
+} from '@/shared/types/Member.types';
 
 // ============================================
 // 👥 멤버 관리
@@ -18,7 +18,7 @@ import type {
  * GET /api/groups/{groupId}/members
  */
 export const getMembers = async (groupId: string): Promise<ApiResponse<Member[]>> => {
-  return apiClient.get(`/groups/${groupId}/members`);
+  return apiClient.get(`/api/groups/${groupId}/members`);
 };
 
 /**
@@ -26,7 +26,7 @@ export const getMembers = async (groupId: string): Promise<ApiResponse<Member[]>
  * GET /api/groups/{groupId}/members/pending
  */
 export const getPendingMembers = async (groupId: string): Promise<ApiResponse<Member[]>> => {
-  return apiClient.get(`/groups/${groupId}/members/pending`);
+  return apiClient.get(`/api/groups/${groupId}/members/pending`);
 };
 
 /**
@@ -37,7 +37,7 @@ export const approveMember = async (
   groupId: string,
   data: ApproveMemberRequest
 ): Promise<ApiResponse<void>> => {
-  return apiClient.post(`/groups/${groupId}/members/${data.memberId}/approve`, {
+  return apiClient.post(`/api/groups/${groupId}/members/${data.memberId}/approve`, {
     responseMessage: data.responseMessage,
   });
 };
@@ -50,7 +50,7 @@ export const rejectMember = async (
   groupId: string,
   data: RejectMemberRequest
 ): Promise<ApiResponse<void>> => {
-  return apiClient.post(`/groups/${groupId}/members/${data.memberId}/reject`, {
+  return apiClient.post(`/api/groups/${groupId}/members/${data.memberId}/reject`, {
     responseMessage: data.responseMessage,
   });
 };
@@ -60,7 +60,7 @@ export const rejectMember = async (
  * DELETE /api/groups/{groupId}/members/{memberId}
  */
 export const removeMember = async (groupId: string, memberId: string): Promise<ApiResponse<void>> => {
-  return apiClient.delete(`/groups/${groupId}/members/${memberId}`);
+  return apiClient.delete(`/api/groups/${groupId}/members/${memberId}`);
 };
 
 /**
@@ -68,7 +68,7 @@ export const removeMember = async (groupId: string, memberId: string): Promise<A
  * POST /api/groups/{groupId}/transfer-host
  */
 export const transferHost = async (groupId: string, data: TransferHostRequest): Promise<ApiResponse<void>> => {
-  return apiClient.post(`/groups/${groupId}/transfer-host`, data);
+  return apiClient.post(`/api/groups/${groupId}/transfer-host`, data);
 };
 
 /**
@@ -80,7 +80,7 @@ export const updateMemberRole = async (
   memberId: string,
   role: MemberRole
 ): Promise<ApiResponse<void>> => {
-  return apiClient.patch(`/groups/${groupId}/members/${memberId}/role`, { role });
+  return apiClient.patch(`/api/groups/${groupId}/members/${memberId}/role`, { role });
 };
 
 /**
@@ -88,7 +88,7 @@ export const updateMemberRole = async (
  * GET /api/groups/{groupId}/members/{memberId}/stats
  */
 export const getMemberStats = async (groupId: string, memberId: string): Promise<ApiResponse<MemberStats>> => {
-  return apiClient.get(`/groups/${groupId}/members/${memberId}/stats`);
+  return apiClient.get(`/api/groups/${groupId}/members/${memberId}/stats`);
 };
 
 const memberApi = {

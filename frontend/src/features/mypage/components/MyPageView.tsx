@@ -2,6 +2,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Edit2 } from 'lucide-react';
+import meetingApi from '@/shared/api/meeting/meetingApi';
+import userApi from '@/shared/api/user/userApi';
+import { authApi } from '@/shared/api/authApi';
+import { useAuthStore } from '@/features/auth/store/authStore';
 import ProfileImage from '@/shared/components/ui/ProfileImage';
 import MeetingCard from '@/shared/components/ui/MeetingCard';
 import Modal from '@/shared/components/ui/Modal';
@@ -13,9 +17,10 @@ import type { MeetingUI } from '@/shared/types/Meeting.types';
 
 const MyPageView: React.FC<{ onUnlike?: (id: number) => void }> = ({ onUnlike }) => {
   const navigate = useNavigate();
-  const { user, myMeetings, likedMeetings, isLoading, unlikeMeeting } = useMyPage();
+  const { user, myMeetings, likedMeetings, isLoading, unlikeMeeting, refetchLikedMeetings } = useMyPage();
   const clearUser = useMyPageStore((state) => state.clearUser);
   const initializeMeetingMockData = useMeetingStore((state) => state.initializeMockData);
+  const logoutAuth = useAuthStore((state) => state.logout);
 
   // 로그아웃/회원탈퇴 모달 상태
   const [showLogoutModal, setShowLogoutModal] = useState(false);
@@ -30,6 +35,11 @@ const MyPageView: React.FC<{ onUnlike?: (id: number) => void }> = ({ onUnlike })
   useEffect(() => {
     initializeMeetingMockData();
   }, [initializeMeetingMockData]);
+
+  // 페이지 진입 시 찜 목록 새로고침
+  useEffect(() => {
+    refetchLikedMeetings?.();
+  }, [refetchLikedMeetings]);
 
   useEffect(() => {
     if (!isInitializedRef.current && likedMeetings.length > 0) {
@@ -47,29 +57,45 @@ const MyPageView: React.FC<{ onUnlike?: (id: number) => void }> = ({ onUnlike })
   const handleUnlike = (id: number) => {
     setDisplayedLikedMeetings(prev => prev.map(m => m.id === id ? { ...m, isLiked: false } : m));
 
-    timeoutRef.current = window.setTimeout(() => {
-      const originalMeeting = likedMeetings.find(m => m.id === id);
-      if (originalMeeting) unlikeMeeting(originalMeeting.groupId);
+    timeoutRef.current = window.setTimeout(async () => {
+      const originalMeeting = likedMeetings.find(m => parseInt(m.groupId, 10) === id);
+      if (originalMeeting) {
+        try {
+          // 실제 API 호출
+          await meetingApi.unlike(originalMeeting.groupId);
+        } catch (error) {
+          console.error('찜 취소 실패:', error);
+        }
+        unlikeMeeting(originalMeeting.groupId);
+      }
       setDisplayedLikedMeetings(prev => prev.filter(m => m.id !== id));
       onUnlike?.(id);
     }, 1000);
   };
 
   // 로그아웃 핸들러
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      await authApi.logout();
+    } catch (error) {
+      console.warn('로그아웃 API 실패, 로컬만 정리:', error);
+    }
+    logoutAuth();
     clearUser();
     setShowLogoutModal(false);
-    // TODO: API 호출 (토큰 삭제 등)
-    console.log('로그아웃 완료');
     navigate('/');
   };
 
   // 회원탈퇴 핸들러
-  const handleWithdraw = () => {
+  const handleWithdraw = async () => {
+    try {
+      await userApi.deleteAccount();
+    } catch (error) {
+      console.warn('회원탈퇴 API 실패, 로컬만 정리:', error);
+    }
+    logoutAuth();
     clearUser();
     setShowWithdrawModal(false);
-    // TODO: API 호출 (회원탈퇴 요청)
-    console.log('회원탈퇴 완료');
     navigate('/');
   };
 
@@ -90,7 +116,7 @@ const MyPageView: React.FC<{ onUnlike?: (id: number) => void }> = ({ onUnlike })
         <div className="w-8" />
       </header>
 
-      <main className="flex-1 overflow-y-auto pb-20 no-scrollbar flex flex-col min-h-0">
+      <main className="flex-1 overflow-y-auto pb-32 no-scrollbar flex flex-col min-h-0">
         {/* Profile */}
         <section className="px-6 py-6 border-b border-gray-100">
           <div className="flex items-start gap-4 relative">

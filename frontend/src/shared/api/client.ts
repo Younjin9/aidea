@@ -6,7 +6,7 @@ import type { ApiResponse, ApiError } from '@/shared/types/common.types';
 // 🌐 API Client Configuration
 // ============================================
 
-const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api';
+const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
 
 export const apiClient: AxiosInstance = axios.create({
   baseURL: BASE_URL,
@@ -52,7 +52,7 @@ apiClient.interceptors.response.use(
 
         if (refreshToken) {
           const response = await axios.post<ApiResponse<{ accessToken: string }>>(
-            `${BASE_URL}/auth/refresh`,
+            `${BASE_URL}/api/users/refresh`,
             { refreshToken }
           );
 

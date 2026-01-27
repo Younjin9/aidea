@@ -10,15 +10,5 @@ import lombok.NoArgsConstructor;
 public class LoginResponse {
     private String accessToken;
     private String refreshToken;
-    private UserInfo user;
-
-    @Getter
-    @NoArgsConstructor
-    @AllArgsConstructor
-    public static class UserInfo {
-        private String email;
-        private String nickname;
-        private String phoneNumber;
-        private String gender;
-    }
+    private UserResponse user;
 }
