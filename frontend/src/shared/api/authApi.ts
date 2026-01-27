@@ -8,7 +8,7 @@ import type {
   LogoutResponse,
   RefreshResponse,
   MeResponse,
-  // NicknameCheckRequest,
+  NicknameCheckResult,
   BaseResponse
 } from '@/shared/types/auth.types';
 
@@ -61,10 +61,11 @@ export const authApi = {
       return response as unknown as BaseResponse<null>;
   },
 
-  // 7. 닉네임 중복 확인 (기존 유지 or Spec에 없으면 확인 필요, Spec에 없으므로 일단 둠)
-  checkNickname: async (nickname: string): Promise<BaseResponse<boolean>> => {
-    const response = await apiClient.post<BaseResponse<boolean>>('/users/nickname-check', { nickname });
-    return response as unknown as BaseResponse<boolean>;
+  // 7. 닉네임 중복 확인
+  checkNickname: async (nickname: string): Promise<BaseResponse<NicknameCheckResult>> => {
+    // API Spec: POST /api/users/nickname-check
+    const response = await apiClient.post<BaseResponse<NicknameCheckResult>>('/users/nickname-check', { nickname });
+    return response as unknown as BaseResponse<NicknameCheckResult>;
   },
 
   // 7. 내 정보 수정 (PATCH)

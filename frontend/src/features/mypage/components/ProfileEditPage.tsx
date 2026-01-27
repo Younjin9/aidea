@@ -63,7 +63,6 @@ const ProfileEditPage: React.FC = () => {
       await userApi.updateProfile({
         nickname: name,
         bio,
-        location,
       });
 
       // 위치 업데이트
