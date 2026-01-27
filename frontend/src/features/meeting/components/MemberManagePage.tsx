@@ -24,16 +24,6 @@ interface Member {
   requestMessage?: string;
 }
 
-// TODO: API로 대체
-const MOCK_MEMBERS: Member[] = [
-  { userId: 'user1', nickname: '김구름', profileImage: undefined, role: 'HOST', status: 'APPROVED', joinedAt: '2024-01-20' },
-  { userId: 'user2', nickname: '김구름2', profileImage: undefined, role: 'MEMBER', status: 'APPROVED', joinedAt: '2024-01-20' },
-];
-
-const MOCK_PENDING_MEMBERS: Member[] = [
-  { userId: 'user3', nickname: '양종태', profileImage: undefined, role: 'MEMBER', status: 'PENDING', joinedAt: '2024-01-21', requestMessage: '안녕하세요 어쩌고 저쩌고' },
-];
-
 const MemberManagePage: React.FC = () => {
   const { meetingId } = useParams();
   const navigate = useNavigate();
@@ -50,16 +40,16 @@ const MemberManagePage: React.FC = () => {
   const { mutate: removeMember, isPending: isRemoving } = useRemoveMember(meetingId || '');
   const { mutate: transferHost, isPending: isTransferring } = useTransferHost(meetingId || '');
 
-  // Member State - API 데이터 > 전달받은 멤버 > Mock 데이터 순서로 사용
-  const [members, setMembers] = useState<Member[]>(passedMembers || MOCK_MEMBERS);
-  const [pendingMembers, setPendingMembers] = useState<Member[]>(MOCK_PENDING_MEMBERS);
+  // Member State - API 데이터 > 전달받은 멤버 순서로 사용
+  const [members, setMembers] = useState<Member[]>(passedMembers || []);
+  const [pendingMembers, setPendingMembers] = useState<Member[]>([]);
 
   // API 데이터가 로드되면 state 업데이트
   useEffect(() => {
     if (apiMembers) {
       setMembers(apiMembers as Member[]);
     } else if (membersError) {
-      console.warn('멤버 목록 API 호출 실패, Mock 데이터 사용:', membersError);
+      console.warn('멤버 목록 API 호출 실패:', membersError);
     }
   }, [apiMembers, membersError]);
 
@@ -67,7 +57,7 @@ const MemberManagePage: React.FC = () => {
     if (apiPendingMembers) {
       setPendingMembers(apiPendingMembers as Member[]);
     } else if (pendingError) {
-      console.warn('대기 멤버 목록 API 호출 실패, Mock 데이터 사용:', pendingError);
+      console.warn('대기 멤버 목록 API 호출 실패:', pendingError);
     }
   }, [apiPendingMembers, pendingError]);
 
@@ -202,7 +192,7 @@ const MemberManagePage: React.FC = () => {
               <div className="flex items-center gap-3">
                 <div className="relative">
                   <ProfileImage src={hostMember.profileImage} alt={hostMember.nickname} size="md" />
-                  <div className="absolute -bottom-1 -right-1 bg-yellow-400 rounded-full p-0.5 border border-white">
+                  <div className="absolute -bottom-0.5 -right-0.5 bg-yellow-400 rounded-full p-0.5 border border-white">
                     <Crown size={12} className="text-white fill-white" />
                   </div>
                 </div>

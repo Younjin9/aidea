@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import meetingApi from '@/shared/api/meeting/meetingApi';
 import { useMeetingStore } from '../store/meetingStore';
 import { myPageKeys } from '@/features/mypage/hooks/useMyPage';
-import type { Meeting, MeetingUI, MeetingListParams, CreateMeetingRequest } from '@/shared/types/Meeting.types';
+import type { Meeting, MeetingUI, MeetingListParams, CreateMeetingRequest, UpdateMeetingRequest } from '@/shared/types/Meeting.types';
 import type { PaginatedResponse } from '@/shared/types/common.types';
 
 // ============================================
@@ -206,6 +206,50 @@ export const useLeaveMeeting = () => {
     },
     onError: (error) => {
       console.warn('모임 탈퇴 API 실패 (fallback 처리됨):', error);
+    },
+  });
+};
+
+/**
+ * 모임 정보 수정
+ */
+export const useUpdateMeeting = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ groupId, data }: { groupId: string; data: UpdateMeetingRequest }) => {
+      const response = await meetingApi.update(groupId, data);
+      return response.data;
+    },
+    onSuccess: (data, { groupId }) => {
+      queryClient.invalidateQueries({ queryKey: meetingKeys.detail(groupId) });
+      queryClient.invalidateQueries({ queryKey: meetingKeys.all });
+      queryClient.invalidateQueries({ queryKey: myPageKeys.myMeetings() });
+    },
+    onError: (error) => {
+      console.warn('모임 수정 API 실패 (fallback 처리됨):', error);
+    },
+  });
+};
+
+/**
+ * 모임 이미지 수정
+ */
+export const useUpdateMeetingImage = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ groupId, image }: { groupId: string; image: File }) => {
+      const response = await meetingApi.updateImage(groupId, image);
+      return { groupId, imageUrl: response.data.imageUrl };
+    },
+    onSuccess: ({ groupId }) => {
+      queryClient.invalidateQueries({ queryKey: meetingKeys.detail(groupId) });
+      queryClient.invalidateQueries({ queryKey: meetingKeys.all });
+      queryClient.invalidateQueries({ queryKey: myPageKeys.myMeetings() });
+    },
+    onError: (error) => {
+      console.warn('모임 이미지 수정 API 실패 (fallback 처리됨):', error);
     },
   });
 };

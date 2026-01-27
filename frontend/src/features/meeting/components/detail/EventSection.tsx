@@ -1,5 +1,5 @@
 import React from 'react';
-import { UsersRound, Crown } from 'lucide-react';
+import { Crown } from 'lucide-react';
 import ProfileImage from '@/shared/components/ui/ProfileImage';
 import Button from '@/shared/components/ui/Button';
 import Modal from '@/shared/components/ui/Modal';
@@ -159,7 +159,6 @@ const EventSection: React.FC<EventSectionProps> = ({
         })
       ) : (
         <div className="flex flex-col items-center justify-center py-8">
-          <UsersRound size={40} className="text-gray-300 mb-2" />
           <p className="text-gray-500 text-sm">예정된 정모가 없습니다.</p>
         </div>
       )}
