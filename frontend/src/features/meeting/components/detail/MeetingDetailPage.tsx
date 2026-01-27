@@ -1,12 +1,9 @@
-// 모임 상세 페이지 - 코드 정리 버전
-// React 및 필요한 훅/라이브러리 import
+// 모임 상세 페이지 - 코드 정리 버전i// React 및 필요한 훅/라이브러리 import
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 
-import ProfileImage from '@/shared/components/ui/ProfileImage';
 import Button from '@/shared/components/ui/Button';
-import Modal from '@/shared/components/ui/Modal';
 import DetailHeader from './DetailHeader';
 import MeetingInfoSection from './MeetingInfoSection';
 import EventSection from './EventSection';
@@ -25,8 +22,8 @@ import type { MeetingDetail, MeetingEvent } from '@/shared/types/Meeting.types';
 // Types & Constants
 // ============================================
 
-
 // 모달 타입 정의 (모달의 종류를 관리)
+type ModalType = 'greeting' | 'profile' | 'report' | 'leave' | 'actionSheet' | 'joinEvent' | 'cancelParticipation' | 'joinMeetingFirst' | null;
 
 // API 실패 시 사용할 Mock 데이터 (개발/테스트용)
 const MOCK_MEETING_DETAIL: MeetingDetail = {
@@ -232,22 +229,20 @@ const MeetingDetailPage: React.FC = () => {
     if (activeModal === 'cancelParticipation' || activeModal === 'joinEvent') setSelectedEvent(null);
   };
 
-  // 좋아요 토글 핸들러 (API 호출 및 스토어/상태 동기화)
+  // 참석하기 버튼 클릭 시 (프로필 등록 여부에 따라 모달 분기)
+  const handleJoinClick = () => openModal(user?.profileImage ? 'greeting' : 'profile');
+
+  // 좋아요 토글 핸들러 (API 연동 및 스토어/상태 동기화)
   const handleLikeToggle = () => {
-    const currentLikedState = isLiked;
-    setIsLiked(prev => !prev);
-    
+    const newLikeState = !isLiked;
+    setIsLiked(newLikeState);
     if (meetingId) {
-      // 스토어 업데이트
       toggleLikeByGroupId(meetingId);
-      
-      // API 호출
       toggleLikeApi(
-        { groupId: meetingId, isLiked: currentLikedState },
+        { groupId: meetingId, isLiked: newLikeState },
         {
           onError: () => {
-            // 에러 발생 시 상태 복원
-            setIsLiked(currentLikedState);
+            setIsLiked(!newLikeState);
             toggleLikeByGroupId(meetingId);
           },
         }
@@ -258,91 +253,68 @@ const MeetingDetailPage: React.FC = () => {
   // 이벤트 참여 취소 핸들러 (API 호출 및 상태 동기화)
   const handleCancelParticipation = () => {
     if (!selectedEvent || !user) return;
+    
+    const updateState = () => {
+      setMeeting(prev => ({
+        ...prev,
+        events: prev.events.map(e =>
+          e.eventId === selectedEvent.id
+            ? { ...e, participantCount: Math.max(0, e.participantCount - 1), participants: (e.participants || []).filter(p => p.userId !== user.userId) }
+            : e
+        ),
+      }));
+      closeModal();
+    };
+
     cancelEventApi(selectedEvent.id, {
-      onSuccess: () => {
-        setMeeting(prev => ({
-          ...prev,
-          events: prev.events.map(e =>
-            e.eventId === selectedEvent.id
-              ? { ...e, participantCount: Math.max(0, e.participantCount - 1), participants: (e.participants || []).filter(p => p.userId !== user.userId) }
-              : e
-          ),
-        }));
-        closeModal();
-      },
-      onError: () => {
-        setMeeting(prev => ({
-          ...prev,
-          events: prev.events.map(e =>
-            e.eventId === selectedEvent.id
-              ? { ...e, participantCount: Math.max(0, e.participantCount - 1), participants: (e.participants || []).filter(p => p.userId !== user.userId) }
-              : e
-          ),
-        }));
-        closeModal();
-      },
+      onSuccess: updateState,
+      onError: updateState,
     });
   };
 
   // 이벤트 참여 핸들러 (API 호출 및 상태 동기화)
   const handleJoinEvent = () => {
     if (!selectedEvent || !user) return;
+    
+    const updateState = () => {
+      setMeeting(prev => ({
+        ...prev,
+        events: prev.events.map(e =>
+          e.eventId === selectedEvent.id
+            ? { ...e, participantCount: e.participantCount + 1, participants: [...(e.participants || []), { userId: user.userId, nickname: user.nickname, profileImage: user.profileImage, isHost: isHost }] }
+            : e
+        ),
+      }));
+      closeModal();
+    };
+
     joinEventApi(selectedEvent.id, {
-      onSuccess: () => {
-        setMeeting(prev => ({
-          ...prev,
-          events: prev.events.map(e =>
-            e.eventId === selectedEvent.id
-              ? { ...e, participantCount: e.participantCount + 1, participants: [...(e.participants || []), { userId: user.userId, nickname: user.nickname, profileImage: user.profileImage, isHost: isHost }] }
-              : e
-          ),
-        }));
-        closeModal();
-      },
-      onError: () => {
-        setMeeting(prev => ({
-          ...prev,
-          events: prev.events.map(e =>
-            e.eventId === selectedEvent.id
-              ? { ...e, participantCount: e.participantCount + 1, participants: [...(e.participants || []), { userId: user.userId, nickname: user.nickname, profileImage: user.profileImage, isHost: isHost }] }
-              : e
-          ),
-        }));
-        closeModal();
-      },
+      onSuccess: updateState,
+      onError: updateState,
     });
   };
-
-  // 참석하기 버튼 클릭 시 (프로필 등록 여부에 따라 모달 분기)
-  const handleJoinClick = () => openModal(user?.profileImage ? 'greeting' : 'profile');
 
   // 모임 참석(가입) API 호출 및 상태 동기화
   const handleJoinMeeting = () => {
     if (!user || !meetingId) return;
+    
+    const updateState = () => {
+      setMeeting(prev => ({
+        ...prev,
+        memberCount: prev.memberCount + 1,
+        members: [...prev.members, { userId: user.userId, nickname: user.nickname, profileImage: user.profileImage, role: 'MEMBER', status: 'APPROVED', joinedAt: new Date().toISOString() }],
+        myStatus: 'APPROVED',
+      }));
+      if (meetingId) joinMeeting(meetingId, 'MEMBER');
+      setGreeting('');
+      closeModal();
+    };
+
     joinMeetingApi(
       { groupId: meetingId, requestMessage: greeting },
       {
-        onSuccess: () => {
-          setMeeting(prev => ({
-            ...prev,
-            memberCount: prev.memberCount + 1,
-            members: [...prev.members, { userId: user.userId, nickname: user.nickname, profileImage: user.profileImage, role: 'MEMBER', status: 'APPROVED', joinedAt: new Date().toISOString() }],
-            myStatus: 'APPROVED',
-          }));
-          setGreeting('');
-          closeModal();
-        },
-        onError: () => {
-          setMeeting(prev => ({
-            ...prev,
-            memberCount: prev.memberCount + 1,
-            members: [...prev.members, { userId: user.userId, nickname: user.nickname, profileImage: user.profileImage, role: 'MEMBER', status: 'APPROVED', joinedAt: new Date().toISOString() }],
-            myStatus: 'APPROVED',
-          }));
-          if (meetingId) joinMeeting(meetingId, 'MEMBER');
-          setGreeting('');
-          closeModal();
-        },
+        onSuccess: updateState,
+        onError: updateState,
       }
     );
   };
@@ -469,11 +441,18 @@ const MeetingDetailPage: React.FC = () => {
       )}
 
       {/* 프로필 등록/가입인사 모달 */}
-      <Modal isOpen={activeModal === 'profile'} onClose={closeModal} message="프로필 사진을 등록해주세요." showLogo confirmText="OK" singleButton onConfirm={() => navigate('/mypage/edit')} />
-      <Modal isOpen={activeModal === 'greeting'} onClose={closeModal} message="가입인사를 작성해주세요." image={<ProfileImage src={user?.profileImage} alt="프로필" size="md" />} showInput inputPlaceholder="가입인사를 작성해주세요!" inputValue={greeting} onInputChange={setGreeting} confirmText="확인" cancelText="취소" onConfirm={handleJoinMeeting} />
+      {activeTab === 'home' ? (
+          <>
+        ) : (
+          <ChatRoomPage />
+        )}
+      </main>
 
-    </div>
-  );
-};
+      {!isHost && !isMember && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 w-full max-w-[398px] px-4">
+          <Button variant="primary" size="md" fullWidth onClick={handleJoinClick} disabled={isJoining}>
+            {isJoining ? '가입 중...' : '참석하기'}
+          </Button>
+        </div>
+      )}
 
-export default MeetingDetailPage;
