@@ -14,7 +14,7 @@ import type { MeetingUI } from '@/shared/types/Meeting.types';
 
 const MyPageView: React.FC<{ onUnlike?: (id: number) => void }> = ({ onUnlike }) => {
   const navigate = useNavigate();
-  const { user, myMeetings, likedMeetings, isLoading, unlikeMeeting } = useMyPage();
+  const { user, myMeetings, likedMeetings, isLoading, unlikeMeeting, refetchLikedMeetings } = useMyPage();
   const clearUser = useMyPageStore((state) => state.clearUser);
   const initializeMeetingMockData = useMeetingStore((state) => state.initializeMockData);
 
@@ -31,6 +31,11 @@ const MyPageView: React.FC<{ onUnlike?: (id: number) => void }> = ({ onUnlike })
   useEffect(() => {
     initializeMeetingMockData();
   }, [initializeMeetingMockData]);
+
+  // 페이지 진입 시 찜 목록 새로고침
+  useEffect(() => {
+    refetchLikedMeetings?.();
+  }, [refetchLikedMeetings]);
 
   useEffect(() => {
     if (!isInitializedRef.current && likedMeetings.length > 0) {
@@ -99,7 +104,7 @@ const MyPageView: React.FC<{ onUnlike?: (id: number) => void }> = ({ onUnlike })
         <div className="w-8" />
       </header>
 
-      <main className="flex-1 overflow-y-auto pb-20 no-scrollbar flex flex-col min-h-0">
+      <main className="flex-1 overflow-y-auto pb-32 no-scrollbar flex flex-col min-h-0">
         {/* Profile */}
         <section className="px-6 py-6 border-b border-gray-100">
           <div className="flex items-start gap-4 relative">
