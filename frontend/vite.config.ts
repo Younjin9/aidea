@@ -10,7 +10,18 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
 
   return {
-    plugins: [react()],
+    plugins: [
+      react(),
+      {
+        name: 'html-transform',
+        transformIndexHtml(html) {
+          return html.replace(
+            /%VITE_KAKAO_JAVASCRIPT_KEY%/g,
+            env.VITE_KAKAO_JAVASCRIPT_KEY || ''
+          )
+        },
+      },
+    ],
     resolve: {
       alias: {
         '@': path.resolve(__dirname, 'src'),

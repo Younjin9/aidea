@@ -60,12 +60,12 @@ const MOCK_MEETING_DETAIL: MeetingDetail = {
 // ============================================
 
 const createMeetingDetailFromStore = (
-  storedMeeting: { id: number; title: string; description?: string; image: string; category: string; members: number; maxMembers?: number; location: string; ownerUserId?: string; myStatus?: 'PENDING' | 'APPROVED'; myRole?: 'HOST' | 'MEMBER' },
+  storedMeeting: { id: number; title: string; description?: string; image: string; category: string; members: number; maxMembers?: number; location: string; ownerUserId?: string | number; myStatus?: 'PENDING' | 'APPROVED'; myRole?: 'HOST' | 'MEMBER' },
   isOwner: boolean,
   user: { userId: string; nickname: string; profileImage?: string } | null,
   existingEvents: MeetingEvent[] = []
 ): MeetingDetail => {
-  const hostUserId = storedMeeting.ownerUserId || 'user1';
+  const hostUserId = String(storedMeeting.ownerUserId || 'user1');
   const hostNickname = isOwner ? (user?.nickname || '방장') : '모임장';
   const hostProfileImage = isOwner ? user?.profileImage : undefined;
 
@@ -264,7 +264,7 @@ interface EventSectionProps {
   meeting: MeetingDetail;
   isHost: boolean;
   isMember: boolean;
-  userId?: string;
+  userId?: string | number;
   meetingId?: string;
   onEventTitleClick: (event: MeetingEvent) => void;
   onEventAction: (eventId: string, title: string, action: 'cancelParticipation' | 'join') => void;
@@ -345,7 +345,7 @@ const MemberSection: React.FC<MemberSectionProps> = ({ members, isHost, onManage
 interface MeetingModalsProps {
   activeModal: ModalType;
   selectedEvent: { id: string; title: string } | null;
-  user: { userId: string; nickname: string; profileImage?: string } | null;
+  user: { userId: string | number; nickname: string; profileImage?: string } | null;
   greeting: string;
   reportContent: string;
   isMember: boolean;

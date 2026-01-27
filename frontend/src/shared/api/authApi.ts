@@ -8,7 +8,7 @@ import type {
   LogoutResponse,
   RefreshResponse,
   MeResponse,
-  // NicknameCheckRequest,
+  NicknameCheckResult,
   BaseResponse
 } from '@/shared/types/auth.types';
 
@@ -23,12 +23,14 @@ export const authApi = {
 
   // 1. 회원가입
   join: async (data: SignUpRequest): Promise<JoinResponse> => {
+    // API Spec: POST /api/auth/signup
     const response = await apiClient.post<JoinResponse>('/api/users/join', data);
     return response as unknown as JoinResponse;
   },
 
   // 2. 로그인
   login: async (data: LoginRequest): Promise<AuthResponse> => {
+    // API Spec: POST /api/auth/login
     const response = await apiClient.post<AuthResponse>('/api/users/login', data);
     return response as unknown as AuthResponse;
   },
@@ -47,14 +49,23 @@ export const authApi = {
 
   // 5. 내 정보 조회
   getMe: async (): Promise<MeResponse> => {
+    // API Spec: GET /api/users/me
     const response = await apiClient.get<MeResponse>('/api/users/me');
     return response as unknown as MeResponse;
   },
 
-  // 6. 닉네임 중복 확인
-  checkNickname: async (nickname: string): Promise<BaseResponse<boolean>> => {
-    const response = await apiClient.post<BaseResponse<boolean>>('/api/users/nickname-check', { nickname });
-    return response as unknown as BaseResponse<boolean>;
+  // 6. 위치 업데이트
+  updateLocation: async (data: { lat: number; lng: number; region: string }): Promise<BaseResponse<null>> => {
+      // API Spec: PUT /api/users/me/location
+      const response = await apiClient.put<BaseResponse<null>>('/api/users/me/location', data);
+      return response as unknown as BaseResponse<null>;
+  },
+
+  // 7. 닉네임 중복 확인
+  checkNickname: async (nickname: string): Promise<BaseResponse<NicknameCheckResult>> => {
+    // API Spec: POST /api/users/nickname-check
+    const response = await apiClient.post<BaseResponse<NicknameCheckResult>>('/api/users/nickname-check', { nickname });
+    return response as unknown as BaseResponse<NicknameCheckResult>;
   },
 
   // 7. 내 정보 수정 (PATCH)

@@ -66,7 +66,7 @@ export interface MeetingEvent {
   participantCount: number;
   imageUrl?: string;
   participants?: Array<{
-    userId: string;
+    userId: string | number;
     nickname: string;
     profileImage?: string;
     isHost?: boolean;
@@ -157,7 +157,7 @@ export interface MeetingUI {
   date?: string;
   isLiked?: boolean;
 
-  ownerUserId?: string; // 모임 생성자 ID
+  ownerUserId?: string | number; // 모임 생성자 ID
   myStatus?: 'PENDING' | 'APPROVED'; // 내 가입 상태
   myRole?: 'HOST' | 'MEMBER'; // 내 역할
 }

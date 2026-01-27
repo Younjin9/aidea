@@ -19,12 +19,12 @@ export interface User {
   phoneNumber?: string;
   birthDate?: string;
   gender?: Gender;
-  location?: Location;
-  interests: string[];
-  provider: Provider;
+  location?: Location | { lat: number; lng: number; region: string };
+  interests?: string[];
+  provider?: Provider;
   providerId?: string;
-  createdAt: string;
-  updatedAt: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface UserProfile extends User {
