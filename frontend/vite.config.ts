@@ -7,9 +7,8 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
-<<<<<<< HEAD
-  const env = loadEnv(mode, process.cwd(), '');
-  
+  const env = loadEnv(mode, process.cwd(), '')
+
   return {
     plugins: [
       react(),
@@ -19,24 +18,15 @@ export default defineConfig(({ mode }) => {
           return html.replace(
             /%VITE_KAKAO_JAVASCRIPT_KEY%/g,
             env.VITE_KAKAO_JAVASCRIPT_KEY || ''
-          );
+          )
         },
       },
     ],
-=======
-  const env = loadEnv(mode, process.cwd(), '')
-
-  return {
-    plugins: [react()],
->>>>>>> 07aa0750c67c41862888b229e90a94d07fe97e69
     resolve: {
       alias: {
         '@': path.resolve(__dirname, 'src'),
       },
     },
-<<<<<<< HEAD
-  };
-=======
     server: {
       proxy: {
         '/api': {
@@ -47,5 +37,4 @@ export default defineConfig(({ mode }) => {
       },
     },
   }
->>>>>>> 07aa0750c67c41862888b229e90a94d07fe97e69
 })

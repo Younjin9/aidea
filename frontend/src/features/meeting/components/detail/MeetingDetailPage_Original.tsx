@@ -62,11 +62,7 @@ const MOCK_MEETING_DETAIL: MeetingDetail = {
 const createMeetingDetailFromStore = (
   storedMeeting: { id: number; title: string; description?: string; image: string; category: string; members: number; maxMembers?: number; location: string; ownerUserId?: string | number; myStatus?: 'PENDING' | 'APPROVED'; myRole?: 'HOST' | 'MEMBER' },
   isOwner: boolean,
-<<<<<<< HEAD:frontend/src/features/meeting/components/MeetingDetailPage.tsx
-  user: { userId: string | number; nickname: string; profileImage?: string } | null,
-=======
   user: { userId: string; nickname: string; profileImage?: string } | null,
->>>>>>> 07aa0750c67c41862888b229e90a94d07fe97e69:frontend/src/features/meeting/components/detail/MeetingDetailPage_Original.tsx
   existingEvents: MeetingEvent[] = []
 ): MeetingDetail => {
   const hostUserId = String(storedMeeting.ownerUserId || 'user1');

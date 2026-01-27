@@ -81,16 +81,9 @@ const EventCreatePage: React.FC = () => {
         notes: description,
         scheduledAt: `${date}T${time}:00`,
         placeName: location,
-<<<<<<< HEAD
-        location: {
-            lat: selectedLocation?.lat || 0,
-            lng: selectedLocation?.lng || 0
-        },
-=======
         location: selectedLocation
           ? { lat: Number(selectedLocation.lat), lng: Number(selectedLocation.lng) }
           : { lat: 0, lng: 0 },
->>>>>>> 07aa0750c67c41862888b229e90a94d07fe97e69
         maxParticipants,
       },
       {

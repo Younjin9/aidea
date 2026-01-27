@@ -15,7 +15,7 @@ export const useAuthStore = create<AuthState>()(
   persist(
     (set) => ({
       user: null,
-      isAuthenticated: true,
+      isAuthenticated: false,
       accessToken: null,
       setAuth: (user, token) => {
           localStorage.setItem('accessToken', token); // api.ts에서 참조

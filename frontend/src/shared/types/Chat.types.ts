@@ -13,11 +13,7 @@ export interface ChatRoom {
 
 export interface ChatMessage {
   messageId: string;
-<<<<<<< HEAD
-  senderId: number | string;
-=======
   senderId: string;
->>>>>>> 07aa0750c67c41862888b229e90a94d07fe97e69
   senderName: string;
   senderProfileImage?: string;
   content: string;

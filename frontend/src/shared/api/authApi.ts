@@ -49,14 +49,9 @@ export const authApi = {
 
   // 5. 내 정보 조회
   getMe: async (): Promise<MeResponse> => {
-<<<<<<< HEAD
-      // API Spec: GET /api/users/me
-      const response = await apiClient.get<MeResponse>('/users/me');
-      return response as unknown as MeResponse;
-=======
+    // API Spec: GET /api/users/me
     const response = await apiClient.get<MeResponse>('/users/me');
     return response as unknown as MeResponse;
->>>>>>> 07aa0750c67c41862888b229e90a94d07fe97e69
   },
 
   // 6. 위치 업데이트

@@ -11,11 +11,7 @@ import type { Provider, Gender, Location } from './common.types';
 // ============================================
 
 export interface User {
-<<<<<<< HEAD
-  userId: number | string;
-=======
   userId: string;
->>>>>>> 07aa0750c67c41862888b229e90a94d07fe97e69
   email: string;
   nickname: string;
   bio?: string;
