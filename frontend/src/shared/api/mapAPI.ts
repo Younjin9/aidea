@@ -30,7 +30,7 @@ import type { MapMeeting } from '@/shared/types/Meeting.types';
  */
 export const getMeetingsInBounds = async (params: MapBoundsParams): Promise<ApiResponse<MapMeeting[]>> => {
   const queryString = buildQueryString(params);
-  return apiClient.get(`/v1/meetings/map?${queryString}`);
+  return apiClient.get(`/api/v1/meetings/map?${queryString}`);
 };
 
 /**
@@ -39,7 +39,7 @@ export const getMeetingsInBounds = async (params: MapBoundsParams): Promise<ApiR
  */
 export const getMeetingsInRadius = async (params: MapRadiusParams): Promise<ApiResponse<MapMeeting[]>> => {
   const queryString = buildQueryString(params);
-  return apiClient.get(`/meetings/radius?${queryString}`);
+  return apiClient.get(`/api/meetings/radius?${queryString}`);
 };
 
 /**
@@ -47,7 +47,7 @@ export const getMeetingsInRadius = async (params: MapRadiusParams): Promise<ApiR
  * GET /api/meetings/cluster
  */
 export const getCluster = async (lat: number, lng: number, zoom: number): Promise<ApiResponse<MeetingCluster>> => {
-  return apiClient.get(`/meetings/cluster?lat=${lat}&lng=${lng}&zoom=${zoom}`);
+  return apiClient.get(`/api/meetings/cluster?lat=${lat}&lng=${lng}&zoom=${zoom}`);
 };
 
 /**
@@ -56,7 +56,7 @@ export const getCluster = async (lat: number, lng: number, zoom: number): Promis
  */
 export const searchPlaces = async (params: LocationSearchParams): Promise<ApiResponse<LocationSearchResult[]>> => {
   const queryString = buildQueryString(params);
-  return apiClient.get(`/map/search/places?${queryString}`);
+  return apiClient.get(`/api/map/search/places?${queryString}`);
 };
 
 /**
@@ -64,7 +64,7 @@ export const searchPlaces = async (params: LocationSearchParams): Promise<ApiRes
  * GET /api/map/geocode
  */
 export const geocode = async (address: string): Promise<ApiResponse<GeocodeResult>> => {
-  return apiClient.get(`/map/geocode?address=${encodeURIComponent(address)}`);
+  return apiClient.get(`/api/map/geocode?address=${encodeURIComponent(address)}`);
 };
 
 /**
@@ -72,7 +72,7 @@ export const geocode = async (address: string): Promise<ApiResponse<GeocodeResul
  * GET /api/map/reverse-geocode
  */
 export const reverseGeocode = async (lat: number, lng: number): Promise<ApiResponse<ReverseGeocodeResult>> => {
-  return apiClient.get(`/map/reverse-geocode?lat=${lat}&lng=${lng}`);
+  return apiClient.get(`/api/map/reverse-geocode?lat=${lat}&lng=${lng}`);
 };
 
 /**
@@ -84,7 +84,7 @@ export const calculateDistance = async (
   to: { lat: number; lng: number },
   mode: 'straight' | 'walking' | 'driving' = 'straight'
 ): Promise<ApiResponse<DistanceResult>> => {
-  return apiClient.get(`/map/distance?fromLat=${from.lat}&fromLng=${from.lng}&toLat=${to.lat}&toLng=${to.lng}&mode=${mode}`);
+  return apiClient.get(`/api/map/distance?fromLat=${from.lat}&fromLng=${from.lng}&toLat=${to.lat}&toLng=${to.lng}&mode=${mode}`);
 };
 
 /**
@@ -92,7 +92,7 @@ export const calculateDistance = async (
  * POST /api/map/distances
  */
 export const calculateDistances = async (data: BatchDistanceRequest): Promise<ApiResponse<BatchDistanceResult[]>> => {
-  return apiClient.post('/map/distances', data);
+  return apiClient.post('/api/map/distances', data);
 };
 
 /**
@@ -104,7 +104,7 @@ export const getRoute = async (
   end: { lat: number; lng: number },
   mode: RouteMode
 ): Promise<ApiResponse<RouteResult>> => {
-  return apiClient.get(`/map/route?startLat=${start.lat}&startLng=${start.lng}&endLat=${end.lat}&endLng=${end.lng}&mode=${mode}`);
+  return apiClient.get(`/api/map/route?startLat=${start.lat}&startLng=${start.lng}&endLat=${end.lat}&endLng=${end.lng}&mode=${mode}`);
 };
 
 /**
@@ -112,7 +112,7 @@ export const getRoute = async (
  * GET /api/map/regions/popular
  */
 export const getPopularRegions = async (): Promise<ApiResponse<PopularRegion[]>> => {
-  return apiClient.get('/map/regions/popular');
+  return apiClient.get('/api/map/regions/popular');
 };
 
 /**
@@ -120,7 +120,7 @@ export const getPopularRegions = async (): Promise<ApiResponse<PopularRegion[]>>
  * GET /api/map/regions/{region}/count
  */
 export const getRegionCount = async (region: string): Promise<ApiResponse<RegionMeetingCount>> => {
-  return apiClient.get(`/map/regions/${encodeURIComponent(region)}/count`);
+  return apiClient.get(`/api/map/regions/${encodeURIComponent(region)}/count`);
 };
 
 /**
@@ -132,7 +132,7 @@ export const updateMyLocation = async (data: {
   lng: number;
   region: string;
 }): Promise<ApiResponse<{ updated: boolean; location: Location }>> => {
-  return apiClient.put('/users/me/location', data);
+  return apiClient.put('/api/users/me/location', data);
 };
 
 /**
@@ -140,7 +140,7 @@ export const updateMyLocation = async (data: {
  * GET /api/users/me/location
  */
 export const getMyLocation = async (): Promise<ApiResponse<Location>> => {
-  return apiClient.get('/users/me/location');
+  return apiClient.get('/api/users/me/location');
 };
 
 /**
@@ -148,7 +148,7 @@ export const getMyLocation = async (): Promise<ApiResponse<Location>> => {
  * GET /api/map/marker-styles
  */
 export const getMarkerStyles = async (): Promise<ApiResponse<MarkerStyles>> => {
-  return apiClient.get('/map/marker-styles');
+  return apiClient.get('/api/map/marker-styles');
 };
 
 const mapApi = {

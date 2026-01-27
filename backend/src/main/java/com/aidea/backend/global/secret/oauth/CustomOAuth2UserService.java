@@ -10,9 +10,12 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.oauth2.client.userinfo.DefaultOAuth2UserService;
 import org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest;
 import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
+import org.springframework.security.oauth2.core.user.DefaultOAuth2User;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Service;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 
 @Slf4j
@@ -27,7 +30,6 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
         OAuth2User oAuth2User = super.loadUser(userRequest);
         log.info("OAuth2 User loaded attributes: {}", oAuth2User.getAttributes());
 
-
         String registrationId = userRequest.getClientRegistration().getRegistrationId();
         OAuth2UserInfo oAuth2UserInfo = null;
 
@@ -35,11 +37,19 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
             oAuth2UserInfo = new KakaoUserInfo(oAuth2User.getAttributes());
         } else {
             log.error("Unsupported provider: {}", registrationId);
+            throw new OAuth2AuthenticationException("Unsupported provider: " + registrationId);
         }
 
         saveOrUpdateUser(oAuth2UserInfo);
 
-        return oAuth2User;
+        // Principal의 이름을 email로 변경하기 위해 속성 맵을 복사하고 email 추가
+        Map<String, Object> modifiedAttributes = new HashMap<>(oAuth2User.getAttributes());
+        modifiedAttributes.put("email", oAuth2UserInfo.getEmail());
+
+        return new DefaultOAuth2User(
+                oAuth2User.getAuthorities(),
+                modifiedAttributes,
+                "email");
     }
 
     private void saveOrUpdateUser(OAuth2UserInfo oAuth2UserInfo) {
