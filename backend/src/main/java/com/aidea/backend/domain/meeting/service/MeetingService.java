@@ -45,6 +45,8 @@ public class MeetingService {
                 .title(request.getTitle())
                 .description(request.getDescription())
                 .imageUrl(request.getImageUrl())
+                .category(request.getCategory())
+                .region(request.getRegion())
                 .location(request.getLocation())
                 .latitude(request.getLatitude())
                 .longitude(request.getLongitude())
@@ -86,6 +88,38 @@ public class MeetingService {
      */
     public Page<MeetingSummaryResponse> getAllMeetings(Pageable pageable) {
         Page<Meeting> meetings = meetingRepository.findAllByOrderByCreatedAtDesc(pageable);
+        return meetings.map(Meeting::toSummary);
+    }
+
+    /**
+     * 모임 검색 (조건별 통합 검색)
+     * - category만 있음 → category 조회
+     * - region만 있음 → region 조회
+     * - 둘 다 있음 → category AND region 조회
+     * - 둘 다 없음 → 전체 조회
+     */
+    public Page<MeetingSummaryResponse> searchMeetings(
+            com.aidea.backend.domain.meeting.entity.enums.MeetingCategory category,
+            com.aidea.backend.domain.meeting.entity.enums.Region region,
+            Pageable pageable) {
+
+        Page<Meeting> meetings;
+
+        // 조건에 따른 분기 처리
+        if (category != null && region != null) {
+            // 둘 다 있음 → AND 조건
+            meetings = meetingRepository.findByCategoryAndRegion(category, region, pageable);
+        } else if (category != null) {
+            // category만 있음
+            meetings = meetingRepository.findByCategory(category, pageable);
+        } else if (region != null) {
+            // region만 있음
+            meetings = meetingRepository.findByRegion(region, pageable);
+        } else {
+            // 둘 다 없음 → 전체 조회
+            meetings = meetingRepository.findAllByOrderByCreatedAtDesc(pageable);
+        }
+
         return meetings.map(Meeting::toSummary);
     }
 

@@ -1,5 +1,7 @@
 package com.aidea.backend.domain.meeting.dto.request;
 
+import com.aidea.backend.domain.meeting.entity.enums.MeetingCategory;
+import com.aidea.backend.domain.meeting.entity.enums.Region;
 import jakarta.validation.constraints.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -20,13 +22,17 @@ public class CreateMeetingRequest {
 
     private String imageUrl;
 
-    @NotBlank(message = "위치는 필수입니다")
+    @NotNull(message = "카테고리는 필수입니다")
+    private MeetingCategory category;
+
+    @NotNull(message = "지역은 필수입니다")
+    private Region region;
+
+    // 정모 상세 위치 (선택)
     private String location;
 
-    @NotNull(message = "위도는 필수입니다")
     private Double latitude;
 
-    @NotNull(message = "경도는 필수입니다")
     private Double longitude;
 
     private String locationDetail;

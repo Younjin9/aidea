@@ -1,6 +1,6 @@
 plugins {
     id 'java'
-    id 'org.springframework.boot' version '3.2.1'
+    id 'org.springframework.boot' version '3.4.0'
     id 'io.spring.dependency-management' version '1.1.4'
 }
 
@@ -24,8 +24,8 @@ repositories {
 }
 
 ext {
-    set('springAiVersion', "0.8.0-SNAPSHOT")
-    set('springDocVersion', "2.3.0")
+    set('springAiVersion', "1.1.2")
+    set('springDocVersion', "2.8.5")
 }
 
 dependencies {
@@ -40,6 +40,7 @@ dependencies {
     
     // Data & DB
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    runtimeOnly 'org.postgresql:postgresql'
     runtimeOnly 'com.mysql:mysql-connector-j'
     implementation 'org.springframework.boot:spring-boot-starter-data-redis'
 
@@ -52,11 +53,15 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-websocket'
     
     // AI
-    implementation 'org.springframework.ai:spring-ai-openai-spring-boot-starter'
-    
-    // Documentation
+    implementation 'org.springframework.boot:spring-boot-starter-websocket'
+
+    // Swagger
     implementation "org.springdoc:springdoc-openapi-starter-webmvc-ui:${springDocVersion}"
-    
+
+    // Spring AI (Bedrock: Titan 임베딩 + Claude는 나중에 옵션)
+    implementation "org.springframework.ai:spring-ai-starter-model-bedrock"
+    implementation "org.springframework.ai:spring-ai-client-chat" // 나중에 Claude reason 붙일 때 유용
+
     // Utils
     compileOnly 'org.projectlombok:lombok'
     annotationProcessor 'org.projectlombok:lombok'

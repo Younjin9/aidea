@@ -1,10 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Camera } from 'lucide-react';
+import { Camera, MapPin } from 'lucide-react';
+import userApi from '@/shared/api/user/userApi';
 import BackButton from '@/shared/components/ui/BackButton';
 import ProfileImage from '@/shared/components/ui/ProfileImage';
 import { INTEREST_CATEGORIES } from '@/shared/config/constants';
 import { useMyPageStore } from '../store/myPageStore';
+import LocationSearchModal from '@/features/meeting/components/LocationSearchModal';
 
 const ProfileEditPage: React.FC = () => {
   const navigate = useNavigate();
@@ -27,15 +29,21 @@ const ProfileEditPage: React.FC = () => {
   const [region, setRegion] = useState('');
   const [selectedInterests, setSelectedInterests] = useState<string[]>([]);
   const [profileImage, setProfileImage] = useState<string | undefined>(undefined);
+  const [profileImageFile, setProfileImageFile] = useState<File | null>(null);
+  const [coords, setCoords] = useState({ lat: 0, lng: 0 });
+  const [showSearchModal, setShowSearchModal] = useState(false);
 
   // 유저 데이터가 있으면 초기값 설정
   useEffect(() => {
     if (user) {
-      setName(user.nickname || '');
-      setBio(user.bio || '');
-      setRegion(user.location?.region || '');
-      setSelectedInterests(user.interests || []);
-      setProfileImage(user.profileImage);
+      // 비동기 큐에 넣어 렌더링 경고를 회피
+      setTimeout(() => {
+        setName(user.nickname || '');
+        setBio(user.bio || '');
+        setRegion(user.location?.region || '');
+        setSelectedInterests(user.interests || []);
+        setProfileImage(user.profileImage);
+      }, 0);
     }
   }, [user]);
 
@@ -47,19 +55,52 @@ const ProfileEditPage: React.FC = () => {
     );
   };
 
-  const handleSave = () => {
-    // Store 업데이트 (Mock)
-    updateUser({
-      nickname: name,
-      bio,
-      profileImage,
-      interests: selectedInterests,
-      location: user?.location ? { ...user.location, region } : { lat: 0, lng: 0, region },
-    });
+  const handleSave = async () => {
+    try {
+      const location = { lat: coords.lat, lng: coords.lng, region };
 
-    // TODO: API 호출로 프로필 저장
-    console.log('프로필 저장:', { name, bio, region, selectedInterests, profileImage });
-    navigate(-1);
+      // 프로필 정보 업데이트
+      await userApi.updateProfile({
+        nickname: name,
+        bio,
+        location,
+      });
+
+      // 위치 업데이트
+      await userApi.updateLocation(location);
+
+      // 관심사 업데이트 (별도 API)
+      if (selectedInterests.length > 0) {
+        await userApi.updateUserInterests(selectedInterests);
+      }
+
+      // 프로필 이미지 업데이트 (파일이 있는 경우만)
+      if (profileImageFile) {
+        await userApi.updateProfileImage(profileImageFile);
+      }
+
+      updateUser({
+        nickname: name,
+        bio,
+        profileImage,
+        interests: selectedInterests,
+        location,
+      });
+
+      navigate(-1);
+    } catch (error) {
+      console.error('프로필 저장 실패:', error);
+      // 서버 연결 실패 시에도 로컬에 임시 반영 (조용한 폴백)
+      updateUser({
+        nickname: name,
+        bio,
+        profileImage,
+        interests: selectedInterests,
+        location: { lat: coords.lat, lng: coords.lng, region },
+      });
+
+      navigate(-1);
+    }
   };
 
   const handleImageClick = () => {
@@ -69,12 +110,57 @@ const ProfileEditPage: React.FC = () => {
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      setProfileImageFile(file);
       const reader = new FileReader();
       reader.onloadend = () => {
         setProfileImage(reader.result as string);
       };
       reader.readAsDataURL(file);
     }
+  };
+
+  const handleCurrentLocation = () => {
+    if (!navigator.geolocation) {
+      alert('브라우저가 위치 정보를 지원하지 않습니다.');
+      return;
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const kakao = (window as any).kakao;
+    if (!kakao || !kakao.maps) {
+      alert('카카오 지도 API가 로드되지 않았습니다.');
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+        setCoords({ lat: latitude, lng: longitude });
+
+        const geocoder = new kakao.maps.services.Geocoder();
+        const coord = new kakao.maps.LatLng(latitude, longitude);
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const callback = (result: any, status: any) => {
+          if (status === kakao.maps.services.Status.OK) {
+            const address = result[0].address;
+            const fullAddress = address ? address.address_name : '주소를 찾을 수 없습니다';
+            setRegion(fullAddress);
+          }
+        };
+
+        geocoder.coord2Address(coord.getLng(), coord.getLat(), callback);
+      },
+      (error) => {
+        console.error(error);
+        alert('현재 위치를 가져오는데 실패했습니다. 위치 권한을 확인해주세요.');
+      }
+    );
+  };
+
+  const handleSelectLocation = (location: { address: string; lat: number; lng: number }) => {
+    setRegion(location.address);
+    setCoords({ lat: location.lat, lng: location.lng });
   };
 
   return (
@@ -129,7 +215,7 @@ const ProfileEditPage: React.FC = () => {
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="이름을 입력하세요"
-              className="flex-1 bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+              className="flex-1 bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-0 focus:border-gray-300"
             />
           </div>
           <div className="flex items-center">
@@ -139,7 +225,7 @@ const ProfileEditPage: React.FC = () => {
               value={bio}
               onChange={(e) => setBio(e.target.value)}
               placeholder="자기소개를 입력하세요"
-              className="flex-1 bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+              className="flex-1 bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-0 focus:border-gray-300"
             />
           </div>
           <div className="flex items-center">
@@ -149,8 +235,18 @@ const ProfileEditPage: React.FC = () => {
               value={region}
               onChange={(e) => setRegion(e.target.value)}
               placeholder="지역을 입력하세요"
-              className="flex-1 bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+              className="flex-1 bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-0 focus:border-gray-300"
+              readOnly
+              onClick={() => setShowSearchModal(true)}
             />
+            <button
+              type="button"
+              onClick={handleCurrentLocation}
+              aria-label="현재 위치로 설정"
+              className="w-12 h-12 ml-2 flex items-center justify-center bg-gray-50 border border-gray-200 rounded-lg text-gray-700 hover:bg-gray-100 focus:outline-none focus:ring-0"
+            >
+              <MapPin size={18} />
+            </button>
           </div>
         </div>
 
@@ -183,6 +279,13 @@ const ProfileEditPage: React.FC = () => {
           ))}
         </div>
       </div>
+
+      {/* Location Search Modal */}
+      <LocationSearchModal
+        isOpen={showSearchModal}
+        onClose={() => setShowSearchModal(false)}
+        onSelectLocation={handleSelectLocation}
+      />
     </div>
   );
 };

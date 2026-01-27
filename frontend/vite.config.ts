@@ -7,6 +7,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
+<<<<<<< HEAD
   const env = loadEnv(mode, process.cwd(), '');
   
   return {
@@ -22,10 +23,29 @@ export default defineConfig(({ mode }) => {
         },
       },
     ],
+=======
+  const env = loadEnv(mode, process.cwd(), '')
+
+  return {
+    plugins: [react()],
+>>>>>>> 07aa0750c67c41862888b229e90a94d07fe97e69
     resolve: {
       alias: {
         '@': path.resolve(__dirname, 'src'),
       },
     },
+<<<<<<< HEAD
   };
+=======
+    server: {
+      proxy: {
+        '/api': {
+          target: 'http://localhost:8080',
+          changeOrigin: true,
+          secure: false,
+        },
+      },
+    },
+  }
+>>>>>>> 07aa0750c67c41862888b229e90a94d07fe97e69
 })

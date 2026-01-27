@@ -1,5 +1,7 @@
 package com.aidea.backend.domain.meeting.dto.request;
 
+import com.aidea.backend.domain.meeting.entity.enums.MeetingCategory;
+import com.aidea.backend.domain.meeting.entity.enums.Region;
 import jakarta.validation.constraints.*;
 import lombok.*;
 
@@ -23,6 +25,10 @@ public class UpdateMeetingRequest {
     private String description;
 
     private String imageUrl;
+
+    private MeetingCategory category;
+
+    private Region region;
 
     @NotBlank(message = "위치는 필수입니다")
     private String location;

@@ -13,7 +13,7 @@ import InterestPage from '@/features/onboarding/components/InterestPage';
 import ShortsPage from '@/features/recommendation/components/ShortsPage';
 import MeetingListPage from '@/features/meeting/components/MeetingListPage';
 import MeetingCreatePage from '@/features/meeting/components/MeetingCreatePage';
-import MeetingDetailPage from '@/features/meeting/components/MeetingDetailPage';
+import MeetingDetailPage from '@/features/meeting/components/detail';
 import MeetingSearchPage from '@/features/meeting/components/MeetingSearchPage';
 import MemberManagePage from '@/features/meeting/components/MemberManagePage';
 import EventCreatePage from '@/features/meeting/components/EventCreatePage';

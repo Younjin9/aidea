@@ -101,6 +101,10 @@ export const useTransferHost = (groupId: string) => {
   return useMutation({
     mutationFn: async (newHostId: string) => {
       await memberApi.transferHost(groupId, { newHostUserId: newHostId });
+<<<<<<< HEAD
+=======
+      return newHostId;
+>>>>>>> 07aa0750c67c41862888b229e90a94d07fe97e69
     },
     onSuccess: () => {
       // queryClient.invalidateQueries({ queryKey: meetingKeys.detail(groupId) });

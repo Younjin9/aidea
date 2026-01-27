@@ -25,3 +25,7 @@ dist-ssr
 
 # Documentation specific to user (Local Only)
 _project_logs/
+
+# Environment Variables
+.env
+.env.*

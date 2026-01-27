@@ -5,6 +5,7 @@ import meetingApi from '@/shared/api/meeting/meetingApi';
 import { useMeetingStore } from '../store/meetingStore';
 import { myPageKeys } from '@/features/mypage/hooks/useMyPage';
 import type { Meeting, MeetingUI, MeetingListParams, CreateMeetingRequest } from '@/shared/types/Meeting.types';
+import type { PaginatedResponse } from '@/shared/types/common.types';
 
 // ============================================
 // Helper Functions
@@ -60,7 +61,8 @@ export const useMeetings = (params: MeetingListParams = {}) => {
     queryKey: meetingKeys.list(),
     queryFn: async () => {
       const response = await meetingApi.getList(params);
-      return transformMeetingsToUI(response.data.items);
+      const content = (response as any)?.data?.content ?? response?.data?.data?.content ?? response?.data?.content;
+      return transformMeetingsToUI(content || []);
     },
     staleTime: 1000 * 60 * 3,
     retry: 1,
@@ -85,6 +87,38 @@ export const useMeetings = (params: MeetingListParams = {}) => {
     toggleLike: toggleLikeByGroupId,
     refetch,
   };
+};
+
+// ============================================
+// Like / Unlike (서버 반영)
+// ============================================
+
+export const useToggleLikeMeeting = () => {
+  const queryClient = useQueryClient();
+  const toggleLikeByGroupId = useMeetingStore((state) => state.toggleLikeByGroupId);
+
+  return useMutation({
+    mutationFn: async ({ groupId, isLiked }: { groupId: string; isLiked: boolean }) => {
+      if (isLiked) {
+        await meetingApi.unlike(groupId);
+      } else {
+        await meetingApi.like(groupId);
+      }
+      return { groupId };
+    },
+    onMutate: async ({ groupId }) => {
+      toggleLikeByGroupId(groupId);
+    },
+    onError: (err, { groupId }) => {
+      console.warn('모임 좋아요/취소 API 실패, 상태 복원:', err);
+      toggleLikeByGroupId(groupId);
+    },
+    onSuccess: (_, { groupId }) => {
+      queryClient.invalidateQueries({ queryKey: meetingKeys.all });
+      queryClient.invalidateQueries({ queryKey: myPageKeys.myMeetings() });
+      queryClient.invalidateQueries({ queryKey: ['members', groupId] });
+    },
+  });
 };
 
 // ============================================
