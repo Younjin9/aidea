@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation } from '@tanstack/react-query';
 import { Send, Users, ChevronLeft } from 'lucide-react';
 import { chatApi } from '@/shared/api/chatAPI';
 import { useAuthStore } from '@/features/auth/store/authStore';
@@ -122,6 +122,7 @@ const ChatRoomPage: React.FC = () => {
             senderProfileImage: user?.profileImage,
             content: inputMessage,
             createdAt: new Date().toISOString(),
+            type: 'TALK',
         };
         setMessages((prev) => [...prev, tempMessage]);
         setInputMessage('');

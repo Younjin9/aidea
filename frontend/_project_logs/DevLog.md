@@ -47,6 +47,19 @@
     *   **`MyPage` 관련**: 팀원의 최신 API 로직(`useMyPage.ts`)을 우선 적용(`--theirs`)하여 에러 방지.
 *   **결과**: 안전하게 병합 후 `frontend/youngsun`에 푸시 완료.
 
+### 2026-01-26 (화이트 스크린 오류 수정 및 빌드 안정화)
+
+### 15. 🐛 Build Error & White Screen Fix (Bug Fix)
+*   **현상**: 앱 실행 시 화이트 스크린 발생 (렌더링 중단). `npm run dev`에서는 경고로 떴으나 실제 런타임에서 Crash 발생.
+*   **원인 분석**: `npm run build`를 통해 숨겨진 TypeScript 타입 불일치 및 API 요청 필드 오류 다수 확인.
+*   **조치 내용**:
+    *   **`ChatRoomPage.tsx`**: Optimistic Update 시 `ChatMessage` 타입의 필수 필드인 `type: 'TALK'` 누락 수정.
+    *   **`EventCreate/EditPage.tsx`**: API 요청 타입(`CreateEventRequest`)에 없는 `cost` 필드 제거.
+    *   **`MeetingDetailPage.tsx`**: `userId` 타입 불일치(number vs string) 해결 및 `joinMeetingApi` 요청 시 `message` 필드를 `requestMessage`로 수정.
+    *   **`useMembers.ts`**: `transferHost` API 호출 시 파라미터명 오류(`newHostId` -> `newHostUserId`) 수정.
+    *   **Cleanup**: 미사용 변수(`navigate`, `useQueryClient` 등) 제거.
+*   **결과**: 빌드 성공 및 로컬 개발 서버(Port 5174) 정상 구동 확인.
+
 ---
 
 ## 5. 🔜 향후 계획 (Next Steps)

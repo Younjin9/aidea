@@ -76,10 +76,13 @@ const EventCreatePage: React.FC = () => {
     createEvent(
       {
         title: eventName,
-        description,
+        notes: description,
         scheduledAt: `${date}T${time}:00`,
-        location,
-        cost,
+        placeName: location,
+        location: {
+            lat: selectedLocation?.lat || 0,
+            lng: selectedLocation?.lng || 0
+        },
         maxParticipants,
       },
       {

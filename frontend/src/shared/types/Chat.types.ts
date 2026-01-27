@@ -13,7 +13,7 @@ export interface ChatRoom {
 
 export interface ChatMessage {
   messageId: string;
-  senderId: number;
+  senderId: number | string;
   senderName: string;
   senderProfileImage?: string;
   content: string;

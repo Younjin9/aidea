@@ -59,7 +59,7 @@ export const useRejectMember = (groupId: string) => {
 
   return useMutation({
     mutationFn: async ({ memberId, responseMessage }: { memberId: string; responseMessage?: string }) => {
-      await memberApi.rejectMember(groupId, { memberId, responseMessage });
+      await memberApi.rejectMember(groupId, { memberId, responseMessage: responseMessage || '' });
       return memberId;
     },
     onSuccess: () => {
@@ -93,22 +93,17 @@ export const useRemoveMember = (groupId: string) => {
 };
 
 /**
- * 모임장 양도 훅
+ * 방장 권한 위임
  */
 export const useTransferHost = (groupId: string) => {
-  const queryClient = useQueryClient();
+  // const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async (newHostId: string) => {
-      await memberApi.transferHost(groupId, { newHostId });
-      return newHostId;
+      await memberApi.transferHost(groupId, { newHostUserId: newHostId });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['members', groupId] });
-      queryClient.invalidateQueries({ queryKey: ['meeting', 'detail', groupId] });
-    },
-    onError: (error) => {
-      console.error('모임장 양도 실패:', error);
+      // queryClient.invalidateQueries({ queryKey: meetingKeys.detail(groupId) });
     },
   });
 };

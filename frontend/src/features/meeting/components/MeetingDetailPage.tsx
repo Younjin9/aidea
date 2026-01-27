@@ -60,12 +60,12 @@ const MOCK_MEETING_DETAIL: MeetingDetail = {
 // ============================================
 
 const createMeetingDetailFromStore = (
-  storedMeeting: { id: number; title: string; description?: string; image: string; category: string; members: number; maxMembers?: number; location: string; ownerUserId?: string; myStatus?: 'PENDING' | 'APPROVED'; myRole?: 'HOST' | 'MEMBER' },
+  storedMeeting: { id: number; title: string; description?: string; image: string; category: string; members: number; maxMembers?: number; location: string; ownerUserId?: string | number; myStatus?: 'PENDING' | 'APPROVED'; myRole?: 'HOST' | 'MEMBER' },
   isOwner: boolean,
-  user: { userId: string; nickname: string; profileImage?: string } | null,
-  existingEvents: MeetingEvent[] = MOCK_EVENTS
+  user: { userId: string | number; nickname: string; profileImage?: string } | null,
+  existingEvents: MeetingEvent[] = []
 ): MeetingDetail => {
-  const hostUserId = storedMeeting.ownerUserId || 'user1';
+  const hostUserId = String(storedMeeting.ownerUserId || 'user1');
   const hostNickname = isOwner ? (user?.nickname || '방장') : '모임장';
   const hostProfileImage = isOwner ? user?.profileImage : undefined;
 
@@ -145,7 +145,7 @@ const DetailHeader: React.FC<DetailHeaderProps> = ({
 
 // --- MeetingImage ---
 interface MeetingImageProps {
-  imageUrl: string;
+  imageUrl?: string;
   title: string;
 }
 
@@ -264,7 +264,7 @@ interface EventSectionProps {
   meeting: MeetingDetail;
   isHost: boolean;
   isMember: boolean;
-  userId?: string;
+  userId?: string | number;
   meetingId?: string;
   onEventTitleClick: (event: MeetingEvent) => void;
   onEventAction: (eventId: string, title: string, action: 'cancelParticipation' | 'join') => void;
@@ -345,7 +345,7 @@ const MemberSection: React.FC<MemberSectionProps> = ({ members, isHost, onManage
 interface MeetingModalsProps {
   activeModal: ModalType;
   selectedEvent: { id: string; title: string } | null;
-  user: { userId: string; nickname: string; profileImage?: string } | null;
+  user: { userId: string | number; nickname: string; profileImage?: string } | null;
   greeting: string;
   reportContent: string;
   isMember: boolean;
@@ -500,9 +500,9 @@ const MeetingDetailPage: React.FC = () => {
 
   // API Mutations
   const { mutate: joinMeetingApi, isPending: isJoining } = useJoinMeeting();
-  const { mutate: leaveMeetingApi, isPending: isLeaving } = useLeaveMeeting();
-  const { mutate: joinEventApi, isPending: isJoiningEvent } = useJoinEvent(meetingId || '');
-  const { mutate: cancelEventApi, isPending: isCancellingEvent } = useCancelEventParticipation(meetingId || '');
+  const { mutate: leaveMeetingApi } = useLeaveMeeting();
+  const { mutate: joinEventApi } = useJoinEvent(meetingId || '');
+  const { mutate: cancelEventApi } = useCancelEventParticipation(meetingId || '');
 
   // API 호출 - 모임 상세 조회
   const { data: apiMeetingDetail, isLoading, error } = useQuery({
@@ -716,7 +716,7 @@ const MeetingDetailPage: React.FC = () => {
 
     // API 호출 시도
     joinMeetingApi(
-      { groupId: meetingId, message: greeting },
+      { groupId: meetingId, requestMessage: greeting },
       {
         onSuccess: () => {
           setMeeting(prev => ({

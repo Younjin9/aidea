@@ -49,11 +49,12 @@ export interface JoinResponseData extends User {
 // ==========================================
 
 // Generic response wrapper based on the spec
-// { success: true, data: T, message: null }
+// { success: true, data: T, error: null }
 export interface BaseResponse<T> {
   success: boolean;
   data: T;
-  message: string | null;
+  error?: any | null;
+  message?: string | null; // Keep for backward compatibility if needed
 }
 
 export type AuthResponse = BaseResponse<AuthTokenData>;

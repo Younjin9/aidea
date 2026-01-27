@@ -84,10 +84,13 @@ const EventEditPage: React.FC = () => {
     updateEvent(
       {
         title: eventName,
-        description,
+        notes: description,
         scheduledAt: `${date}T${time}:00`,
-        location: eventLocation,
-        cost,
+        placeName: eventLocation,
+        location: {
+            lat: selectedLocation?.lat || 0,
+            lng: selectedLocation?.lng || 0
+        },
         maxParticipants,
       },
       {
