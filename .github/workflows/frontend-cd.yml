@@ -2,7 +2,7 @@ name: Frontend CD
 
 on:
   push:
-    branches: [ "backend/sejong" ]
+    branches: [ "frontend-integration" ]
     paths:
       - 'frontend/**'
   workflow_dispatch:
