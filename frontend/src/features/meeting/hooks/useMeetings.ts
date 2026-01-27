@@ -5,6 +5,7 @@ import meetingApi from '@/shared/api/meeting/meetingApi';
 import { useMeetingStore } from '../store/meetingStore';
 import { myPageKeys } from '@/features/mypage/hooks/useMyPage';
 import type { Meeting, MeetingUI, MeetingListParams, CreateMeetingRequest } from '@/shared/types/Meeting.types';
+import type { PaginatedResponse } from '@/shared/types/common.types';
 
 // ============================================
 // Helper Functions
@@ -20,9 +21,14 @@ const transformMeetingToUI = (meeting: Meeting): MeetingUI => {
     image: meeting.imageUrl || '',
     title: meeting.title,
     category: meeting.interestCategoryName || '카테고리',
-    location: `${meeting.location.region || '위치 정보 없음'}`,
+    location: `${meeting.location.region || '위치 정보'}`,
     members: meeting.memberCount,
+    maxMembers: meeting.maxMembers,
+    description: meeting.description,
     isLiked: false,
+    ownerUserId: meeting.ownerUserId,
+    myStatus: undefined,
+    myRole: undefined,
   };
 };
 
@@ -83,7 +89,6 @@ export const useMeetings = (params: MeetingListParams = {}) => {
     isLoading,
     error,
     groupByCategory: groupByCategoryFn,
-    toggleLike: toggleLikeByGroupId,
     refetch,
   };
 };
@@ -94,7 +99,6 @@ export const useMeetings = (params: MeetingListParams = {}) => {
 
 export const useToggleLikeMeeting = () => {
   const queryClient = useQueryClient();
-  const toggleLikeByGroupId = useMeetingStore((state) => state.toggleLikeByGroupId);
 
   return useMutation({
     mutationFn: async ({ groupId, isLiked }: { groupId: string; isLiked: boolean }) => {
@@ -105,16 +109,10 @@ export const useToggleLikeMeeting = () => {
       }
       return { groupId };
     },
-    onMutate: async ({ groupId }) => {
-      toggleLikeByGroupId(groupId);
-    },
-    onError: (err, { groupId }) => {
-      console.warn('모임 좋아요/취소 API 실패, 상태 복원:', err);
-      toggleLikeByGroupId(groupId);
-    },
     onSuccess: (_, { groupId }) => {
       queryClient.invalidateQueries({ queryKey: meetingKeys.all });
       queryClient.invalidateQueries({ queryKey: myPageKeys.myMeetings() });
+      queryClient.invalidateQueries({ queryKey: myPageKeys.likedMeetings() });
       queryClient.invalidateQueries({ queryKey: ['members', groupId] });
     },
   });
