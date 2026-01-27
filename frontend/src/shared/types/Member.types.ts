@@ -11,7 +11,7 @@ export type MemberStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'LEFT';
 // ============================================
 
 export interface Member {
-  userId: string;
+  userId: string | number;
   nickname: string;
   profileImage?: string;
   role: MemberRole;
