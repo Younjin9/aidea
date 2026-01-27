@@ -2,8 +2,10 @@ server:
   forward-headers-strategy: native
   tomcat:
     protocol-header: CloudFront-Forwarded-Proto
+    protocol-header-https-value: https
     remote-ip-header: X-Forwarded-For
     internal-proxies: .*
+    use-relative-redirects: true
 
 spring:
   security:

@@ -13,6 +13,7 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.http.HttpMethod;
+import org.springframework.web.filter.ForwardedHeaderFilter;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
@@ -34,6 +35,11 @@ public class SecurityConfig {
         private final OAuth2SuccessHandler oAuth2SuccessHandler;
 
         @Bean
+        public ForwardedHeaderFilter forwardedHeaderFilter() {
+                return new ForwardedHeaderFilter();
+        }
+
+        @Bean
         public PasswordEncoder passwordEncoder() {
                 return new BCryptPasswordEncoder();
         }
@@ -42,10 +48,10 @@ public class SecurityConfig {
         public CorsConfigurationSource corsConfigurationSource() {
                 CorsConfiguration configuration = new CorsConfiguration();
                 configuration.setAllowedOrigins(Arrays.asList(
-                        "http://localhost:5173", "http://localhost:5174",
-                        "http://localhost:3000", "http://localhost:3001",
-                        "https://aimo.ai.kr", "https://www.aimo.ai.kr",
-                        "https://d125n74xsjeyc3.cloudfront.net"));
+                                "http://localhost:5173", "http://localhost:5174",
+                                "http://localhost:3000", "http://localhost:3001",
+                                "https://aimo.ai.kr", "https://www.aimo.ai.kr",
+                                "https://d125n74xsjeyc3.cloudfront.net"));
                 configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
                 configuration.setAllowedHeaders(Arrays.asList("*"));
                 configuration.setAllowCredentials(true);
@@ -59,53 +65,56 @@ public class SecurityConfig {
         @Bean
         public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
                 http
-                        // Enable CORS
-                        .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+                                // Enable CORS
+                                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
 
-                        // Disable CSRF (using JWT)
-                        .csrf(AbstractHttpConfigurer::disable)
+                                // Disable CSRF (using JWT)
+                                .csrf(AbstractHttpConfigurer::disable)
 
-                        // ✅ OAuth2를 위한 세션 허용 (가장 중요한 수정!)
-                        .sessionManagement(session -> session
-                                .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED) // 필요시 세션 생성
-                                .maximumSessions(1) // 동시 세션 1개 제한
-                                .maxSessionsPreventsLogin(false) // 새 로그인 시 기존 세션 만료
-                        )
+                                // ✅ OAuth2를 위한 세션 허용 (가장 중요한 수정!)
+                                .sessionManagement(session -> session
+                                                .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED) // 필요시 세션 생성
+                                                .maximumSessions(1) // 동시 세션 1개 제한
+                                                .maxSessionsPreventsLogin(false) // 새 로그인 시 기존 세션 만료
+                                )
 
-                        // Public Endpoints
-                        .authorizeHttpRequests(auth -> auth
+                                // Public Endpoints
+                                .authorizeHttpRequests(auth -> auth
 
-                                // Swagger
-                                .requestMatchers("/swagger-ui/**", "/swagger-ui.html",
-                                        "/v3/api-docs/**", "/swagger-resources/**").permitAll()
+                                                // Swagger
+                                                .requestMatchers("/swagger-ui/**", "/swagger-ui.html",
+                                                                "/v3/api-docs/**", "/swagger-resources/**")
+                                                .permitAll()
 
-                                // WebSocket
-                                .requestMatchers("/ws/**", "/app/**", "/topic/**").permitAll()
+                                                // WebSocket
+                                                .requestMatchers("/ws/**", "/app/**", "/topic/**").permitAll()
 
-                                // Health Check
-                                .requestMatchers("/actuator/**", "/health").permitAll()
+                                                // Health Check
+                                                .requestMatchers("/actuator/**", "/health").permitAll()
 
-                                // OAuth2
-                                .requestMatchers("/login/oauth2/**", "/oauth2/**").permitAll()
+                                                // OAuth2
+                                                .requestMatchers("/login/oauth2/**", "/oauth2/**").permitAll()
 
-                                // User
-                                .requestMatchers("/api/users/join", "/api/users/login",
-                                        "/api/users/nickname-check", "/api/users/refresh",
-                                        "/api/users/health").permitAll()
+                                                // User
+                                                .requestMatchers("/api/users/join", "/api/users/login",
+                                                                "/api/users/nickname-check", "/api/users/refresh",
+                                                                "/api/users/health")
+                                                .permitAll()
 
-                                // Interest
-                                .requestMatchers(HttpMethod.GET, "/api/interests").permitAll()
+                                                // Interest
+                                                .requestMatchers(HttpMethod.GET, "/api/interests").permitAll()
 
-                                // Group
-                                .requestMatchers(HttpMethod.GET, "/api/groups", "/api/groups/{id}",
-                                        "/api/groups/search", "/api/groups/{id}/members").permitAll()
+                                                // Group
+                                                .requestMatchers(HttpMethod.GET, "/api/groups", "/api/groups/{id}",
+                                                                "/api/groups/search", "/api/groups/{id}/members")
+                                                .permitAll()
 
-                                .anyRequest().authenticated())
-                        .oauth2Login(oauth2 -> oauth2
-                                .userInfoEndpoint(userInfo -> userInfo
-                                        .userService(customOAuth2UserService))
-                                .successHandler(oAuth2SuccessHandler))
-                        .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+                                                .anyRequest().authenticated())
+                                .oauth2Login(oauth2 -> oauth2
+                                                .userInfoEndpoint(userInfo -> userInfo
+                                                                .userService(customOAuth2UserService))
+                                                .successHandler(oAuth2SuccessHandler))
+                                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
                 return http.build();
         }
