@@ -5,7 +5,6 @@ import meetingApi from '@/shared/api/meeting/meetingApi';
 import { useMeetingStore } from '../store/meetingStore';
 import { myPageKeys } from '@/features/mypage/hooks/useMyPage';
 import type { Meeting, MeetingUI, MeetingListParams, CreateMeetingRequest } from '@/shared/types/Meeting.types';
-import type { PaginatedResponse } from '@/shared/types/common.types';
 
 // ============================================
 // Helper Functions
@@ -61,7 +60,8 @@ export const useMeetings = (params: MeetingListParams = {}) => {
     queryKey: meetingKeys.list(),
     queryFn: async () => {
       const response = await meetingApi.getList(params);
-      const content = (response as any)?.data?.content ?? response?.data?.data?.content ?? response?.data?.content;
+      // const content = (response as any)?.data?.content ?? response?.data?.data?.content ?? response?.data?.content;
+      const content = (response as any)?.data?.content ?? (response as any)?.data?.data?.content ?? (response as any)?.content ?? [];
       return transformMeetingsToUI(content || []);
     },
     staleTime: 1000 * 60 * 3,
