@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Edit2 } from 'lucide-react';
+import meetingApi from '@/shared/api/meeting/meetingApi';
 import ProfileImage from '@/shared/components/ui/ProfileImage';
 import MeetingCard from '@/shared/components/ui/MeetingCard';
 import Modal from '@/shared/components/ui/Modal';
@@ -47,9 +48,17 @@ const MyPageView: React.FC<{ onUnlike?: (id: number) => void }> = ({ onUnlike })
   const handleUnlike = (id: number) => {
     setDisplayedLikedMeetings(prev => prev.map(m => m.id === id ? { ...m, isLiked: false } : m));
 
-    timeoutRef.current = window.setTimeout(() => {
-      const originalMeeting = likedMeetings.find(m => m.id === id);
-      if (originalMeeting) unlikeMeeting(originalMeeting.groupId);
+    timeoutRef.current = window.setTimeout(async () => {
+      const originalMeeting = likedMeetings.find(m => parseInt(m.groupId, 10) === id);
+      if (originalMeeting) {
+        try {
+          // 실제 API 호출
+          await meetingApi.unlike(originalMeeting.groupId);
+        } catch (error) {
+          console.error('찜 취소 실패:', error);
+        }
+        unlikeMeeting(originalMeeting.groupId);
+      }
       setDisplayedLikedMeetings(prev => prev.filter(m => m.id !== id));
       onUnlike?.(id);
     }, 1000);

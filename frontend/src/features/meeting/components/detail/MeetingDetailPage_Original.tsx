@@ -9,10 +9,10 @@ import Button from '@/shared/components/ui/Button';
 import Modal from '@/shared/components/ui/Modal';
 import ChatRoomPage from '@/features/chat/components/ChatRoomPage';
 import meetingApi from '@/shared/api/meeting/meetingApi';
-import { useMeetingStore } from '../store/meetingStore';
+import { useMeetingStore } from '../../store/meetingStore';
 import { useMyPageStore } from '@/features/mypage/store/myPageStore';
-import { useJoinMeeting, useLeaveMeeting } from '../hooks/useMeetings';
-import { useJoinEvent, useCancelEventParticipation } from '../hooks/useEvents';
+import { useJoinMeeting, useLeaveMeeting } from '../../hooks/useMeetings';
+import { useJoinEvent, useCancelEventParticipation } from '../../hooks/useEvents';
 import type { MeetingDetail, MeetingEvent } from '@/shared/types/Meeting.types';
 import defaultLogo from '@/assets/images/logo.png';
 
