@@ -30,6 +30,11 @@ export interface NicknameCheckRequest {
   nickname: string;
 }
 
+export interface NicknameCheckResult {
+  available: boolean;
+  message: string;
+}
+
 // ==========================================
 // Auth Response Data Types
 // ==========================================

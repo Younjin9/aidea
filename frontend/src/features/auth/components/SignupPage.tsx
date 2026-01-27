@@ -39,15 +39,20 @@ const SignupPage: React.FC = () => {
     }
     try {
       const response = await authApi.checkNickname(nickname);
-      if (response.success && response.data) {
+      // Backend returns { success: true, data: { available: boolean, message: string } }
+      // Even if available is false, success is true. We must check data.available.
+      if (response.success && response.data?.available) {
          alert('사용 가능한 닉네임입니다.');
          setNicknameChecked(true);
       } else {
-         alert('이미 사용 중이거나 사용할 수 없는 닉네임입니다.');
+         alert(response.data?.message || '이미 사용 중이거나 사용할 수 없는 닉네임입니다.');
          setNicknameChecked(false);
       }
     } catch (e: any) {
-      alert(e.response?.data?.message || '중복 확인 중 오류가 발생했습니다.');
+      console.error('Nickname check error:', e);
+      const status = e.response?.status;
+      const errorMsg = e.response?.data?.message || '중복 확인 중 오류가 발생했습니다.';
+      alert(status ? `[${status}] ${errorMsg}` : errorMsg);
       setNicknameChecked(false);
     }
   };
