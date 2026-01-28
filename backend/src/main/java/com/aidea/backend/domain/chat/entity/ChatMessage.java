@@ -70,8 +70,8 @@ public class ChatMessage {
 
     // ========== Enum ==========
     public enum MessageType {
-        CHAT, // 일반 채팅
-        JOIN, // 입장 알림
+        TALK, // 일반 채팅
+        ENTER, // 입장 알림
         LEAVE // 퇴장 알림
     }
 }

@@ -50,6 +50,11 @@ public class ChatController {
         // meetingId 설정 (Path와 Request 일치 보장)
         request.setMeetingId(meetingId);
 
+        // 입장 메시지 처리
+        if (com.aidea.backend.domain.chat.entity.ChatMessage.MessageType.ENTER.equals(request.getMessageType())) {
+            request.setMessage(request.getMessage() + "님이 입장하셨습니다.");
+        }
+
         // 메시지 저장 및 브로드캐스트
         return chatService.saveMessage(request, userId);
     }
@@ -77,5 +82,15 @@ public class ChatController {
 
         List<ChatMessageResponse> messages = chatService.getRecentMessages(meetingId, limit);
         return ResponseEntity.ok(messages);
+    }
+
+    /**
+     * 메시지 읽음 처리 (Stub)
+     */
+    @Operation(summary = "메시지 읽음 처리", description = "채팅방 메시지를 읽음으로 처리합니다")
+    @PostMapping("/rooms/{meetingId}/read")
+    public ResponseEntity<Void> markAsRead(@PathVariable Long meetingId) {
+        // TODO: 실제 읽음 처리 로직 구현 (Redis or DB)
+        return ResponseEntity.ok().build();
     }
 }

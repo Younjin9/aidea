@@ -81,10 +81,18 @@ public class ChatService {
         /**
          * 채팅방의 최근 메시지 조회
          */
+        /**
+         * 채팅방의 최근 메시지 조회
+         */
         public List<ChatMessageResponse> getRecentMessages(Long meetingId, int limit) {
-                // 1. ChatRoom 조회
+                // 1. ChatRoom 조회 (없으면 생성 시도)
                 ChatRoom chatRoom = chatRoomRepository.findByMeetingId(meetingId)
-                                .orElseThrow(() -> new ChatRoomNotFoundException(meetingId));
+                                .orElseGet(() -> {
+                                        // ChatRoom이 없으면 Meeting 존재 여부 확인 후 생성
+                                        Meeting meeting = meetingRepository.findById(meetingId)
+                                                        .orElseThrow(() -> new ChatRoomNotFoundException(meetingId));
+                                        return chatRoomRepository.save(ChatRoom.createForMeeting(meeting));
+                                });
 
                 // 2. 최근 메시지 조회 (최대 50개)
                 List<ChatMessage> messages = limit <= 50
