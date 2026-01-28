@@ -12,6 +12,7 @@ import defaultLogo from '@/assets/images/logo.png';
 import { useMeetingStore } from '../store/meetingStore';
 import { useMyPageStore } from '@/features/mypage/store/myPageStore';
 import { useCreateMeeting } from '../hooks/useMeetings';
+import * as meetingApi from '@/shared/api/meeting/meetingApi';
 
 const MeetingCreatePage: React.FC = () => {
   const navigate = useNavigate();
@@ -99,54 +100,73 @@ const MeetingCreatePage: React.FC = () => {
   };
 
   // 장소 선택 핸들러
-  const handleSelectLocation = (location: { address: string; lat: number; lng: number }) => {
+  const handleSelectLocation = (location: { address: string; latitude: number; longitude: number }) => {
     setRegion(location.address);
-    setCoords({ lat: location.lat, lng: location.lng });
+    setCoords({ lat: location.latitude, lng: location.longitude });
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!currentUserProfileImage) {
       setShowProfileModal(true);
       return;
     }
 
-    const groupId = `${Date.now()}`;
-    const finalImage = meetingImage || defaultLogo;
+    let finalImageUrl = defaultLogo;
 
-    // API 호출 시도
-    createMeeting(
-      {
-        title: meetingName,
-        description,
-        interestCategoryId: selectedCategoryId || '1',
-        maxMembers: capacity,
-        location: { lat: coords.lat, lng: coords.lng, region },
-        isPublic: true,
-        image: imageFile || undefined,
-      },
-      {
-        onError: () => {
-          // API 실패 시 로컬 store에 추가 (fallback)
-          addMeeting({
-            groupId,
-            image: finalImage,
-            title: meetingName,
-            category: selectedCategory,
-            location: region,
-            members: 1,
-            maxMembers: capacity,
-            description,
-            date: new Date().toISOString().split('T')[0],
-            isLiked: false,
-            ownerUserId: user?.userId ? String(user.userId) : undefined,
-            myStatus: 'APPROVED',
-            myRole: 'HOST',
-          });
-
-          navigate('/meetings');
-        },
+    try {
+      // 1. 이미지가 있으면 먼저 S3에 업로드
+      if (imageFile) {
+        const uploadRes = await meetingApi.uploadImage(imageFile);
+        if (uploadRes.success) {
+          finalImageUrl = uploadRes.data.imageUrl;
+        }
       }
-    );
+
+      // 2. 모임 생성 API 호출
+      createMeeting(
+        {
+          title: meetingName,
+          description,
+          interestCategoryId: selectedCategoryId || '1',
+          maxMembers: capacity,
+          location: { latitude: coords.lat, longitude: coords.lng, region },
+          isPublic: true,
+          imageUrl: finalImageUrl, // S3 URL 사용
+        },
+        {
+          onSuccess: () => {
+            navigate('/meetings');
+          },
+          onError: () => {
+            // API 실패 시 로컬 fallback (필요시)
+            handleLocalFallback(finalImageUrl);
+          },
+        }
+      );
+    } catch (error) {
+      console.error('모임 생성 중 오류:', error);
+      handleLocalFallback(finalImageUrl);
+    }
+  };
+
+  const handleLocalFallback = (imageUrl: string) => {
+    const groupId = `${Date.now()}`;
+    addMeeting({
+      groupId,
+      image: imageUrl,
+      title: meetingName,
+      category: selectedCategory,
+      location: region,
+      members: 1,
+      maxMembers: capacity,
+      description,
+      date: new Date().toISOString().split('T')[0],
+      isLiked: false,
+      ownerUserId: user?.userId ? String(user.userId) : undefined,
+      myStatus: 'APPROVED',
+      myRole: 'HOST',
+    });
+    navigate('/meetings');
   };
 
   const isFormValid = meetingName && shortDescription && selectedCategory && region && description && agreeToTerms;
