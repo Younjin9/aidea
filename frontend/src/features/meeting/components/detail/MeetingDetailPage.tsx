@@ -118,8 +118,7 @@ const MeetingDetailPage: React.FC = () => {
   // 상태 관리 및 커스텀 훅 사용 (store, mutation 등)
   const { getMeetingByGroupId, toggleLikeByGroupId, joinMeeting, leaveMeeting, getEventsByGroupId, addEvent, updateEvent: updateEventInStore, deleteEvent: deleteEventInStore, initializeMockData: initializeMeetingMockData, isInitialized: isMeetingInitialized } = useMeetingStore();
   const { user, initializeMockData: initializeUserMockData, isInitialized: isUserInitialized } = useMyPageStore();
-  // 모임 가입/탈퇴, 이벤트 참여/취소 등 API 호출을 위한 커스텀 훅
-  const { mutate: joinMeetingApi, isPending: isJoining } = useJoinMeeting();
+  // 이벤트 참여/취소 등 API 호출을 위한 커스텀 훅
   const { mutate: leaveMeetingApi } = useLeaveMeeting();
   const { mutate: toggleLikeApi } = useToggleLikeMeeting();
   const { mutate: joinEventApi } = useJoinEvent(meetingId || '');
@@ -292,31 +291,6 @@ const MeetingDetailPage: React.FC = () => {
       onSuccess: updateState,
       onError: updateState,
     });
-  };
-
-  // 모임 참석(가입) API 호출 및 상태 동기화
-  const handleJoinMeeting = () => {
-    if (!user || !meetingId) return;
-    
-    const updateState = () => {
-      setMeeting(prev => ({
-        ...prev,
-        memberCount: prev.memberCount + 1,
-        members: [...prev.members, { userId: user.userId, nickname: user.nickname, profileImage: user.profileImage, role: 'MEMBER', status: 'APPROVED', joinedAt: new Date().toISOString() }],
-        myStatus: 'APPROVED',
-      }));
-      if (meetingId) joinMeeting(meetingId, 'MEMBER');
-      setGreeting('');
-      closeModal();
-    };
-
-    joinMeetingApi(
-      { groupId: meetingId, requestMessage: greeting },
-      {
-        onSuccess: updateState,
-        onError: updateState,
-      }
-    );
   };
 
   // 신고 API 호출 핸들러
