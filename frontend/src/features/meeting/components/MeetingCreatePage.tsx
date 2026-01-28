@@ -309,6 +309,7 @@ const MeetingCreatePage: React.FC = () => {
           onClick: () => {
             setSelectedCategory(cat.label);
             setSelectedCategoryId(cat.id);
+            setShowCategoryModal(false);
           },
         }))}
       />

@@ -82,7 +82,7 @@ export const useMyPage = () => {
       const response = await meetingApi.getLiked();
       return transformMeetingsToUI(response.data || []);
     },
-    staleTime: 1000 * 60 * 3,
+    staleTime: 0, // 항상 최신 데이터 가져오기
     retry: 1,
   });
 
