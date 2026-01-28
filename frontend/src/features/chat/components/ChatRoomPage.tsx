@@ -47,8 +47,8 @@ const ChatRoomPage: React.FC = () => {
             } catch {
                 // Fallback Dummy Data for UI Dev
                 return [
-                    { messageId: '1', senderId: 101, senderName: '김철수', content: '같이 가요!', createdAt: '2023-10-25T10:00:00', senderProfileImage: undefined },
-                    { messageId: '2', senderId: 202, senderName: '김쩌고', content: '다른 사람이 말하는 버전 1줄 버전!', createdAt: '2023-10-25T10:05:00', senderProfileImage: undefined },
+                    { messageId: '1', senderId: '101', senderName: '김철수', content: '같이 가요!', createdAt: '2023-10-25T10:00:00', senderProfileImage: undefined, type: 'TALK' },
+                    { messageId: '2', senderId: '202', senderName: '김쩌고', content: '다른 사람이 말하는 버전 1줄 버전!', createdAt: '2023-10-25T10:05:00', senderProfileImage: undefined, type: 'TALK' },
                 ] as ChatMessage[];
             }
         },
@@ -120,7 +120,7 @@ const ChatRoomPage: React.FC = () => {
         // 전송할 메시지 객체 생성
         const messagePayload = {
             meetingId: parsedMeetingId,
-            senderId: myId, // 로그인 안했으면 게스트 ID
+            senderId: String(myId), // 로그인 안했으면 게스트 ID
             content: inputMessage,
             type: 'TALK'
         };
