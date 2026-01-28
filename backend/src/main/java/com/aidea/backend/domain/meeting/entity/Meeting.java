@@ -196,12 +196,12 @@ public class Meeting {
      */
     public com.aidea.backend.domain.meeting.dto.response.MeetingResponse toResponse() {
         return com.aidea.backend.domain.meeting.dto.response.MeetingResponse.builder()
-                .meetingId(this.id)
+                .groupId(this.id) // meetingId -> groupId
                 .title(this.title)
                 .description(this.description)
                 .imageUrl(this.imageUrl)
-                .category(this.category)
-                .categoryDisplayName(this.category.getDisplayName())
+                .interestCategoryId(this.category.name()) // category name (enum string)
+                .interestCategoryName(this.category.getDisplayName())
                 .region(this.region)
                 .regionFullName(this.region.getFullName())
                 .location(this.location)
@@ -212,7 +212,7 @@ public class Meeting {
                 .currentMembers(this.currentMembers)
                 .meetingDate(this.meetingDate)
                 .status(this.status)
-                .isApprovalRequired(this.isApprovalRequired)
+                .isPublic(!this.isApprovalRequired) // isApprovalRequired -> isPublic (inversed)
                 .creator(com.aidea.backend.domain.meeting.dto.response.CreatorDto.builder()
                         .userId(this.creator.getUserId())
                         .nickname(this.creator.getNickname())
@@ -228,11 +228,11 @@ public class Meeting {
      */
     public com.aidea.backend.domain.meeting.dto.response.MeetingSummaryResponse toSummary() {
         return com.aidea.backend.domain.meeting.dto.response.MeetingSummaryResponse.builder()
-                .meetingId(this.id)
+                .groupId(this.id) // meetingId -> groupId
                 .title(this.title)
                 .imageUrl(this.imageUrl)
-                .category(this.category)
-                .categoryDisplayName(this.category.getDisplayName())
+                .interestCategoryId(this.category.name()) // category -> interestCategoryId
+                .interestCategoryName(this.category.getDisplayName()) // categoryDisplayName -> interestCategoryName
                 .region(this.region)
                 .regionFullName(this.region.getFullName())
                 .location(this.location)

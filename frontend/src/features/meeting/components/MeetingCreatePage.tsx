@@ -131,14 +131,13 @@ const MeetingCreatePage: React.FC = () => {
           maxMembers: capacity,
           location: { latitude: coords.lat, longitude: coords.lng, region },
           isPublic: true,
-          imageUrl: finalImageUrl, // S3 URL 사용
+          imageUrl: finalImageUrl,
         },
         {
           onSuccess: () => {
             navigate('/meetings');
           },
           onError: () => {
-            // API 실패 시 로컬 fallback (필요시)
             handleLocalFallback(finalImageUrl);
           },
         }

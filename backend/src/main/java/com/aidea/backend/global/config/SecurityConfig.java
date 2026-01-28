@@ -109,6 +109,9 @@ public class SecurityConfig {
                                                                 "/api/groups/search", "/api/groups/{id}/members")
                                                 .permitAll()
 
+                                                // Chat (For Testing)
+                                                .requestMatchers("/api/chat/**").permitAll()
+
                                                 .anyRequest().authenticated())
                                 .oauth2Login(oauth2 -> oauth2
                                                 .userInfoEndpoint(userInfo -> userInfo

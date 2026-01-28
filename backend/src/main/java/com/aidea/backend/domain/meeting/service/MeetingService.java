@@ -49,6 +49,11 @@ public class MeetingService {
      */
     @Transactional
     public MeetingResponse createMeeting(Long userId, CreateMeetingRequest request) {
+        log.info("=== 모임 생성 시작 ===");
+        log.info("Request: {}", request);
+        log.info("Category Code: {}", request.getInterestCategoryId());
+        log.info("Region: {}", request.getRegion());
+
         // 1. User 조회
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
@@ -58,16 +63,19 @@ public class MeetingService {
                 .title(request.getTitle())
                 .description(request.getDescription())
                 .imageUrl(request.getImageUrl())
-                .category(request.getCategory())
-                .region(request.getRegion())
+                .category(com.aidea.backend.domain.meeting.entity.enums.MeetingCategory
+                        .findByCode(request.getInterestCategoryId())) // String -> Enum
+                .region(com.aidea.backend.domain.meeting.entity.enums.Region.findByFullName(request.getRegion())) // String
+                                                                                                                  // ->
+                                                                                                                  // Enum
                 .location(request.getLocation())
                 .latitude(request.getLatitude())
                 .longitude(request.getLongitude())
                 .locationDetail(request.getLocationDetail())
                 .maxMembers(request.getMaxMembers())
                 .meetingDate(request.getMeetingDate())
-                .isApprovalRequired(request.getIsApprovalRequired())
-                .creator(user)
+                .isApprovalRequired(!request.getIsPublic()) // Assuming isPublic=true means approval not required
+                .creator(user) // Fix: Set creator
                 .build();
 
         Meeting savedMeeting = meetingRepository.save(meeting);
