@@ -3,6 +3,16 @@ package com.aidea.backend.domain.user.service;
 import com.aidea.backend.domain.user.dto.*;
 import com.aidea.backend.domain.user.entity.User;
 import com.aidea.backend.domain.user.repository.UserRepository;
+import com.aidea.backend.domain.user.repository.UserInterestRepository;
+import com.aidea.backend.domain.meeting.repository.MeetingMemberRepository;
+import com.aidea.backend.domain.meeting.repository.MeetingRepository;
+import com.aidea.backend.domain.meeting.entity.MeetingMember;
+import com.aidea.backend.domain.meeting.entity.enums.MemberStatus;
+import com.aidea.backend.domain.meeting.dto.response.MeetingResponse;
+import com.aidea.backend.domain.meeting.dto.response.CreatorDto;
+import com.aidea.backend.domain.user.entity.UserInterest;
+import com.aidea.backend.domain.interest.repository.InterestRepository;
+import org.springframework.web.multipart.MultipartFile;
 import com.aidea.backend.global.secret.jwt.JwtTokenProvider;
 import com.aidea.backend.global.secret.jwt.RefreshToken;
 import com.aidea.backend.global.secret.jwt.RefreshTokenRepository;
@@ -11,6 +21,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
 
 @Slf4j
 @Service
@@ -21,6 +33,10 @@ public class UserService {
         private final PasswordEncoder passwordEncoder;
         private final JwtTokenProvider jwtTokenProvider;
         private final RefreshTokenRepository refreshTokenRepository;
+        private final MeetingMemberRepository meetingMemberRepository;
+        private final MeetingRepository meetingRepository;
+        private final UserInterestRepository userInterestRepository;
+        private final InterestRepository interestRepository;
 
         @Transactional
         public UserResponse joinUser(UserJoinDto dto) {
@@ -243,11 +259,15 @@ public class UserService {
         }
 
         @Transactional
-        public UpdateProfileImageResponse updateProfileImage(String email, String imageUrl) {
+        public UpdateProfileImageResponse updateProfileImage(String email, MultipartFile image) {
                 log.info("프로필 이미지 수정: email={}", email);
 
                 User user = userRepository.findByEmail(email)
                                 .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
+
+                // TODO: 실제 파일 업로드 로직 필요 (S3 등)
+                // 임시로 파일 이름으로 설정
+                String imageUrl = "https://example.com/images/" + image.getOriginalFilename();
 
                 user.setProfileImage(imageUrl);
                 userRepository.save(user);
@@ -276,5 +296,205 @@ public class UserService {
                 );
 
                 return new LocationUpdateResponse(true, location);
+        }
+
+        @Transactional(readOnly = true)
+        public List<MeetingResponse> getMyMeetings(String email, String status) {
+                log.info("내 모임 목록 조회: email={}, status={}", email, status);
+
+                User user = userRepository.findByEmail(email)
+                                .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
+
+                List<MeetingMember> meetingMembers;
+                if ("active".equals(status)) {
+                        meetingMembers = meetingMemberRepository.findByUser_UserIdAndStatusNot(
+                                        user.getUserId(), MemberStatus.LEFT);
+                } else {
+                        meetingMembers = meetingMemberRepository.findByUser_UserId(user.getUserId());
+                }
+
+                return meetingMembers.stream()
+                                .map(meetingMember -> {
+                                        var meeting = meetingMember.getMeeting();
+                                        return MeetingResponse.builder()
+                                                        .meetingId(meeting.getId())
+                                                        .title(meeting.getTitle())
+                                                        .description(meeting.getDescription())
+                                                        .imageUrl(meeting.getImageUrl())
+                                                        .category(meeting.getCategory())
+                                                        .categoryDisplayName(meeting.getCategory().getDisplayName())
+                                                        .region(meeting.getRegion())
+                                                        .regionFullName(meeting.getRegion().getFullName())
+                                                        .location(meeting.getLocation())
+                                                        .latitude(meeting.getLatitude())
+                                                        .longitude(meeting.getLongitude())
+                                                        .locationDetail(meeting.getLocationDetail())
+                                                        .maxMembers(meeting.getMaxMembers())
+                                                        .currentMembers(meeting.getCurrentMembers())
+                                                        .meetingDate(meeting.getMeetingDate())
+                                                        .status(meeting.getStatus())
+                                                        .isApprovalRequired(meeting.getIsApprovalRequired())
+                                                        .creator(CreatorDto.builder()
+                                                                        .userId(meeting.getCreator().getUserId())
+                                                                        .nickname(meeting.getCreator().getNickname())
+                                                                        .profileImage(meeting.getCreator().getProfileImage())
+                                                                        .build())
+                                                        .createdAt(meeting.getCreatedAt())
+                                                        .updatedAt(meeting.getUpdatedAt())
+                                                        .build();
+                                })
+                                .collect(java.util.stream.Collectors.toList());
+        }
+
+        @Transactional(readOnly = true)
+        public List<MeetingResponse> getMyHostingMeetings(String email) {
+                log.info("내가 개설한 모임 목록 조회: email={}", email);
+
+                User user = userRepository.findByEmail(email)
+                                .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
+
+                return meetingRepository.findByCreator_UserId(user.getUserId()).stream()
+                                .map(meeting -> MeetingResponse.builder()
+                                                .meetingId(meeting.getId())
+                                                .title(meeting.getTitle())
+                                                .description(meeting.getDescription())
+                                                .imageUrl(meeting.getImageUrl())
+                                                .category(meeting.getCategory())
+                                                .categoryDisplayName(meeting.getCategory().getDisplayName())
+                                                .region(meeting.getRegion())
+                                                .regionFullName(meeting.getRegion().getFullName())
+                                                .location(meeting.getLocation())
+                                                .latitude(meeting.getLatitude())
+                                                .longitude(meeting.getLongitude())
+                                                .locationDetail(meeting.getLocationDetail())
+                                                .maxMembers(meeting.getMaxMembers())
+                                                .currentMembers(meeting.getCurrentMembers())
+                                                .meetingDate(meeting.getMeetingDate())
+                                                .status(meeting.getStatus())
+                                                .isApprovalRequired(meeting.getIsApprovalRequired())
+                                                .creator(CreatorDto.builder()
+                                                                .userId(meeting.getCreator().getUserId())
+                                                                .nickname(meeting.getCreator().getNickname())
+                                                                .profileImage(meeting.getCreator().getProfileImage())
+                                                                .build())
+                                                .createdAt(meeting.getCreatedAt())
+                                                .updatedAt(meeting.getUpdatedAt())
+                                                .build())
+                                .collect(java.util.stream.Collectors.toList());
+        }
+
+        @Transactional(readOnly = true)
+        public UserStatsResponse getMyStats(String email) {
+                log.info("내 통계 정보 조회: email={}", email);
+
+                User user = userRepository.findByEmail(email)
+                                .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
+
+                // 참가한 모임 수
+                List<MeetingMember> allMeetings = meetingMemberRepository.findByUser_UserIdAndStatusNot(
+                                user.getUserId(), MemberStatus.LEFT);
+                int groupCount = allMeetings.size();
+
+                // 개설한 이벤트 수
+                int eventCount = meetingRepository.findByCreator_UserId(user.getUserId()).size();
+
+                // 출석률 (임시 계산 - 실제로는 출석 기록이 필요)
+                double attendanceRate = 85.0; // TODO: 실제 출석 기록으로 계산 필요
+
+                // 활동 점수 (임시 계산)
+                int activityScore = groupCount * 10 + (int) attendanceRate;
+
+                // 리뷰 수 (TODO: Review 엔티티와 연동 필요)
+                int reviewCount = 0;
+
+                return UserStatsResponse.builder()
+                                .groupCount(groupCount)
+                                .eventCount(eventCount)
+                                .attendanceRate(attendanceRate)
+                                .activityScore(activityScore)
+                                .reviewCount(reviewCount)
+                                .build();
+        }
+
+        @Transactional(readOnly = true)
+        public NotificationSettingsResponse getNotificationSettings(String email) {
+                log.info("알림 설정 조회: email={}", email);
+
+                User user = userRepository.findByEmail(email)
+                                .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
+
+                return NotificationSettingsResponse.builder()
+                                .chatEnabled(user.getChatEnabled())
+                                .eventEnabled(user.getEventEnabled())
+                                .marketingEnabled(user.getMarketingEnabled())
+                                .build();
+        }
+
+        @Transactional
+        public NotificationSettingsResponse updateNotificationSettings(String email, 
+                        NotificationSettingsRequest request) {
+                log.info("알림 설정 수정: email={}", email);
+
+                User user = userRepository.findByEmail(email)
+                                .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
+
+                user.setChatEnabled(request.getChatEnabled() != null ? request.getChatEnabled() : user.getChatEnabled());
+                user.setEventEnabled(request.getEventEnabled() != null ? request.getEventEnabled() : user.getEventEnabled());
+                user.setMarketingEnabled(request.getMarketingEnabled() != null ? request.getMarketingEnabled() : user.getMarketingEnabled());
+
+                userRepository.save(user);
+
+                return NotificationSettingsResponse.builder()
+                                .chatEnabled(user.getChatEnabled())
+                                .eventEnabled(user.getEventEnabled())
+                                .marketingEnabled(user.getMarketingEnabled())
+                                .build();
+        }
+
+        @Transactional
+        public void deleteAccount(String email, String reason) {
+                log.info("회원 탈퇴: email={}, reason={}", email, reason);
+
+                User user = userRepository.findByEmail(email)
+                                .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
+
+                // TODO: 관련 데이터 처리 (모임 탈퇴, 채팅방 등)
+                
+                userRepository.delete(user);
+                
+                log.info("회원 탈퇴 완료: email={}", email);
+        }
+
+        @Transactional
+        public void updateUserInterests(String email, List<String> interests) {
+                log.info("사용자 관심사 업데이트: email={}, interests={}", email, interests);
+
+                User user = userRepository.findByEmail(email)
+                                .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
+
+                // 기존 관심사 삭제
+                userInterestRepository.deleteByUser_UserId(user.getUserId());
+
+                // 새로운 관심사 추가
+                if (interests != null && !interests.isEmpty()) {
+                        List<UserInterest> userInterests = interests.stream()
+                                        .map(interestName -> {
+                                                var interest = interestRepository.findByInterestName(interestName)
+                                                                .orElse(null);
+                                                if (interest != null) {
+                                                        return UserInterest.builder()
+                                                                        .user(user)
+                                                                        .interest(interest)
+                                                                        .build();
+                                                }
+                                                return null;
+                                        })
+                                        .filter(java.util.Objects::nonNull)
+                                        .toList();
+
+                        userInterestRepository.saveAll(userInterests);
+                }
+
+                log.info("사용자 관심사 업데이트 완료: email={}", email);
         }
 }

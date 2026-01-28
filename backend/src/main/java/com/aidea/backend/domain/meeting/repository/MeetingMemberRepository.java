@@ -28,4 +28,14 @@ public interface MeetingMemberRepository extends JpaRepository<MeetingMember, Lo
      * 모임의 모든 참가자 조회
      */
     List<MeetingMember> findByMeetingId(Long meetingId);
+
+    /**
+     * 특정 사용자의 모든 모임 참가 정보 조회
+     */
+    List<MeetingMember> findByUser_UserId(Long userId);
+
+    /**
+     * 특정 사용자의 모든 모임 참가 정보 조회 (상태 제외)
+     */
+    List<MeetingMember> findByUser_UserIdAndStatusNot(Long userId, MemberStatus status);
 }
