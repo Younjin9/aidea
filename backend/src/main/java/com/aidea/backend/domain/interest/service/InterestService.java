@@ -35,4 +35,20 @@ public class InterestService {
             .build())
         .collect(Collectors.toList());
   }
+
+  /**
+   * 관심사 카테고리 목록 조회
+   */
+  public List<InterestDto.CategoryResponse> getInterestCategories() {
+    List<Interest> interests = interestRepository.findAll();
+    
+    return interests.stream()
+        .map(interest -> interest.getCategory())
+        .distinct()
+        .map(category -> InterestDto.CategoryResponse.builder()
+            .id(category)
+            .name(category)
+            .build())
+        .collect(Collectors.toList());
+  }
 }

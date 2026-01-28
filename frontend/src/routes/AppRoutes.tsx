@@ -71,6 +71,7 @@ const AppRoutes: React.FC = () => {
         <Route element={<PrivateRoute />}>
           <Route element={<MainLayout />}>
             <Route path="/shorts" element={<ShortsPage />} />
+            <Route path="/short" element={<Navigate to="/shorts" replace />} />
             <Route path="/meetings" element={<MeetingListPage />} />
             <Route path="/chat/:meetingId" element={<ChatRoomPage />} />
             <Route path="/mypage" element={<MyPageView />} />
@@ -94,6 +95,9 @@ const AppRoutes: React.FC = () => {
           
         {/* Default Redirect */}
         <Route path="/" element={<Navigate to="/login" replace />} />
+        
+        {/* 404 - Catch all */}
+        <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     </>
   );
