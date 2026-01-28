@@ -7,6 +7,7 @@ import com.aidea.backend.domain.meeting.entity.enums.MeetingStatus;
 import com.aidea.backend.domain.meeting.repository.MeetingRepository;
 import com.aidea.backend.domain.recommendation.dto.MeetingRecommendationDto;
 import com.aidea.backend.domain.recommendation.dto.RecommendedMeetingResponse;
+import com.aidea.backend.domain.recommendation.dto.RecommendedMeetingCardResponse;
 import com.aidea.backend.domain.recommendation.repository.HobbyVectorRepository;
 import com.aidea.backend.domain.recommendation.repository.MySqlRecommendationRepository;
 import com.aidea.backend.domain.user.entity.User;
@@ -25,6 +26,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import java.util.Objects;
 
 /**
  * 모임 추천 서비스
@@ -98,7 +100,7 @@ public class RecommendationService {
      * - MySQL: TOP-K 취미에 연결된 모임 조회
      */
     @Transactional(readOnly = true)
-    public List<RecommendedMeetingResponse> recommendMeetingsByNickname(String nickname, int topK, int limit) {
+    public List<RecommendedMeetingCardResponse> recommendMeetingsByNickname(String nickname, int topK, int limit) {
         Long userId = mySqlRepo.findUserIdByNickname(nickname);
         List<Long> selectedHobbyIds = mySqlRepo.findSelectedHobbyIdsByUserId(userId);
 
@@ -106,6 +108,7 @@ public class RecommendationService {
             return List.of();
         }
 
+        // 1) 후보 취미 TopK 뽑기 (기존 로직 유지)
         List<Map<String, Object>> topHobbies =
                 hobbyVectorRepo.findTopHobbiesByUserVector(selectedHobbyIds, topK);
 
@@ -113,15 +116,67 @@ public class RecommendationService {
         for (Map<String, Object> row : topHobbies) {
             candidateHobbyIds.add(((Number) row.get("hobby_id")).longValue());
         }
-
         if (candidateHobbyIds.isEmpty()) return List.of();
 
+        // 2) 후보 취미에 해당하는 meetingIds
         List<Long> meetingIds = mySqlRepo.findMeetingIdsByHobbyIds(candidateHobbyIds);
 
-        return meetingIds.stream()
+        if (meetingIds == null || meetingIds.isEmpty()) return List.of();
+
+        // 3) meetingId -> (meeting이 가진 hobbyIds)까지 같이 가져와서 score/reason 계산
+        //    아래 메서드는 다음 스텝에서 추가할 거야.
+        Map<Long, List<Long>> meetingToHobbyIds = mySqlRepo.findHobbyIdsGroupedByMeetingIds(meetingIds);
+
+        // 4) Meeting 엔티티 조회 (MeetingRepository 필요)
+        List<Meeting> meetings = meetingRepository.findAllById(meetingIds);
+
+        // 5) 카드 응답 생성
+        return meetings.stream()
                 .distinct()
                 .limit(limit)
-                .map(id -> new RecommendedMeetingResponse(id, 0.0))
+                .map(meeting -> {
+                    List<Long> meetingHobbyIds = meetingToHobbyIds.getOrDefault(meeting.getId(), List.of());
+
+                    // score = (겹치는 취미 수 / 유저 선택 취미 수)
+                    List<Long> matchedHobbyIds = meetingHobbyIds.stream()
+                            .filter(selectedHobbyIds::contains)
+                            .toList();
+
+                    long overlapCount = matchedHobbyIds.size();
+                    double score = (double) overlapCount / (double) selectedHobbyIds.size();
+
+                    // ✅ hobby_id -> hobby_name 변환
+                    Map<Long, String> hobbyNameMap = mySqlRepo.findHobbyNamesByIds(matchedHobbyIds);
+
+                    List<String> matchedHobbyNames = matchedHobbyIds.stream()
+                            .map(hobbyNameMap::get)
+                            .filter(Objects::nonNull)
+                            .toList();
+
+                    // ✅ reason 생성
+                    String reason;
+                    if (matchedHobbyNames.isEmpty()) {
+                        reason = "관심사 기반으로 추천된 모임이에요";
+                    } else {
+                        reason = "선택한 취미 중 "
+                                + String.join(", ", matchedHobbyNames)
+                                + "와(과) 잘 맞는 모임이에요";
+                    }
+
+                    return new RecommendedMeetingCardResponse(
+                            meeting.getId(),
+                            meeting.getTitle(),
+                            meeting.getCategory().name(),
+                            meeting.getRegion().name(),
+                            meeting.getCurrentMembers(),
+                            meeting.getMaxMembers(),
+                            score,
+                            reason
+                    );
+                })
+                .filter(card -> card.getScore() > 0)  
+                .sorted((a, b) -> Double.compare(b.getScore(), a.getScore()))
+                .limit(limit)
                 .toList();
     }
 

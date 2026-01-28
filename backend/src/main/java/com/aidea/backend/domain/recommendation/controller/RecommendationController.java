@@ -1,7 +1,7 @@
 package com.aidea.backend.domain.recommendation.controller;
 
 import com.aidea.backend.domain.meeting.dto.response.MeetingSummaryResponse;
-import com.aidea.backend.domain.recommendation.dto.RecommendedMeetingResponse;
+import com.aidea.backend.domain.recommendation.dto.RecommendedMeetingCardResponse;
 import com.aidea.backend.domain.recommendation.service.RecommendationService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -46,12 +46,12 @@ public class RecommendationController {
     // 운영에서는 쓰지 않을 거면 나중에 제거해도 됨.
     @Operation(summary = "추천 모임 조회(테스트)", description = "nickname 기반 추천(테스트/데모용)")
     @GetMapping("/meetings/by-nickname")
-    public ResponseEntity<List<RecommendedMeetingResponse>> recommendMeetingsByNickname(
+    public ResponseEntity<List<RecommendedMeetingCardResponse>> recommendMeetingsByNickname(
             @RequestParam String nickname,
             @RequestParam(defaultValue = "10") int topK,
             @RequestParam(defaultValue = "10") int limit
     ) {
-        List<RecommendedMeetingResponse> result =
+        List<RecommendedMeetingCardResponse> result =
                 recommendationService.recommendMeetingsByNickname(nickname, topK, limit);
         return ResponseEntity.ok(result);
     }
