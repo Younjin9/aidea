@@ -15,11 +15,13 @@ import com.aidea.backend.domain.meeting.repository.MeetingRepository;
 import com.aidea.backend.domain.meeting.repository.MeetingLikeRepository;
 import com.aidea.backend.domain.user.entity.User;
 import com.aidea.backend.domain.user.repository.UserRepository;
+import com.aidea.backend.global.infra.s3.S3Service;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -38,6 +40,7 @@ public class MeetingService {
     private final MeetingMemberRepository meetingMemberRepository;
     private final UserRepository userRepository;
     private final MeetingLikeRepository meetingLikeRepository;
+    private final S3Service s3Service;
 
     /**
      * 모임 생성
@@ -443,5 +446,12 @@ public class MeetingService {
     @Transactional(readOnly = true)
     public long getLikeCount(Long meetingId) {
         return meetingLikeRepository.countByMeeting_Id(meetingId);
+    }
+
+    /**
+     * 모임 이미지 업로드
+     */
+    public String uploadMeetingImage(MultipartFile image) {
+        return s3Service.uploadFile(image, "meeting-images");
     }
 }

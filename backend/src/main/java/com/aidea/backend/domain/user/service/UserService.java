@@ -12,6 +12,7 @@ import com.aidea.backend.domain.meeting.dto.response.MeetingResponse;
 import com.aidea.backend.domain.meeting.dto.response.CreatorDto;
 import com.aidea.backend.domain.user.entity.UserInterest;
 import com.aidea.backend.domain.interest.repository.InterestRepository;
+import com.aidea.backend.global.infra.s3.S3Service;
 import org.springframework.web.multipart.MultipartFile;
 import com.aidea.backend.global.secret.jwt.JwtTokenProvider;
 import com.aidea.backend.global.secret.jwt.RefreshToken;
@@ -37,6 +38,7 @@ public class UserService {
         private final MeetingRepository meetingRepository;
         private final UserInterestRepository userInterestRepository;
         private final InterestRepository interestRepository;
+        private final S3Service s3Service;
 
         @Transactional
         public UserResponse joinUser(UserJoinDto dto) {
@@ -203,9 +205,8 @@ public class UserService {
                 User user = userRepository.findByEmail(email)
                                 .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
 
-                // TODO: 실제 파일 업로드 로직 필요 (S3 등)
-                // 임시로 파일 이름으로 설정
-                String imageUrl = "https://example.com/images/" + image.getOriginalFilename();
+                // S3에 이미지 업로드
+                String imageUrl = s3Service.uploadFile(image, "profile-images");
 
                 user.setProfileImage(imageUrl);
                 userRepository.save(user);

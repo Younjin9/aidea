@@ -58,6 +58,7 @@ export interface CreateMeetingRequest {
   isPublic: boolean;
   image?: File;
   meetingDate: string; // Backend requires meetingDate
+  imageUrl?: string;
 }
 
 export interface UpdateMeetingRequest {
