@@ -92,6 +92,11 @@ const KakaoMapModal: React.FC<KakaoMapModalProps> = ({ isOpen, onClose, onSelect
     if (!mapContainerRef.current) return;
 
     const kakao = window.kakao;
+    if (!kakao || !kakao.maps) {
+      console.error('Kakao Maps API is not loaded');
+      return;
+    }
+
     kakao.maps.load(() => {
       const map = new kakao.maps.Map(mapContainerRef.current as HTMLElement, {
         center: currentLocation

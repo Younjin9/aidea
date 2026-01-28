@@ -13,9 +13,12 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.HttpStatusEntryPoint;
+import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
@@ -47,12 +50,15 @@ public class SecurityConfig {
                                 "https://aimo.ai.kr", "https://www.aimo.ai.kr",
                                 "https://d125n74xsjeyc3.cloudfront.net"));
                 configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
-                configuration.setAllowedHeaders(Arrays.asList("*"));
+                configuration.setAllowedHeaders(Arrays.asList(
+                                "Origin", "Content-Type", "Accept", "Authorization",
+                                "X-Requested-With", "X-Auth-Token", "Access-Control-Request-Method",
+                                "Access-Control-Request-Headers"));
                 configuration.setAllowCredentials(true);
                 configuration.setMaxAge(3600L);
 
                 UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-                source.registerCorsConfiguration("/api/**", configuration);
+                source.registerCorsConfiguration("/**", configuration);
                 return source;
         }
 
@@ -111,6 +117,11 @@ public class SecurityConfig {
                                                 .userInfoEndpoint(userInfo -> userInfo
                                                                 .userService(customOAuth2UserService))
                                                 .successHandler(oAuth2SuccessHandler))
+                                // ✅ 인증되지 않은 API 요청 시 카카오로 리다이렉트하지 않고 401 반환
+                                .exceptionHandling(e -> e
+                                                .defaultAuthenticationEntryPointFor(
+                                                                new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED),
+                                                                new AntPathRequestMatcher("/api/**")))
                                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
                 return http.build();
