@@ -48,4 +48,15 @@ public enum Region {
     public String getFullName() {
         return city + " " + district;
     }
+
+    public static Region findByFullName(String fullName) {
+        for (Region region : values()) {
+            if (region.getFullName().equals(fullName) || fullName.contains(region.district)) {
+                return region;
+            }
+        }
+        // Default or exception?
+        // Fallback: try to match just district
+        return SEOUL_GANGNAM; // Temporary Default or throw
+    }
 }

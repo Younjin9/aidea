@@ -44,55 +44,65 @@ public class UserService {
         public UserResponse joinUser(UserJoinDto dto) {
                 log.info("회원가입 시도: email={}", dto.getEmail());
 
-                if (userRepository.existsByEmail(dto.getEmail())) {
-                        throw new RuntimeException("이미 존재하는 이메일입니다.");
+                try {
+                        if (userRepository.existsByEmail(dto.getEmail())) {
+                                throw new RuntimeException("이미 존재하는 이메일입니다.");
+                        }
+
+                        User user = User.builder()
+                                        .email(dto.getEmail())
+                                        .password(passwordEncoder.encode(dto.getPassword()))
+                                        .nickname(dto.getNickname())
+                                        .bio(dto.getBio())
+                                        .phoneNumber(dto.getPhoneNumber())
+                                        .birthDate(dto.getBirthDate())
+                                        .gender(dto.getGender())
+                                        .profileImage(dto.getProfileImage())
+                                        .location(dto.getLocation())
+                                        .latitude(dto.getLatitude())
+                                        .longitude(dto.getLongitude())
+                                        .build();
+
+                        User savedUser = userRepository.save(user);
+                        log.info("회원가입 완료: userId={}", savedUser.getUserId());
+
+                        return convertToUserResponse(savedUser);
+                } catch (Exception e) {
+                        log.error("회원가입 중 오류 발생: email={}, error={}", dto.getEmail(), e.getMessage(), e);
+                        throw e;
                 }
-
-                User user = User.builder()
-                                .email(dto.getEmail())
-                                .password(passwordEncoder.encode(dto.getPassword()))
-                                .nickname(dto.getNickname())
-                                .bio(dto.getBio())
-                                .phoneNumber(dto.getPhoneNumber())
-                                .birthDate(dto.getBirthDate())
-                                .gender(dto.getGender())
-                                .profileImage(dto.getProfileImage())
-                                .location(dto.getLocation())
-                                .latitude(dto.getLatitude())
-                                .longitude(dto.getLongitude())
-                                .build();
-
-                User savedUser = userRepository.save(user);
-                log.info("회원가입 완료: userId={}", savedUser.getUserId());
-
-                return convertToUserResponse(savedUser);
         }
 
         @Transactional(readOnly = true)
         public LoginResponse loginUser(UserLoginDto dto) {
                 log.info("로그인 시도: email={}", dto.getEmail());
 
-                User user = userRepository.findByEmail(dto.getEmail())
-                                .orElseThrow(() -> new RuntimeException("이메일이 일치하지 않습니다."));
+                try {
+                        User user = userRepository.findByEmail(dto.getEmail())
+                                        .orElseThrow(() -> new RuntimeException("이메일이 일치하지 않습니다."));
 
-                if (!passwordEncoder.matches(dto.getPassword(), user.getPassword())) {
-                        throw new RuntimeException("비밀번호가 일치하지 않습니다.");
+                        if (!passwordEncoder.matches(dto.getPassword(), user.getPassword())) {
+                                throw new RuntimeException("비밀번호가 일치하지 않습니다.");
+                        }
+
+                        String accessToken = jwtTokenProvider.createAccessToken(user.getEmail());
+                        String refreshToken = jwtTokenProvider.createRefreshToken(user.getEmail());
+
+                        refreshTokenRepository.deleteByEmail(user.getEmail());
+                        RefreshToken refreshTokenEntity = RefreshToken.builder()
+                                        .token(refreshToken)
+                                        .email(user.getEmail())
+                                        .userId(user.getUserId())
+                                        .build();
+                        refreshTokenRepository.save(refreshTokenEntity);
+
+                        UserResponse userResponse = convertToUserResponse(user);
+                        log.info("로그인 성공: email={}", dto.getEmail());
+                        return new LoginResponse(accessToken, refreshToken, userResponse);
+                } catch (Exception e) {
+                        log.error("로그인 중 오류 발생: email={}, error={}", dto.getEmail(), e.getMessage(), e);
+                        throw e;
                 }
-
-                String accessToken = jwtTokenProvider.createAccessToken(user.getEmail());
-                String refreshToken = jwtTokenProvider.createRefreshToken(user.getEmail());
-
-                refreshTokenRepository.deleteByEmail(user.getEmail());
-                RefreshToken refreshTokenEntity = RefreshToken.builder()
-                                .token(refreshToken)
-                                .email(user.getEmail())
-                                .userId(user.getUserId())
-                                .build();
-                refreshTokenRepository.save(refreshTokenEntity);
-
-                UserResponse userResponse = convertToUserResponse(user);
-                log.info("로그인 성공: email={}", dto.getEmail());
-                return new LoginResponse(accessToken, refreshToken, userResponse);
         }
 
         @Transactional
@@ -245,12 +255,15 @@ public class UserService {
                                 .map(meetingMember -> {
                                         var meeting = meetingMember.getMeeting();
                                         return MeetingResponse.builder()
-                                                        .meetingId(meeting.getId())
+                                                        .groupId(meeting.getId()) // meetingId -> groupId
                                                         .title(meeting.getTitle())
                                                         .description(meeting.getDescription())
                                                         .imageUrl(meeting.getImageUrl())
-                                                        .category(meeting.getCategory())
-                                                        .categoryDisplayName(meeting.getCategory().getDisplayName())
+                                                        .interestCategoryId(meeting.getCategory().name()) // category ->
+                                                                                                          // interestCategoryId
+                                                        .interestCategoryName(meeting.getCategory().getDisplayName()) // categoryDisplayName
+                                                                                                                      // ->
+                                                                                                                      // interestCategoryName
                                                         .region(meeting.getRegion())
                                                         .regionFullName(meeting.getRegion().getFullName())
                                                         .location(meeting.getLocation())
@@ -261,7 +274,8 @@ public class UserService {
                                                         .currentMembers(meeting.getCurrentMembers())
                                                         .meetingDate(meeting.getMeetingDate())
                                                         .status(meeting.getStatus())
-                                                        .isApprovalRequired(meeting.getIsApprovalRequired())
+                                                        .isPublic(!meeting.getIsApprovalRequired()) // isApprovalRequired
+                                                                                                    // -> isPublic
                                                         .creator(CreatorDto.builder()
                                                                         .userId(meeting.getCreator().getUserId())
                                                                         .nickname(meeting.getCreator().getNickname())
@@ -284,12 +298,15 @@ public class UserService {
 
                 return meetingRepository.findByCreator_UserId(user.getUserId()).stream()
                                 .map(meeting -> MeetingResponse.builder()
-                                                .meetingId(meeting.getId())
+                                                .groupId(meeting.getId()) // meetingId -> groupId
                                                 .title(meeting.getTitle())
                                                 .description(meeting.getDescription())
                                                 .imageUrl(meeting.getImageUrl())
-                                                .category(meeting.getCategory())
-                                                .categoryDisplayName(meeting.getCategory().getDisplayName())
+                                                .interestCategoryId(meeting.getCategory().name()) // category ->
+                                                                                                  // interestCategoryId
+                                                .interestCategoryName(meeting.getCategory().getDisplayName()) // categoryDisplayName
+                                                                                                              // ->
+                                                                                                              // interestCategoryName
                                                 .region(meeting.getRegion())
                                                 .regionFullName(meeting.getRegion().getFullName())
                                                 .location(meeting.getLocation())
@@ -300,7 +317,8 @@ public class UserService {
                                                 .currentMembers(meeting.getCurrentMembers())
                                                 .meetingDate(meeting.getMeetingDate())
                                                 .status(meeting.getStatus())
-                                                .isApprovalRequired(meeting.getIsApprovalRequired())
+                                                .isPublic(!meeting.getIsApprovalRequired()) // isApprovalRequired ->
+                                                                                            // isPublic
                                                 .creator(CreatorDto.builder()
                                                                 .userId(meeting.getCreator().getUserId())
                                                                 .nickname(meeting.getCreator().getNickname())

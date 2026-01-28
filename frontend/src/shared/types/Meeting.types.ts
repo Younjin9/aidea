@@ -13,7 +13,7 @@ export type MeetingStatus = 'RECRUITING' | 'CONFIRMED' | 'COMPLETED' | 'CANCELLE
 // ============================================
 
 export interface Meeting {
-  groupId: string;
+  groupId: number; // Changed to number to match backend Long, and name meetingId->groupId
   title: string;
   description: string;
   imageUrl?: string;
@@ -21,11 +21,14 @@ export interface Meeting {
   interestCategoryName?: string;
   memberCount: number;
   maxMembers: number;
-  location: Location;
+  location: string; // Backend 'location' string (address)
+  latitude: number;
+  longitude: number;
+  region: string;
   distanceKm?: number;
   isPublic: boolean;
   rules?: string[];
-  ownerUserId: string;
+  ownerUserId: number; // Backend uses userId Long
   createdAt: string;
   updatedAt: string;
 }
@@ -37,76 +40,24 @@ export interface MeetingDetail extends Meeting {
   myStatus?: 'PENDING' | 'APPROVED';
 }
 
-// ============================================
-// MapMeeting - 지도 위치 기반 검색용 (Moved to Map Types below)
-// ============================================
-
-export interface MapMeeting {
-  groupId: string;
-  title: string;
-  imageUrl?: string;
-  memberCount: number;
-  maxMembers: number;
-  location: Location;
-  distanceKm?: number;
-  isPublic: boolean;
-  markerColor?: string;
-  clustered?: boolean;
-}
-
-export interface MeetingEvent {
-  eventId: string;
-  title: string;
-  description?: string;
-  scheduledAt: string;
-  location?: string;
-  mapUrl?: string;
-  cost?: string;
-  maxParticipants?: number;
-  participantCount: number;
-  imageUrl?: string;
-  participants?: Array<{
-    userId: string | number;
-    nickname: string;
-    profileImage?: string;
-    isHost?: boolean;
-  }>;
-}
-
-export interface MeetingTag {
-  tagId: string;
-  interestId: number;
-  interestName: string;
-}
-
-// ============================================
-// Request Types
-// ============================================
-
-export interface MeetingListParams {
-  page?: number;
-  size?: number;
-  interestCategoryId?: string;
-  keyword?: string;
-  latitude?: number;
-  longitude?: number;
-  radiusKm?: number;
-  sortBy?: 'distance' | 'recent' | 'popular';
-}
+// ... MapMeeting skipped ...
 
 export interface CreateMeetingRequest {
   title: string;
   description: string;
   interestCategoryId: string;
   maxMembers: number;
-  location: {
-    latitude: number;
-    longitude: number;
-    region: string;
-  };
+  // Flattened location fields
+  region: string;
+  location: string; // Address string
+  latitude: number;
+  longitude: number;
+  locationDetail?: string; // Added
+
   rules?: string[];
   isPublic: boolean;
   image?: File;
+  meetingDate: string; // Backend requires meetingDate
   imageUrl?: string;
 }
 
@@ -161,5 +112,30 @@ export interface MeetingUI {
   ownerUserId?: string | number; // 모임 생성자 ID
   myStatus?: 'PENDING' | 'APPROVED'; // 내 가입 상태
   myRole?: 'HOST' | 'MEMBER'; // 내 역할
+}
+
+export interface MeetingListParams {
+  category?: string;
+  region?: string;
+  page?: number;
+  size?: number;
+  sort?: string;
+}
+
+export interface MeetingEvent {
+  eventId: number | string;
+  title: string;
+  date: string;
+  scheduledAt?: string;
+  location?: string;
+  description?: string;
+  attendees?: number;
+  participantCount?: number;
+  participants?: Member[];
+  maxParticipants?: number;
+  cost?: number;
+  imageUrl?: string;
+  mapUrl?: string;
+  isHost?: boolean;
 }
 
