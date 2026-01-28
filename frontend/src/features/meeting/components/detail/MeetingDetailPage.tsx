@@ -426,7 +426,6 @@ const MeetingDetailPage: React.FC = () => {
             />
           </>
         ) : (
-          // 채팅 탭
           <ChatRoomPage />
         )}
       </main>
@@ -439,20 +438,8 @@ const MeetingDetailPage: React.FC = () => {
           </Button>
         </div>
       )}
+    </div>
+  );
+};
 
-      {/* 프로필 등록/가입인사 모달 */}
-      {activeTab === 'home' ? (
-          <>
-        ) : (
-          <ChatRoomPage />
-        )}
-      </main>
-
-      {!isHost && !isMember && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 w-full max-w-[398px] px-4">
-          <Button variant="primary" size="md" fullWidth onClick={handleJoinClick} disabled={isJoining}>
-            {isJoining ? '가입 중...' : '참석하기'}
-          </Button>
-        </div>
-      )}
-
+export default MeetingDetailPage;
