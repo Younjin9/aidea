@@ -8,6 +8,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.util.List;
+
 public interface MeetingRepository extends JpaRepository<Meeting, Long> {
 
     /**
@@ -42,4 +44,9 @@ public interface MeetingRepository extends JpaRepository<Meeting, Long> {
             Region region,
             MeetingStatus status,
             Pageable pageable);
+
+    /**
+     * 특정 사용자가 개설한 모임 목록 조회
+     */
+    List<Meeting> findByCreator_UserId(Long userId);
 }
