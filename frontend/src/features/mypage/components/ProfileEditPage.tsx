@@ -14,15 +14,6 @@ const ProfileEditPage: React.FC = () => {
 
   const user = useMyPageStore((state) => state.user);
   const updateUser = useMyPageStore((state) => state.updateUser);
-  const initializeMockData = useMyPageStore((state) => state.initializeMockData);
-  const isInitialized = useMyPageStore((state) => state.isInitialized);
-
-  // Mock 데이터 초기화
-  useEffect(() => {
-    if (!isInitialized) {
-      initializeMockData();
-    }
-  }, [isInitialized, initializeMockData]);
 
   const [name, setName] = useState('');
   const [bio, setBio] = useState('');
