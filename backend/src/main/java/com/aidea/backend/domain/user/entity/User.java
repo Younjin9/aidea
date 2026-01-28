@@ -66,6 +66,18 @@ public class User {
     @Column(name = "location_updated_at")
     private LocalDateTime locationUpdatedAt;
 
+    @Column(name = "chat_enabled")
+    @Builder.Default
+    private Boolean chatEnabled = true;
+
+    @Column(name = "event_enabled")
+    @Builder.Default
+    private Boolean eventEnabled = true;
+
+    @Column(name = "marketing_enabled")
+    @Builder.Default
+    private Boolean marketingEnabled = false;
+
     @CreationTimestamp
     @Column(name = "created_at")
     private LocalDateTime createdAt;

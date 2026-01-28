@@ -13,7 +13,7 @@ import InterestPage from '@/features/onboarding/components/InterestPage';
 import ShortsPage from '@/features/recommendation/components/ShortsPage';
 import MeetingListPage from '@/features/meeting/components/MeetingListPage';
 import MeetingCreatePage from '@/features/meeting/components/MeetingCreatePage';
-import MeetingDetailPage from '@/features/meeting/components/MeetingDetailPage';
+import MeetingDetailPage from '@/features/meeting/components/detail';
 import MeetingSearchPage from '@/features/meeting/components/MeetingSearchPage';
 import MemberManagePage from '@/features/meeting/components/MemberManagePage';
 import EventCreatePage from '@/features/meeting/components/EventCreatePage';
@@ -71,6 +71,7 @@ const AppRoutes: React.FC = () => {
         <Route element={<PrivateRoute />}>
           <Route element={<MainLayout />}>
             <Route path="/shorts" element={<ShortsPage />} />
+            <Route path="/short" element={<Navigate to="/shorts" replace />} />
             <Route path="/meetings" element={<MeetingListPage />} />
             <Route path="/chat/:meetingId" element={<ChatRoomPage />} />
             <Route path="/mypage" element={<MyPageView />} />
@@ -94,6 +95,9 @@ const AppRoutes: React.FC = () => {
           
         {/* Default Redirect */}
         <Route path="/" element={<Navigate to="/login" replace />} />
+        
+        {/* 404 - Catch all */}
+        <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     </>
   );

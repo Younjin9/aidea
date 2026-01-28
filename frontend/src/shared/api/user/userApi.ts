@@ -22,51 +22,67 @@ import type { Meeting } from '@/shared/types/Meeting.types';
  * GET /api/users/me
  */
 export const getMyProfile = async (): Promise<ApiResponse<UserProfile>> => {
-  return apiClient.get('/users/me');
+  return apiClient.get('/api/users/me');
 };
 
 export const updateProfile = async (data: UpdateProfileRequest): Promise<ApiResponse<UserProfile>> => {
-  return apiClient.patch('/users/me', data);
+  return apiClient.patch('/api/users/me', data);
 };
 
 export const updateProfileImage = async (image: File): Promise<ApiResponse<UpdateProfileImageResponse>> => {
   const formData = new FormData();
   formData.append('image', image);
 
-  return apiClient.post('/users/me/profile-image', formData, {
+  return apiClient.post('/api/users/me/profile-image', formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
   });
 };
 
 export const updateLocation = async (data: LocationUpdate): Promise<ApiResponse<{ updated: boolean; location: any }>> => {
-  return apiClient.put('/users/me/location', data);
+  return apiClient.put('/api/users/me/location', data);
 };
 
 export const getMyMeetings = async (status?: 'active' | 'all'): Promise<ApiResponse<Meeting[]>> => {
   const params = status ? `?status=${status}` : '';
-  return apiClient.get(`/users/me/groups${params}`);
+  return apiClient.get(`/api/users/me/groups${params}`);
 };
 
 export const getMyHostingMeetings = async (): Promise<ApiResponse<Meeting[]>> => {
-  return apiClient.get('/users/me/groups/hosting');
+  return apiClient.get('/api/users/me/groups/hosting');
 };
 
 export const getMyStats = async (): Promise<ApiResponse<UserStats>> => {
-  return apiClient.get('/users/me/stats');
+  return apiClient.get('/api/users/me/stats');
 };
 
 export const getNotificationSettings = async (): Promise<ApiResponse<NotificationSettings>> => {
-  return apiClient.get('/users/me/notifications/settings');
+  return apiClient.get('/api/users/me/notifications/settings');
 };
 
 export const updateNotificationSettings = async (
   data: UpdateNotificationSettingsRequest
 ): Promise<ApiResponse<NotificationSettings>> => {
-  return apiClient.patch('/users/me/notifications/settings', data);
+  return apiClient.patch('/api/users/me/notifications/settings', data);
 };
 
 export const deleteAccount = async (data?: DeleteAccountRequest): Promise<ApiResponse<void>> => {
-  return apiClient.delete('/users/me', { data });
+  return apiClient.delete('/api/users/me', { data });
+};
+
+/**
+ * 관심사 카테고리 목록 조회
+ * GET /api/interests/categories
+ */
+export const getInterestCategories = async (): Promise<ApiResponse<Array<{ id: string; name: string }>>> => {
+  return apiClient.get('/api/interests/categories');
+};
+
+/**
+ * 사용자 관심사 업데이트
+ * PUT /api/users/interests
+ */
+export const updateUserInterests = async (interests: string[]): Promise<ApiResponse<void>> => {
+  return apiClient.put('/api/users/interests', { interests });
 };
 
 const userApi = {
@@ -80,6 +96,8 @@ const userApi = {
   getNotificationSettings,
   updateNotificationSettings,
   deleteAccount,
+  getInterestCategories,
+  updateUserInterests,
 };
 
 export default userApi;

@@ -11,4 +11,6 @@ public interface UserInterestRepository extends JpaRepository<UserInterest, Long
   void deleteAllByUser(User user);
 
   List<UserInterest> findAllByUser(User user);
+
+  void deleteByUser_UserId(Long userId);
 }

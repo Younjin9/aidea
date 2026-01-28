@@ -30,4 +30,11 @@ public class InterestDto {
     private String category;
     private List<InterestResponse> interests;
   }
+
+  @Getter
+  @Builder
+  public static class CategoryResponse {
+    private String id;
+    private String name;
+  }
 }

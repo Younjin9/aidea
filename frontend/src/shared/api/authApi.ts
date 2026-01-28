@@ -8,7 +8,7 @@ import type {
   LogoutResponse,
   RefreshResponse,
   MeResponse,
-  // NicknameCheckRequest,
+  NicknameCheckResult,
   BaseResponse
 } from '@/shared/types/auth.types';
 
@@ -23,49 +23,60 @@ export const authApi = {
 
   // 1. 회원가입
   join: async (data: SignUpRequest): Promise<JoinResponse> => {
-    const response = await apiClient.post<JoinResponse>('/users/join', data);
+    // API Spec: POST /api/auth/signup
+    const response = await apiClient.post<JoinResponse>('/api/users/join', data);
     return response as unknown as JoinResponse;
   },
 
   // 2. 로그인
   login: async (data: LoginRequest): Promise<AuthResponse> => {
-    const response = await apiClient.post<AuthResponse>('/users/login', data);
+    // API Spec: POST /api/auth/login
+    const response = await apiClient.post<AuthResponse>('/api/users/login', data);
     return response as unknown as AuthResponse;
   },
 
   // 3. 로그아웃
   logout: async (): Promise<LogoutResponse> => {
-    const response = await apiClient.post<LogoutResponse>('/users/logout');
+    const response = await apiClient.post<LogoutResponse>('/api/users/logout');
     return response as unknown as LogoutResponse;
   },
 
   // 4. 토큰 재발급
   refreshToken: async (data: RefreshTokenRequest): Promise<RefreshResponse> => {
-    const response = await apiClient.post<RefreshResponse>('/users/refresh', data);
+    const response = await apiClient.post<RefreshResponse>('/api/users/refresh', data);
     return response as unknown as RefreshResponse;
   },
 
   // 5. 내 정보 조회
   getMe: async (): Promise<MeResponse> => {
-    const response = await apiClient.get<MeResponse>('/users/me');
+    // API Spec: GET /api/users/me
+    const response = await apiClient.get<MeResponse>('/api/users/me');
     return response as unknown as MeResponse;
   },
 
-  // 6. 닉네임 중복 확인
-  checkNickname: async (nickname: string): Promise<BaseResponse<boolean>> => {
-    const response = await apiClient.post<BaseResponse<boolean>>('/users/nickname-check', { nickname });
-    return response as unknown as BaseResponse<boolean>;
+  // 6. 위치 업데이트
+  updateLocation: async (data: { lat: number; lng: number; region: string }): Promise<BaseResponse<null>> => {
+      // API Spec: PUT /api/users/me/location
+      const response = await apiClient.put<BaseResponse<null>>('/api/users/me/location', data);
+      return response as unknown as BaseResponse<null>;
+  },
+
+  // 7. 닉네임 중복 확인
+  checkNickname: async (nickname: string): Promise<BaseResponse<NicknameCheckResult>> => {
+    // API Spec: POST /api/users/nickname-check
+    const response = await apiClient.post<BaseResponse<NicknameCheckResult>>('/api/users/nickname-check', { nickname });
+    return response as unknown as BaseResponse<NicknameCheckResult>;
   },
 
   // 7. 내 정보 수정 (PATCH)
   updateMe: async (data: any): Promise<MeResponse> => {
-    const response = await apiClient.patch<MeResponse>('/users/me', data);
+    const response = await apiClient.patch<MeResponse>('/api/users/me', data);
     return response as unknown as MeResponse;
   },
 
   // 8. 관심사 설정 (PUT)
   updateInterests: async (interests: string[]): Promise<BaseResponse<null>> => {
-    const response = await apiClient.put<BaseResponse<null>>('/users/interests', { interests });
+    const response = await apiClient.put<BaseResponse<null>>('/api/users/interests', { interests });
     return response as unknown as BaseResponse<null>;
   }
 };
