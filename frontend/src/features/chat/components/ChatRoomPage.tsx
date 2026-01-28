@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation } from '@tanstack/react-query';
-import { Send, Users, ChevronLeft } from 'lucide-react';
+import { Send, ChevronLeft } from 'lucide-react';
 import { Client } from '@stomp/stompjs';
 import { chatApi } from '@/shared/api/chatAPI';
 import { useAuthStore } from '@/features/auth/store/authStore';
@@ -14,7 +14,7 @@ const ChatRoomPage: React.FC = () => {
     const user = useAuthStore((state) => state.user);
 
     // 테스트를 위한 임시 유저 (로그인 안 된 경우)
-    const guestId = useMemo(() => `guest-${Math.floor(Math.random() * 10000)}`, []);
+    const [guestId] = useState(() => `guest-${Math.floor(Math.random() * 10000)}`);
     const myId = user?.userId ? String(user.userId) : guestId;
     const myNickname = user?.nickname || '게스트';
     const myProfileImage = user?.profileImage;
@@ -26,6 +26,13 @@ const ChatRoomPage: React.FC = () => {
 
     // 데모용 Fallback: meetingId가 없으면 1로 설정
     const parsedMeetingId = meetingId ? Number(meetingId) : 1;
+
+    // 스크롤 함수
+    const scrollToBottom = () => {
+        setTimeout(() => {
+            messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        }, 100);
+    };
 
     // 시간 포맷팅 함수
     const formatTime = (dateString: string) => {
@@ -145,12 +152,6 @@ const ChatRoomPage: React.FC = () => {
         if (e.key === 'Enter' && !e.nativeEvent.isComposing) {
             handleSendMessage();
         }
-    };
-
-    const scrollToBottom = () => {
-        setTimeout(() => {
-            messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-        }, 100);
     };
 
     return (
