@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef, useMemo } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { Send, ChevronLeft } from 'lucide-react';
@@ -16,8 +16,6 @@ const ChatRoomPage: React.FC = () => {
     // 테스트를 위한 임시 유저 (로그인 안 된 경우)
     const [guestId] = useState(() => `guest-${Math.floor(Math.random() * 10000)}`);
     const myId = user?.userId ? String(user.userId) : guestId;
-    const myNickname = user?.nickname || '게스트';
-    const myProfileImage = user?.profileImage;
 
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [inputMessage, setInputMessage] = useState('');
@@ -26,13 +24,6 @@ const ChatRoomPage: React.FC = () => {
 
     // 데모용 Fallback: meetingId가 없으면 1로 설정
     const parsedMeetingId = meetingId ? Number(meetingId) : 1;
-
-    // 스크롤 함수
-    const scrollToBottom = () => {
-        setTimeout(() => {
-            messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-        }, 100);
-    };
 
     // 시간 포맷팅 함수
     const formatTime = (dateString: string) => {
@@ -51,9 +42,9 @@ const ChatRoomPage: React.FC = () => {
         queryFn: async () => {
             try {
                 const response = await chatApi.getMessages(parsedMeetingId);
-                // @ts-ignore
+                // @ts-expect-error
                 return response.result || response.data || [];
-            } catch (e) {
+            } catch {
                 // Fallback Dummy Data for UI Dev
                 return [
                     { messageId: '1', senderId: 101, senderName: '김철수', content: '같이 가요!', createdAt: '2023-10-25T10:00:00', senderProfileImage: undefined },
@@ -78,7 +69,7 @@ const ChatRoomPage: React.FC = () => {
                 markAsRead(parsedMeetingId);
             }
         }
-    }, [initialMessages, parsedMeetingId]);
+    }, [initialMessages, parsedMeetingId, markAsRead]);
 
     // 2. STOMP 연결
     useEffect(() => {
@@ -152,6 +143,12 @@ const ChatRoomPage: React.FC = () => {
         if (e.key === 'Enter' && !e.nativeEvent.isComposing) {
             handleSendMessage();
         }
+    };
+
+    const scrollToBottom = () => {
+        setTimeout(() => {
+            messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        }, 100);
     };
 
     return (
