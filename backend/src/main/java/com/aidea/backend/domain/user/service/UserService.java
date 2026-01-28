@@ -50,6 +50,7 @@ public class UserService {
                                 .email(dto.getEmail())
                                 .password(passwordEncoder.encode(dto.getPassword()))
                                 .nickname(dto.getNickname())
+                                .bio(dto.getBio())
                                 .phoneNumber(dto.getPhoneNumber())
                                 .birthDate(dto.getBirthDate())
                                 .gender(dto.getGender())
@@ -62,22 +63,7 @@ public class UserService {
                 User savedUser = userRepository.save(user);
                 log.info("회원가입 완료: userId={}", savedUser.getUserId());
 
-                return new UserResponse(
-                                String.valueOf(savedUser.getUserId()),
-                                savedUser.getEmail(),
-                                savedUser.getNickname(),
-                                savedUser.getPhoneNumber(),
-                                savedUser.getBirthDate(),
-                                savedUser.getGender(),
-                                savedUser.getProfileImage(),
-                                new UserResponse.Location(
-                                                savedUser.getLatitude(),
-                                                savedUser.getLongitude(),
-                                                savedUser.getLocation()),
-                                savedUser.getProvider().name(),
-                                java.util.Collections.emptyList(),
-                                savedUser.getCreatedAt(),
-                                savedUser.getUpdatedAt());
+                return convertToUserResponse(savedUser);
         }
 
         @Transactional(readOnly = true)
@@ -102,22 +88,7 @@ public class UserService {
                                 .build();
                 refreshTokenRepository.save(refreshTokenEntity);
 
-                UserResponse userResponse = new UserResponse(
-                                String.valueOf(user.getUserId()),
-                                user.getEmail(),
-                                user.getNickname(),
-                                user.getPhoneNumber(),
-                                user.getBirthDate(),
-                                user.getGender(),
-                                user.getProfileImage(),
-                                new UserResponse.Location(
-                                                user.getLatitude(),
-                                                user.getLongitude(),
-                                                user.getLocation()),
-                                user.getProvider().name(),
-                                java.util.Collections.emptyList(),
-                                user.getCreatedAt(),
-                                user.getUpdatedAt());
+                UserResponse userResponse = convertToUserResponse(user);
                 log.info("로그인 성공: email={}", dto.getEmail());
                 return new LoginResponse(accessToken, refreshToken, userResponse);
         }
@@ -152,40 +123,25 @@ public class UserService {
                 User user = userRepository.findByEmail(email)
                                 .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
 
-                UserResponse userResponse = new UserResponse(
-                                String.valueOf(user.getUserId()),
-                                user.getEmail(),
-                                user.getNickname(),
-                                user.getPhoneNumber(),
-                                user.getBirthDate(),
-                                user.getGender(),
-                                user.getProfileImage(),
-                                new UserResponse.Location(
-                                                user.getLatitude(),
-                                                user.getLongitude(),
-                                                user.getLocation()),
-                                user.getProvider().name(),
-                                java.util.Collections.emptyList(),
-                                user.getCreatedAt(),
-                                user.getUpdatedAt());
+                UserResponse userResponse = convertToUserResponse(user);
 
                 return new TokenRefreshResponse(newAccessToken, newRefreshToken, 1800, userResponse);
         }
 
-    @Transactional(readOnly = true)
-    public NicknameCheckResponse checkNickname(String nickname) {
-        log.info("닉네임 중복 확인: nickname={}", nickname);
+        @Transactional(readOnly = true)
+        public NicknameCheckResponse checkNickname(String nickname) {
+                log.info("닉네임 중복 확인: nickname={}", nickname);
 
-        boolean isDuplicate = userRepository.existsByNickname(nickname);
+                boolean isDuplicate = userRepository.existsByNickname(nickname);
 
-        if (isDuplicate) {
-            log.info("중복된 닉네임: nickname={}", nickname);
-            return new NicknameCheckResponse(false, "이미 사용 중인 닉네임입니다.");
+                if (isDuplicate) {
+                        log.info("중복된 닉네임: nickname={}", nickname);
+                        return new NicknameCheckResponse(false, "이미 사용 중인 닉네임입니다.");
+                }
+
+                log.info("사용 가능한 닉네임: nickname={}", nickname);
+                return new NicknameCheckResponse(true, "사용 가능한 닉네임입니다.");
         }
-
-        log.info("사용 가능한 닉네임: nickname={}", nickname);
-        return new NicknameCheckResponse(true, "사용 가능한 닉네임입니다.");
-    }
 
         @Transactional
         public void logout(String email) {
@@ -203,22 +159,7 @@ public class UserService {
                 User user = userRepository.findByEmail(email)
                                 .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
 
-                return new UserResponse(
-                                String.valueOf(user.getUserId()),
-                                user.getEmail(),
-                                user.getNickname(),
-                                user.getPhoneNumber(),
-                                user.getBirthDate(),
-                                user.getGender(),
-                                user.getProfileImage(),
-                                new UserResponse.Location(
-                                                user.getLatitude(),
-                                                user.getLongitude(),
-                                                user.getLocation()),
-                                user.getProvider().name(),
-                                java.util.Collections.emptyList(),
-                                user.getCreatedAt(),
-                                user.getUpdatedAt());
+                return convertToUserResponse(user);
         }
 
         @Transactional
@@ -230,32 +171,19 @@ public class UserService {
 
                 user.update(
                                 dto.getNickname() != null ? dto.getNickname() : user.getNickname(),
+                                dto.getBio() != null ? dto.getBio() : user.getBio(),
                                 dto.getProfileImage() != null ? dto.getProfileImage() : user.getProfileImage(),
                                 dto.getPhoneNumber() != null ? dto.getPhoneNumber() : user.getPhoneNumber(),
                                 dto.getGender() != null ? dto.getGender() : user.getGender(),
                                 dto.getLocation() != null ? dto.getLocation() : user.getLocation(),
                                 dto.getLatitude() != null ? dto.getLatitude() : user.getLatitude(),
-                                dto.getLongitude() != null ? dto.getLongitude() : user.getLongitude()
-                );
+                                dto.getLongitude() != null ? dto.getLongitude() : user.getLongitude());
+
+                log.info("user={}", user);
 
                 User updatedUser = userRepository.save(user);
 
-                return new UserResponse(
-                                String.valueOf(updatedUser.getUserId()),
-                                updatedUser.getEmail(),
-                                updatedUser.getNickname(),
-                                updatedUser.getPhoneNumber(),
-                                updatedUser.getBirthDate(),
-                                updatedUser.getGender(),
-                                updatedUser.getProfileImage(),
-                                new UserResponse.Location(
-                                                updatedUser.getLatitude(),
-                                                updatedUser.getLongitude(),
-                                                updatedUser.getLocation()),
-                                updatedUser.getProvider().name(),
-                                java.util.Collections.emptyList(),
-                                updatedUser.getCreatedAt(),
-                                updatedUser.getUpdatedAt());
+                return convertToUserResponse(updatedUser);
         }
 
         @Transactional
@@ -292,8 +220,7 @@ public class UserService {
                 UserResponse.Location location = new UserResponse.Location(
                                 dto.getLatitude(),
                                 dto.getLongitude(),
-                                dto.getRegion()
-                );
+                                dto.getRegion());
 
                 return new LocationUpdateResponse(true, location);
         }
@@ -337,7 +264,8 @@ public class UserService {
                                                         .creator(CreatorDto.builder()
                                                                         .userId(meeting.getCreator().getUserId())
                                                                         .nickname(meeting.getCreator().getNickname())
-                                                                        .profileImage(meeting.getCreator().getProfileImage())
+                                                                        .profileImage(meeting.getCreator()
+                                                                                        .getProfileImage())
                                                                         .build())
                                                         .createdAt(meeting.getCreatedAt())
                                                         .updatedAt(meeting.getUpdatedAt())
@@ -431,16 +359,19 @@ public class UserService {
         }
 
         @Transactional
-        public NotificationSettingsResponse updateNotificationSettings(String email, 
+        public NotificationSettingsResponse updateNotificationSettings(String email,
                         NotificationSettingsRequest request) {
                 log.info("알림 설정 수정: email={}", email);
 
                 User user = userRepository.findByEmail(email)
                                 .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
 
-                user.setChatEnabled(request.getChatEnabled() != null ? request.getChatEnabled() : user.getChatEnabled());
-                user.setEventEnabled(request.getEventEnabled() != null ? request.getEventEnabled() : user.getEventEnabled());
-                user.setMarketingEnabled(request.getMarketingEnabled() != null ? request.getMarketingEnabled() : user.getMarketingEnabled());
+                user.setChatEnabled(
+                                request.getChatEnabled() != null ? request.getChatEnabled() : user.getChatEnabled());
+                user.setEventEnabled(
+                                request.getEventEnabled() != null ? request.getEventEnabled() : user.getEventEnabled());
+                user.setMarketingEnabled(request.getMarketingEnabled() != null ? request.getMarketingEnabled()
+                                : user.getMarketingEnabled());
 
                 userRepository.save(user);
 
@@ -459,9 +390,9 @@ public class UserService {
                                 .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
 
                 // TODO: 관련 데이터 처리 (모임 탈퇴, 채팅방 등)
-                
+
                 userRepository.delete(user);
-                
+
                 log.info("회원 탈퇴 완료: email={}", email);
         }
 
@@ -474,6 +405,7 @@ public class UserService {
 
                 // 기존 관심사 삭제
                 userInterestRepository.deleteByUser_UserId(user.getUserId());
+                userInterestRepository.flush();
 
                 // 새로운 관심사 추가
                 if (interests != null && !interests.isEmpty()) {
@@ -496,5 +428,31 @@ public class UserService {
                 }
 
                 log.info("사용자 관심사 업데이트 완료: email={}", email);
+        }
+
+        private UserResponse convertToUserResponse(User user) {
+                return new UserResponse(
+                                String.valueOf(user.getUserId()),
+                                user.getEmail(),
+                                user.getNickname(),
+                                user.getBio(),
+                                user.getPhoneNumber(),
+                                user.getBirthDate(),
+                                user.getGender(),
+                                user.getProfileImage(),
+                                new UserResponse.Location(
+                                                user.getLatitude(),
+                                                user.getLongitude(),
+                                                user.getLocation()),
+                                user.getProvider().name(),
+                                getUserInterests(user),
+                                user.getCreatedAt(),
+                                user.getUpdatedAt());
+        }
+
+        private List<String> getUserInterests(User user) {
+                return userInterestRepository.findAllByUser(user).stream()
+                                .map(ui -> ui.getInterest().getInterestName())
+                                .toList();
         }
 }

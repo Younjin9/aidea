@@ -15,6 +15,7 @@ public class UserResponse {
     private String userId; // Frontend expects string
     private String email;
     private String nickname;
+    private String bio;
     private String phoneNumber;
     private LocalDate birthDate;
     private String gender;
@@ -29,8 +30,8 @@ public class UserResponse {
     @NoArgsConstructor
     @AllArgsConstructor
     public static class Location {
-        private Double lat;
-        private Double lng;
+        private Double latitude;
+        private Double longitude;
         private String region;
     }
 }

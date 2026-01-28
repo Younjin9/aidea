@@ -88,8 +88,8 @@ export interface MeetingListParams {
   size?: number;
   interestCategoryId?: string;
   keyword?: string;
-  lat?: number;
-  lng?: number;
+  latitude?: number;
+  longitude?: number;
   radiusKm?: number;
   sortBy?: 'distance' | 'recent' | 'popular';
 }
@@ -100,8 +100,8 @@ export interface CreateMeetingRequest {
   interestCategoryId: string;
   maxMembers: number;
   location: {
-    lat: number;
-    lng: number;
+    latitude: number;
+    longitude: number;
     region: string;
   };
   rules?: string[];
