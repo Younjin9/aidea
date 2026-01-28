@@ -50,6 +50,7 @@ public class UserService {
                                 .email(dto.getEmail())
                                 .password(passwordEncoder.encode(dto.getPassword()))
                                 .nickname(dto.getNickname())
+                                .bio(dto.getBio())
                                 .phoneNumber(dto.getPhoneNumber())
                                 .birthDate(dto.getBirthDate())
                                 .gender(dto.getGender())
@@ -66,6 +67,7 @@ public class UserService {
                                 String.valueOf(savedUser.getUserId()),
                                 savedUser.getEmail(),
                                 savedUser.getNickname(),
+                                savedUser.getBio(),
                                 savedUser.getPhoneNumber(),
                                 savedUser.getBirthDate(),
                                 savedUser.getGender(),
@@ -106,6 +108,7 @@ public class UserService {
                                 String.valueOf(user.getUserId()),
                                 user.getEmail(),
                                 user.getNickname(),
+                                user.getBio(),
                                 user.getPhoneNumber(),
                                 user.getBirthDate(),
                                 user.getGender(),
@@ -156,6 +159,7 @@ public class UserService {
                                 String.valueOf(user.getUserId()),
                                 user.getEmail(),
                                 user.getNickname(),
+                                user.getBio(),
                                 user.getPhoneNumber(),
                                 user.getBirthDate(),
                                 user.getGender(),
@@ -172,20 +176,20 @@ public class UserService {
                 return new TokenRefreshResponse(newAccessToken, newRefreshToken, 1800, userResponse);
         }
 
-    @Transactional(readOnly = true)
-    public NicknameCheckResponse checkNickname(String nickname) {
-        log.info("닉네임 중복 확인: nickname={}", nickname);
+        @Transactional(readOnly = true)
+        public NicknameCheckResponse checkNickname(String nickname) {
+                log.info("닉네임 중복 확인: nickname={}", nickname);
 
-        boolean isDuplicate = userRepository.existsByNickname(nickname);
+                boolean isDuplicate = userRepository.existsByNickname(nickname);
 
-        if (isDuplicate) {
-            log.info("중복된 닉네임: nickname={}", nickname);
-            return new NicknameCheckResponse(false, "이미 사용 중인 닉네임입니다.");
+                if (isDuplicate) {
+                        log.info("중복된 닉네임: nickname={}", nickname);
+                        return new NicknameCheckResponse(false, "이미 사용 중인 닉네임입니다.");
+                }
+
+                log.info("사용 가능한 닉네임: nickname={}", nickname);
+                return new NicknameCheckResponse(true, "사용 가능한 닉네임입니다.");
         }
-
-        log.info("사용 가능한 닉네임: nickname={}", nickname);
-        return new NicknameCheckResponse(true, "사용 가능한 닉네임입니다.");
-    }
 
         @Transactional
         public void logout(String email) {
@@ -207,6 +211,7 @@ public class UserService {
                                 String.valueOf(user.getUserId()),
                                 user.getEmail(),
                                 user.getNickname(),
+                                user.getBio(),
                                 user.getPhoneNumber(),
                                 user.getBirthDate(),
                                 user.getGender(),
@@ -230,13 +235,15 @@ public class UserService {
 
                 user.update(
                                 dto.getNickname() != null ? dto.getNickname() : user.getNickname(),
+                                dto.getBio() != null ? dto.getBio() : user.getBio(),
                                 dto.getProfileImage() != null ? dto.getProfileImage() : user.getProfileImage(),
                                 dto.getPhoneNumber() != null ? dto.getPhoneNumber() : user.getPhoneNumber(),
                                 dto.getGender() != null ? dto.getGender() : user.getGender(),
                                 dto.getLocation() != null ? dto.getLocation() : user.getLocation(),
                                 dto.getLatitude() != null ? dto.getLatitude() : user.getLatitude(),
-                                dto.getLongitude() != null ? dto.getLongitude() : user.getLongitude()
-                );
+                                dto.getLongitude() != null ? dto.getLongitude() : user.getLongitude());
+
+                log.info("user={}", user);
 
                 User updatedUser = userRepository.save(user);
 
@@ -244,6 +251,7 @@ public class UserService {
                                 String.valueOf(updatedUser.getUserId()),
                                 updatedUser.getEmail(),
                                 updatedUser.getNickname(),
+                                updatedUser.getBio(),
                                 updatedUser.getPhoneNumber(),
                                 updatedUser.getBirthDate(),
                                 updatedUser.getGender(),
@@ -282,18 +290,24 @@ public class UserService {
                 User user = userRepository.findByEmail(email)
                                 .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
 
+                log.info("==============================");
+                log.info("유저 정보: {}, lat: {}, lon: {}, region: {}", user.toString(), dto.getLatitude(),
+                                dto.getLongitude(), dto.getRegion());
+                log.info("==============================");
+
                 user.setLatitude(dto.getLatitude());
                 user.setLongitude(dto.getLongitude());
                 user.setLocation(dto.getRegion());
                 user.setLocationUpdatedAt(java.time.LocalDateTime.now());
+
+                log.info("lat: {}, lon: {}, Region: {}", user.getLatitude(), user.getLongitude(), user.getLocation());
 
                 userRepository.save(user);
 
                 UserResponse.Location location = new UserResponse.Location(
                                 dto.getLatitude(),
                                 dto.getLongitude(),
-                                dto.getRegion()
-                );
+                                dto.getRegion());
 
                 return new LocationUpdateResponse(true, location);
         }
@@ -337,7 +351,8 @@ public class UserService {
                                                         .creator(CreatorDto.builder()
                                                                         .userId(meeting.getCreator().getUserId())
                                                                         .nickname(meeting.getCreator().getNickname())
-                                                                        .profileImage(meeting.getCreator().getProfileImage())
+                                                                        .profileImage(meeting.getCreator()
+                                                                                        .getProfileImage())
                                                                         .build())
                                                         .createdAt(meeting.getCreatedAt())
                                                         .updatedAt(meeting.getUpdatedAt())
@@ -431,16 +446,19 @@ public class UserService {
         }
 
         @Transactional
-        public NotificationSettingsResponse updateNotificationSettings(String email, 
+        public NotificationSettingsResponse updateNotificationSettings(String email,
                         NotificationSettingsRequest request) {
                 log.info("알림 설정 수정: email={}", email);
 
                 User user = userRepository.findByEmail(email)
                                 .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
 
-                user.setChatEnabled(request.getChatEnabled() != null ? request.getChatEnabled() : user.getChatEnabled());
-                user.setEventEnabled(request.getEventEnabled() != null ? request.getEventEnabled() : user.getEventEnabled());
-                user.setMarketingEnabled(request.getMarketingEnabled() != null ? request.getMarketingEnabled() : user.getMarketingEnabled());
+                user.setChatEnabled(
+                                request.getChatEnabled() != null ? request.getChatEnabled() : user.getChatEnabled());
+                user.setEventEnabled(
+                                request.getEventEnabled() != null ? request.getEventEnabled() : user.getEventEnabled());
+                user.setMarketingEnabled(request.getMarketingEnabled() != null ? request.getMarketingEnabled()
+                                : user.getMarketingEnabled());
 
                 userRepository.save(user);
 
@@ -459,9 +477,9 @@ public class UserService {
                                 .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
 
                 // TODO: 관련 데이터 처리 (모임 탈퇴, 채팅방 등)
-                
+
                 userRepository.delete(user);
-                
+
                 log.info("회원 탈퇴 완료: email={}", email);
         }
 
