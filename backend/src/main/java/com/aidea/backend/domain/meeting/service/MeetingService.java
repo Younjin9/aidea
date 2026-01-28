@@ -15,11 +15,13 @@ import com.aidea.backend.domain.meeting.repository.MeetingRepository;
 import com.aidea.backend.domain.meeting.repository.MeetingLikeRepository;
 import com.aidea.backend.domain.user.entity.User;
 import com.aidea.backend.domain.user.repository.UserRepository;
+import com.aidea.backend.global.infra.s3.S3Service;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -38,6 +40,7 @@ public class MeetingService {
     private final MeetingMemberRepository meetingMemberRepository;
     private final UserRepository userRepository;
     private final MeetingLikeRepository meetingLikeRepository;
+    private final S3Service s3Service;
 
     /**
      * 모임 생성
@@ -46,6 +49,11 @@ public class MeetingService {
      */
     @Transactional
     public MeetingResponse createMeeting(Long userId, CreateMeetingRequest request) {
+        log.info("=== 모임 생성 시작 ===");
+        log.info("Request: {}", request);
+        log.info("Category Code: {}", request.getInterestCategoryId());
+        log.info("Region: {}", request.getRegion());
+
         // 1. User 조회
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
@@ -55,16 +63,19 @@ public class MeetingService {
                 .title(request.getTitle())
                 .description(request.getDescription())
                 .imageUrl(request.getImageUrl())
-                .category(request.getCategory())
-                .region(request.getRegion())
+                .category(com.aidea.backend.domain.meeting.entity.enums.MeetingCategory
+                        .findByCode(request.getInterestCategoryId())) // String -> Enum
+                .region(com.aidea.backend.domain.meeting.entity.enums.Region.findByFullName(request.getRegion())) // String
+                                                                                                                  // ->
+                                                                                                                  // Enum
                 .location(request.getLocation())
                 .latitude(request.getLatitude())
                 .longitude(request.getLongitude())
                 .locationDetail(request.getLocationDetail())
                 .maxMembers(request.getMaxMembers())
                 .meetingDate(request.getMeetingDate())
-                .isApprovalRequired(request.getIsApprovalRequired())
-                .creator(user)
+                .isApprovalRequired(!request.getIsPublic()) // Assuming isPublic=true means approval not required
+                .creator(user) // Fix: Set creator
                 .build();
 
         Meeting savedMeeting = meetingRepository.save(meeting);
@@ -364,17 +375,17 @@ public class MeetingService {
         // 1. 사용자와 모임 존재 확인
         userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
-        
+
         Meeting meeting = meetingRepository.findById(meetingId)
                 .orElseThrow(() -> new RuntimeException("모임을 찾을 수 없습니다."));
 
         // 2. 기존 찜 여부 확인
         var existingLike = meetingLikeRepository.findByUser_UserIdAndMeeting_Id(userId, meetingId);
-        
+
         if (existingLike.isPresent()) {
             // 찜 취소
             meetingLikeRepository.delete(existingLike.get());
-            
+
             return MeetingLikeResponse.builder()
                     .isLiked(false)
                     .likeCount((long) meetingLikeRepository.countByMeeting_Id(meetingId))
@@ -388,7 +399,7 @@ public class MeetingService {
                     .meeting(meeting)
                     .build();
             meetingLikeRepository.save(meetingLike);
-            
+
             return MeetingLikeResponse.builder()
                     .isLiked(true)
                     .likeCount((long) meetingLikeRepository.countByMeeting_Id(meetingId))
@@ -405,7 +416,7 @@ public class MeetingService {
         log.info("찜한 모임 목록 조회: userId={}", userId);
 
         List<MeetingLike> likes = meetingLikeRepository.findByUser_UserIdOrderByCreatedAtDesc(userId);
-        
+
         return likes.stream()
                 .map(like -> LikedMeetingResponse.builder()
                         .meetingLikeId(like.getMeetingLikeId())
@@ -422,7 +433,7 @@ public class MeetingService {
     public MeetingLikeResponse getLikeStatus(Long meetingId, Long userId) {
         boolean isLiked = meetingLikeRepository.existsByUser_UserIdAndMeeting_Id(userId, meetingId);
         long likeCount = meetingLikeRepository.countByMeeting_Id(meetingId);
-        
+
         return MeetingLikeResponse.builder()
                 .isLiked(isLiked)
                 .likeCount(likeCount)
@@ -435,5 +446,12 @@ public class MeetingService {
     @Transactional(readOnly = true)
     public long getLikeCount(Long meetingId) {
         return meetingLikeRepository.countByMeeting_Id(meetingId);
+    }
+
+    /**
+     * 모임 이미지 업로드
+     */
+    public String uploadMeetingImage(MultipartFile image) {
+        return s3Service.uploadFile(image, "meeting-images");
     }
 }

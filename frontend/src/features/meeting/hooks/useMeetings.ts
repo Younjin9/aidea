@@ -16,12 +16,12 @@ import type { PaginatedResponse } from '@/shared/types/common.types';
  */
 const transformMeetingToUI = (meeting: Meeting): MeetingUI => {
   return {
-    id: parseInt(meeting.groupId, 10) || 0,
-    groupId: meeting.groupId,
+    id: meeting.groupId,
+    groupId: meeting.groupId.toString(),
     image: meeting.imageUrl || '',
     title: meeting.title,
     category: meeting.interestCategoryName || '카테고리',
-    location: `${meeting.location.region || '위치 정보'}`,
+    location: meeting.region || meeting.location || '위치 정보',
     members: meeting.memberCount,
     maxMembers: meeting.maxMembers,
     description: meeting.description,
@@ -66,8 +66,8 @@ export const useMeetings = (params: MeetingListParams = {}) => {
     queryKey: meetingKeys.list(),
     queryFn: async () => {
       const response = await meetingApi.getList(params);
-      const content = response.data.content;
-      return transformMeetingsToUI(content || []);
+      const content = response.data?.content || [];
+      return transformMeetingsToUI(content);
     },
     staleTime: 1000 * 60 * 3,
     retry: 1,
@@ -136,18 +136,23 @@ export const useCreateMeeting = () => {
       return response.data;
     },
     onSuccess: (data) => {
+      if (!data) {
+        console.error('모임 생성 성공했으나 데이터가 없습니다.');
+        return;
+      }
+
       addMeeting({
-        groupId: data.groupId,
+        groupId: data.groupId?.toString() || '',
         image: data.imageUrl || '',
-        title: data.title,
+        title: data.title || '',
         category: data.interestCategoryName || '카테고리',
-        location: data.location.region || '위치 정보 없음',
-        members: data.memberCount,
-        maxMembers: data.maxMembers,
-        description: data.description,
-        date: data.createdAt,
+        location: data.region || '위치 정보 없음',
+        members: data.currentMembers || 1,
+        maxMembers: data.maxMembers || 0,
+        description: data.description || '',
+        date: data.createdAt || new Date().toISOString(),
         isLiked: false,
-        ownerUserId: data.ownerUserId,
+        ownerUserId: data.creator?.userId || 0,
         myStatus: 'APPROVED',
         myRole: 'HOST',
       });
@@ -156,8 +161,11 @@ export const useCreateMeeting = () => {
       queryClient.invalidateQueries({ queryKey: myPageKeys.myMeetings() });
       navigate('/meetings');
     },
-    onError: (error) => {
+    onError: (error: any) => {
       console.warn('모임 생성 API 실패 (fallback 처리됨):', error);
+      if (error?.details) {
+        console.error('Validation Details:', JSON.stringify(error.details, null, 2));
+      }
     },
   });
 };

@@ -39,6 +39,17 @@ spring:
     redis:
       host: localhost
       port: 6379
+  
+  cloud:
+    aws:
+      credentials:
+        access-key: ${AWS_ACCESS_KEY}
+        secret-key: ${AWS_SECRET_ACCESS_KEY}
+      region:
+        static: ap-northeast-2
+      s3:
+        bucket: ${AWS_S3_BUCKET}
+
 
 jwt:
   secret: local-dev-secret-key-change-this-in-production-environment-aidea-2026
@@ -50,3 +61,9 @@ logging:
     org.hibernate.SQL: DEBUG
     org.hibernate.type.descriptor.sql.BasicBinder: TRACE
     org.springframework.web: DEBUG
+
+vector-datasource:
+  url: jdbc:mysql://localhost:3307/aidea_dev?useSSL=false&allowPublicKeyRetrieval=true&characterEncoding=UTF-8&serverTimezone=UTC
+  username: aidea
+  password: aidea1234
+  driver-class-name: com.mysql.cj.jdbc.Driver
