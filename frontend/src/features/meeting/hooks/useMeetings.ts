@@ -66,8 +66,8 @@ export const useMeetings = (params: MeetingListParams = {}) => {
     queryKey: meetingKeys.list(),
     queryFn: async () => {
       const response = await meetingApi.getList(params);
-      const content = response.data.content;
-      return transformMeetingsToUI(content || []);
+      const content = response.data?.content || [];
+      return transformMeetingsToUI(content);
     },
     staleTime: 1000 * 60 * 3,
     retry: 1,

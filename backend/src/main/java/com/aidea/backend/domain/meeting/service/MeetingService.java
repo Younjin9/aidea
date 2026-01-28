@@ -71,9 +71,8 @@ public class MeetingService {
                 .locationDetail(request.getLocationDetail())
                 .maxMembers(request.getMaxMembers())
                 .meetingDate(request.getMeetingDate())
-                .isApprovalRequired(!request.getIsPublic()) // Assuming isPublic=true means approval not required, OR
-                                                            // handling separately. Spec has isPublic. Let's use
-                                                            // isPublic logic if entity has it. If not, map to approval.
+                .isApprovalRequired(!request.getIsPublic()) // Assuming isPublic=true means approval not required
+                .creator(user) // Fix: Set creator
                 .build();
 
         Meeting savedMeeting = meetingRepository.save(meeting);
