@@ -120,9 +120,13 @@ const MeetingCreatePage: React.FC = () => {
         description,
         interestCategoryId: selectedCategoryId || '1',
         maxMembers: capacity,
-        location: { lat: coords.lat, lng: coords.lng, region },
+        region: region, // "서울 관악구" (will be looked up by Backend)
+        location: region, // Address string
+        latitude: coords.lat,
+        longitude: coords.lng,
         isPublic: true,
         image: imageFile || undefined,
+        meetingDate: new Date(Date.now() + 86400000).toISOString(), // Added date (tomorrow)
       },
       {
         onError: () => {

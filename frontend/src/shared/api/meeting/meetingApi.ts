@@ -70,14 +70,10 @@ export const getDetail = async (groupId: string): Promise<ApiResponse<MeetingDet
  * POST /api/groups
  */
 export const create = async (data: CreateMeetingRequest): Promise<ApiResponse<MeetingDetail>> => {
-  if (data.image) {
-    const formData = createFormData(data);
-    return apiClient.post('/api/groups', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
-  }
-
-  return apiClient.post('/api/groups', data);
+  const formData = createFormData(data);
+  return apiClient.post('/api/groups', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
 };
 
 /**

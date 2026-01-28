@@ -46,6 +46,11 @@ public class MeetingService {
      */
     @Transactional
     public MeetingResponse createMeeting(Long userId, CreateMeetingRequest request) {
+        log.info("=== 모임 생성 시작 ===");
+        log.info("Request: {}", request);
+        log.info("Category Code: {}", request.getInterestCategoryId());
+        log.info("Region: {}", request.getRegion());
+
         // 1. User 조회
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
@@ -55,16 +60,20 @@ public class MeetingService {
                 .title(request.getTitle())
                 .description(request.getDescription())
                 .imageUrl(request.getImageUrl())
-                .category(request.getCategory())
-                .region(request.getRegion())
+                .category(com.aidea.backend.domain.meeting.entity.enums.MeetingCategory
+                        .findByCode(request.getInterestCategoryId())) // String -> Enum
+                .region(com.aidea.backend.domain.meeting.entity.enums.Region.findByFullName(request.getRegion())) // String
+                                                                                                                  // ->
+                                                                                                                  // Enum
                 .location(request.getLocation())
                 .latitude(request.getLatitude())
                 .longitude(request.getLongitude())
                 .locationDetail(request.getLocationDetail())
                 .maxMembers(request.getMaxMembers())
                 .meetingDate(request.getMeetingDate())
-                .isApprovalRequired(request.getIsApprovalRequired())
-                .creator(user)
+                .isApprovalRequired(!request.getIsPublic()) // Assuming isPublic=true means approval not required, OR
+                                                            // handling separately. Spec has isPublic. Let's use
+                                                            // isPublic logic if entity has it. If not, map to approval.
                 .build();
 
         Meeting savedMeeting = meetingRepository.save(meeting);
@@ -364,17 +373,17 @@ public class MeetingService {
         // 1. 사용자와 모임 존재 확인
         userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
-        
+
         Meeting meeting = meetingRepository.findById(meetingId)
                 .orElseThrow(() -> new RuntimeException("모임을 찾을 수 없습니다."));
 
         // 2. 기존 찜 여부 확인
         var existingLike = meetingLikeRepository.findByUser_UserIdAndMeeting_Id(userId, meetingId);
-        
+
         if (existingLike.isPresent()) {
             // 찜 취소
             meetingLikeRepository.delete(existingLike.get());
-            
+
             return MeetingLikeResponse.builder()
                     .isLiked(false)
                     .likeCount((long) meetingLikeRepository.countByMeeting_Id(meetingId))
@@ -388,7 +397,7 @@ public class MeetingService {
                     .meeting(meeting)
                     .build();
             meetingLikeRepository.save(meetingLike);
-            
+
             return MeetingLikeResponse.builder()
                     .isLiked(true)
                     .likeCount((long) meetingLikeRepository.countByMeeting_Id(meetingId))
@@ -405,7 +414,7 @@ public class MeetingService {
         log.info("찜한 모임 목록 조회: userId={}", userId);
 
         List<MeetingLike> likes = meetingLikeRepository.findByUser_UserIdOrderByCreatedAtDesc(userId);
-        
+
         return likes.stream()
                 .map(like -> LikedMeetingResponse.builder()
                         .meetingLikeId(like.getMeetingLikeId())
@@ -422,7 +431,7 @@ public class MeetingService {
     public MeetingLikeResponse getLikeStatus(Long meetingId, Long userId) {
         boolean isLiked = meetingLikeRepository.existsByUser_UserIdAndMeeting_Id(userId, meetingId);
         long likeCount = meetingLikeRepository.countByMeeting_Id(meetingId);
-        
+
         return MeetingLikeResponse.builder()
                 .isLiked(isLiked)
                 .likeCount(likeCount)

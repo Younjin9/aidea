@@ -244,12 +244,15 @@ public class UserService {
                                 .map(meetingMember -> {
                                         var meeting = meetingMember.getMeeting();
                                         return MeetingResponse.builder()
-                                                        .meetingId(meeting.getId())
+                                                        .groupId(meeting.getId()) // meetingId -> groupId
                                                         .title(meeting.getTitle())
                                                         .description(meeting.getDescription())
                                                         .imageUrl(meeting.getImageUrl())
-                                                        .category(meeting.getCategory())
-                                                        .categoryDisplayName(meeting.getCategory().getDisplayName())
+                                                        .interestCategoryId(meeting.getCategory().name()) // category ->
+                                                                                                          // interestCategoryId
+                                                        .interestCategoryName(meeting.getCategory().getDisplayName()) // categoryDisplayName
+                                                                                                                      // ->
+                                                                                                                      // interestCategoryName
                                                         .region(meeting.getRegion())
                                                         .regionFullName(meeting.getRegion().getFullName())
                                                         .location(meeting.getLocation())
@@ -260,7 +263,8 @@ public class UserService {
                                                         .currentMembers(meeting.getCurrentMembers())
                                                         .meetingDate(meeting.getMeetingDate())
                                                         .status(meeting.getStatus())
-                                                        .isApprovalRequired(meeting.getIsApprovalRequired())
+                                                        .isPublic(!meeting.getIsApprovalRequired()) // isApprovalRequired
+                                                                                                    // -> isPublic
                                                         .creator(CreatorDto.builder()
                                                                         .userId(meeting.getCreator().getUserId())
                                                                         .nickname(meeting.getCreator().getNickname())
@@ -283,12 +287,15 @@ public class UserService {
 
                 return meetingRepository.findByCreator_UserId(user.getUserId()).stream()
                                 .map(meeting -> MeetingResponse.builder()
-                                                .meetingId(meeting.getId())
+                                                .groupId(meeting.getId()) // meetingId -> groupId
                                                 .title(meeting.getTitle())
                                                 .description(meeting.getDescription())
                                                 .imageUrl(meeting.getImageUrl())
-                                                .category(meeting.getCategory())
-                                                .categoryDisplayName(meeting.getCategory().getDisplayName())
+                                                .interestCategoryId(meeting.getCategory().name()) // category ->
+                                                                                                  // interestCategoryId
+                                                .interestCategoryName(meeting.getCategory().getDisplayName()) // categoryDisplayName
+                                                                                                              // ->
+                                                                                                              // interestCategoryName
                                                 .region(meeting.getRegion())
                                                 .regionFullName(meeting.getRegion().getFullName())
                                                 .location(meeting.getLocation())
@@ -299,7 +306,8 @@ public class UserService {
                                                 .currentMembers(meeting.getCurrentMembers())
                                                 .meetingDate(meeting.getMeetingDate())
                                                 .status(meeting.getStatus())
-                                                .isApprovalRequired(meeting.getIsApprovalRequired())
+                                                .isPublic(!meeting.getIsApprovalRequired()) // isApprovalRequired ->
+                                                                                            // isPublic
                                                 .creator(CreatorDto.builder()
                                                                 .userId(meeting.getCreator().getUserId())
                                                                 .nickname(meeting.getCreator().getNickname())

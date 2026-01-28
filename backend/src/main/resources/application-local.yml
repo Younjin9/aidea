@@ -50,3 +50,9 @@ logging:
     org.hibernate.SQL: DEBUG
     org.hibernate.type.descriptor.sql.BasicBinder: TRACE
     org.springframework.web: DEBUG
+
+vector-datasource:
+  url: jdbc:mysql://localhost:3307/aidea_dev?useSSL=false&allowPublicKeyRetrieval=true&characterEncoding=UTF-8&serverTimezone=UTC
+  username: aidea
+  password: aidea1234
+  driver-class-name: com.mysql.cj.jdbc.Driver

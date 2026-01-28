@@ -16,12 +16,12 @@ import type { PaginatedResponse } from '@/shared/types/common.types';
  */
 const transformMeetingToUI = (meeting: Meeting): MeetingUI => {
   return {
-    id: parseInt(meeting.groupId, 10) || 0,
-    groupId: meeting.groupId,
+    id: meeting.groupId,
+    groupId: meeting.groupId.toString(),
     image: meeting.imageUrl || '',
     title: meeting.title,
     category: meeting.interestCategoryName || '카테고리',
-    location: `${meeting.location.region || '위치 정보'}`,
+    location: meeting.region || meeting.location || '위치 정보',
     members: meeting.memberCount,
     maxMembers: meeting.maxMembers,
     description: meeting.description,
@@ -137,11 +137,11 @@ export const useCreateMeeting = () => {
     },
     onSuccess: (data) => {
       addMeeting({
-        groupId: data.groupId,
+        groupId: data.groupId.toString(),
         image: data.imageUrl || '',
         title: data.title,
         category: data.interestCategoryName || '카테고리',
-        location: data.location.region || '위치 정보 없음',
+        location: data.region || '위치 정보 없음',
         members: data.memberCount,
         maxMembers: data.maxMembers,
         description: data.description,

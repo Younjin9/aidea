@@ -2,7 +2,9 @@ package com.aidea.backend.domain.chat.controller;
 
 import com.aidea.backend.domain.chat.dto.request.ChatMessageRequest;
 import com.aidea.backend.domain.chat.dto.response.ChatMessageResponse;
+import com.aidea.backend.domain.chat.dto.response.ChatRoomResponse;
 import com.aidea.backend.domain.chat.service.ChatService;
+import com.aidea.backend.domain.user.repository.UserRepository;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -28,6 +30,7 @@ import java.util.List;
 public class ChatController {
 
     private final ChatService chatService;
+    private final UserRepository userRepository;
 
     // ========== WebSocket (STOMP) ==========
 
@@ -69,6 +72,21 @@ public class ChatController {
     public ResponseEntity<Void> createChatRoom(@RequestParam Long meetingId) {
         chatService.createChatRoomForMeeting(meetingId);
         return ResponseEntity.ok().build();
+    }
+
+    /**
+     * 내 채팅방 목록 조회
+     */
+    @Operation(summary = "내 채팅방 목록 조회", description = "참여 중인 모임의 채팅방 목록을 조회합니다")
+    @GetMapping("/rooms")
+    public ResponseEntity<List<ChatRoomResponse>> getChatRooms() {
+        String email = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication()
+                .getName();
+        com.aidea.backend.domain.user.entity.User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
+
+        List<ChatRoomResponse> response = chatService.getMyChatRooms(user.getUserId());
+        return ResponseEntity.ok(response);
     }
 
     /**

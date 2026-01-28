@@ -33,12 +33,21 @@ public class MeetingController {
      * 모임 생성
      */
     @Operation(summary = "모임 생성", description = "새로운 모임을 생성합니다")
-    @PostMapping
+    @PostMapping(consumes = org.springframework.http.MediaType.MULTIPART_FORM_DATA_VALUE) // Explicitly support Multipart
     public ResponseEntity<MeetingResponse> createMeeting(
-            @Valid @RequestBody CreateMeetingRequest request) {
+            @Valid @ModelAttribute CreateMeetingRequest request,
+            @RequestPart(value = "image", required = false) org.springframework.web.multipart.MultipartFile image) {
+                
         String email = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication().getName();
         com.aidea.backend.domain.user.entity.User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
+
+        // TODO: Image Upload Logic (S3 or Local)
+        if (image != null && !image.isEmpty()) {
+            // Temporary: Use original filename or dummy URL
+            String imageUrl = "/images/" + image.getOriginalFilename(); // Mock URL
+            request.setImageUrl(imageUrl);
+        }
 
         MeetingResponse response = meetingService.createMeeting(user.getUserId(), request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
@@ -82,10 +91,11 @@ public class MeetingController {
         Page<MeetingSummaryResponse> response = meetingService.searchMeetings(category, region, pageable);
         return ResponseEntity.ok(response);
     }
+                
 
     /**
-     * 모임 삭제
-     */
+
+        
     @Operation(summary = "모임 삭제", description = "모임을 삭제합니다 (HOST만 가능)")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteMeeting(@PathVariable Long id) {
@@ -98,6 +108,7 @@ public class MeetingController {
     }
 
     /**
+                
      * 모임 수정
      */
     @Operation(summary = "모임 수정", description = "모임 정보를 수정합니다 (HOST만 가능)")
@@ -115,10 +126,12 @@ public class MeetingController {
 
     // ========== 참가 관리 API ==========
 
+                
     /**
      * 모임 참가 신청
      */
     @Operation(summary = "모임 참가 신청", description = "모임에 참가 신청합니다")
+                
     @PostMapping("/{id}/join")
     public ResponseEntity<com.aidea.backend.domain.meeting.dto.response.MemberResponse> joinMeeting(
             @PathVariable Long id) {
@@ -142,6 +155,7 @@ public class MeetingController {
         return ResponseEntity.ok(response);
     }
 
+                
     /**
      * 대기 중인 참가 신청 목록 조회 (HOST 전용)
      */
@@ -159,6 +173,7 @@ public class MeetingController {
     }
 
     /**
+                
      * 참가 신청 승인 (HOST 전용)
      */
     @Operation(summary = "참가 신청 승인", description = "참가 신청을 승인합니다 (HOST만 가능)")
@@ -176,6 +191,7 @@ public class MeetingController {
     }
 
     /**
+                
      * 참가 신청 거절 (HOST 전용)
      */
     @Operation(summary = "참가 신청 거절", description = "참가 신청을 거절합니다 (HOST만 가능)")
@@ -190,6 +206,7 @@ public class MeetingController {
         meetingService.rejectJoinRequest(id, memberId, user.getUserId());
         return ResponseEntity.noContent().build();
     }
+                
 
     /**
      * 모임 탈퇴
@@ -206,6 +223,7 @@ public class MeetingController {
     }
 
     /**
+                
      * 참가자 강제 퇴출 (HOST 전용)
      */
     @Operation(summary = "참가자 강제 퇴출", description = "참가자를 강제로 퇴출합니다 (HOST만 가능)")
@@ -223,6 +241,7 @@ public class MeetingController {
 
     // ========== 찜 기능 ==========
 
+                
     /**
      * 모임 찜하기/찜 취소
      */
@@ -238,6 +257,7 @@ public class MeetingController {
         return ResponseEntity.ok(response);
     }
 
+                
     /**
      * 찜 상태 확인
      */
