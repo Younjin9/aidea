@@ -32,10 +32,11 @@ const ProfileEditPage: React.FC = () => {
   const [profileImageFile, setProfileImageFile] = useState<File | null>(null);
   const [coords, setCoords] = useState({ latitude: 0, longitude: 0 });
   const [showSearchModal, setShowSearchModal] = useState(false);
+  const hasInitialized = useRef(false);
 
   // 유저 데이터가 있으면 초기값 설정
   useEffect(() => {
-    if (user) {
+    if (user && !hasInitialized.current) {
       // 비동기 큐에 넣어 렌더링 경고를 회피
       setTimeout(() => {
         setName(user.nickname || '');
@@ -51,6 +52,7 @@ const ProfileEditPage: React.FC = () => {
             longitude: user.location.longitude || 0,
           });
         }
+        hasInitialized.current = true;
       }, 0);
     }
   }, [user]);
@@ -66,39 +68,37 @@ const ProfileEditPage: React.FC = () => {
   const handleSave = async () => {
     try {
       const location = { latitude: coords.latitude, longitude: coords.longitude, region };
-      console.log(location);
 
-      // 프로필 정보 업데이트
+      // 1. 프로필 정보 업데이트
       await userApi.updateProfile({
         nickname: name,
         bio,
       });
 
-      // 위치 업데이트
+      // 2. 위치 업데이트
       await userApi.updateLocation(location);
 
-      // 관심사 업데이트 (별도 API)
-      if (selectedInterests.length > 0) {
-        await userApi.updateUserInterests(selectedInterests);
-      }
+      // 3. 관심사 업데이트 (항상 호출하여 빈 리스트도 반영되도록 함)
+      await userApi.updateUserInterests(selectedInterests);
 
-      // 프로필 이미지 업데이트 (파일이 있는 경우만)
+      // 4. 프로필 이미지 업데이트 (파일이 있는 경우만)
       if (profileImageFile) {
         await userApi.updateProfileImage(profileImageFile);
       }
 
-      updateUser({
-        nickname: name,
-        bio,
-        profileImage,
-        interests: selectedInterests,
-        location,
-      });
+      // 5. 서버에서 최신 프로필 정보를 가져와서 스토어 업데이트
+      const response = await userApi.getMyProfile();
+      if (response.success) {
+        updateUser(response.data);
+      }
 
       navigate(-1);
     } catch (error) {
       console.error('프로필 저장 실패:', error);
       // 서버 연결 실패 시에도 로컬에 임시 반영 (조용한 폴백)
+      alert('프로필 저장 중 오류가 발생했습니다.');
+
+      // 서버 연결 실패 시에도 로컬에 임시 반영 (폴백)
       updateUser({
         nickname: name,
         bio,
