@@ -19,7 +19,8 @@ export interface Meeting {
   imageUrl?: string;
   interestCategoryId: string;
   interestCategoryName?: string;
-  memberCount: number;
+  memberCount: number; // For UI backward compatibility
+  currentMembers?: number; // Backend field
   maxMembers: number;
   location: string; // Backend 'location' string (address)
   latitude: number;
@@ -29,6 +30,11 @@ export interface Meeting {
   isPublic: boolean;
   rules?: string[];
   ownerUserId: number; // Backend uses userId Long
+  creator?: {
+    userId: number;
+    nickname: string;
+    profileImage?: string;
+  };
   createdAt: string;
   updatedAt: string;
 }
@@ -56,7 +62,6 @@ export interface CreateMeetingRequest {
 
   rules?: string[];
   isPublic: boolean;
-  image?: File;
   meetingDate: string; // Backend requires meetingDate
   imageUrl?: string;
 }

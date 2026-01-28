@@ -1,4 +1,4 @@
-import apiClient, { buildQueryString, createFormData } from '../client';
+import apiClient, { buildQueryString } from '../client';
 import type { ApiResponse, PaginatedResponse } from '@/shared/types/common.types';
 import type {
   Meeting,
@@ -70,10 +70,7 @@ export const getDetail = async (groupId: string): Promise<ApiResponse<MeetingDet
  * POST /api/groups
  */
 export const create = async (data: CreateMeetingRequest): Promise<ApiResponse<MeetingDetail>> => {
-  const formData = createFormData(data);
-  return apiClient.post('/api/groups', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-  });
+  return apiClient.post('/api/groups', data);
 };
 
 /**
