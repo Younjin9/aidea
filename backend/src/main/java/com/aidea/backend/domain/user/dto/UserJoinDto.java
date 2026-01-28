@@ -28,6 +28,9 @@ public class UserJoinDto {
     @Size(min = 2, max = 50, message = "이름은 2자 이상 50자 이하여야 합니다.")
     private String nickname;
 
+    @Size(max = 200, message = "자기소개는 200자 이하여야 합니다.")
+    private String bio;
+
     // @NotBlank(message = "전화번호는 필수입니다.")
     // @Pattern(regexp = "^\\d{3}-\\d{4}-\\d{4}$",
     // message = "전화번호 형식이 올바르지 않습니다.(예: 010-1234-5678")

@@ -13,7 +13,7 @@ interface PlaceResult {
 interface LocationSearchModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onSelectLocation: (location: { address: string; lat: number; lng: number }) => void;
+    onSelectLocation: (location: { address: string; latitude: number; longitude: number }) => void;
 }
 
 const LocationSearchModal: React.FC<LocationSearchModalProps> = ({
@@ -128,8 +128,8 @@ const LocationSearchModal: React.FC<LocationSearchModalProps> = ({
                                     onClick={() => {
                                         onSelectLocation({
                                             address: place.place_name, // 장소명 우선, 필요시 address_name 사용 가능
-                                            lat: parseFloat(place.y),
-                                            lng: parseFloat(place.x),
+                                            latitude: parseFloat(place.y),
+                                            longitude: parseFloat(place.x),
                                         });
                                         onClose();
                                     }}
