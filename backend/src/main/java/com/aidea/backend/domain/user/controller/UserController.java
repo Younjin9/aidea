@@ -3,6 +3,8 @@ package com.aidea.backend.domain.user.controller;
 import com.aidea.backend.domain.user.dto.*;
 import com.aidea.backend.domain.user.service.UserService;
 import com.aidea.backend.domain.meeting.dto.response.MeetingResponse;
+import com.aidea.backend.domain.meeting.service.MeetingService;
+import com.aidea.backend.domain.meeting.dto.response.LikedMeetingResponse;
 import com.aidea.backend.global.common.dto.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -24,6 +26,7 @@ import java.util.Map;
 public class UserController {
 
     private final UserService userService;
+    private final MeetingService meetingService;
 
     @PostMapping("/join")
     public ResponseEntity<ApiResponse<UserResponse>> joinUser(@Valid @RequestBody UserJoinDto dto) {
@@ -159,6 +162,24 @@ public class UserController {
         log.info("사용자 관심사 업데이트 요청: email={}, interests={}", authentication.getName(), interests);
         userService.updateUserInterests(authentication.getName(), interests);
         return ResponseEntity.ok(ApiResponse.success(null));
+    }
+
+    @GetMapping("/me/liked-groups")
+    public ResponseEntity<ApiResponse<List<MeetingResponse>>> getLikedGroups(
+            Authentication authentication) {
+        log.info("찜한 모임 목록 조회 요청: email={}", authentication.getName());
+        
+        // 이메일로 사용자 ID 조회
+        UserResponse userResponse = userService.getMyProfile(authentication.getName());
+        Long userId = Long.parseLong(userResponse.getUserId());
+        
+        // MeetingService를 통해 찜한 모임 목록 조회
+        var likedMeetings = meetingService.getLikedMeetings(userId);
+        List<MeetingResponse> meetings = likedMeetings.stream()
+                .map(LikedMeetingResponse::getMeeting)
+                .collect(java.util.stream.Collectors.toList());
+        
+        return ResponseEntity.ok(ApiResponse.success(meetings));
     }
 
     @GetMapping("/health")

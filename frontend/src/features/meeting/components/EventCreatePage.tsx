@@ -89,6 +89,7 @@ const EventCreatePage: React.FC = () => {
       {
         onError: () => {
           // API 실패 시 로컬에서 처리 (fallback)
+          console.log('새 정모 생성 (로컬):', newEvent);
           navigate(`/meetings/${meetingId}`, { state: { newEvent } });
         },
       }

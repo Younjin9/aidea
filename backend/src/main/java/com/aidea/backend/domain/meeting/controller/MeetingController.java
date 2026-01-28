@@ -4,6 +4,7 @@ import com.aidea.backend.domain.meeting.dto.request.CreateMeetingRequest;
 import com.aidea.backend.domain.meeting.dto.request.UpdateMeetingRequest;
 import com.aidea.backend.domain.meeting.dto.response.MeetingResponse;
 import com.aidea.backend.domain.meeting.dto.response.MeetingSummaryResponse;
+import com.aidea.backend.domain.meeting.dto.response.MeetingLikeResponse;
 import com.aidea.backend.domain.meeting.service.MeetingService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -218,5 +219,37 @@ public class MeetingController {
 
         meetingService.removeMember(id, memberId, user.getUserId());
         return ResponseEntity.noContent().build();
+    }
+
+    // ========== 찜 기능 ==========
+
+    /**
+     * 모임 찜하기/찜 취소
+     */
+    @Operation(summary = "모임 찜하기/찜 취소", description = "모임을 찜하거나 찜을 취소합니다.")
+    @PostMapping("/{id}/like")
+    public ResponseEntity<MeetingLikeResponse> toggleLike(
+            @PathVariable Long id) {
+        String email = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication().getName();
+        com.aidea.backend.domain.user.entity.User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
+
+        MeetingLikeResponse response = meetingService.toggleMeetingLike(id, user.getUserId());
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * 찜 상태 확인
+     */
+    @Operation(summary = "찜 상태 확인", description = "특정 모임의 찜 상태를 확인합니다.")
+    @GetMapping("/{id}/like-status")
+    public ResponseEntity<MeetingLikeResponse> getLikeStatus(
+            @PathVariable Long id) {
+        String email = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication().getName();
+        com.aidea.backend.domain.user.entity.User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
+
+        MeetingLikeResponse response = meetingService.getLikeStatus(id, user.getUserId());
+        return ResponseEntity.ok(response);
     }
 }
