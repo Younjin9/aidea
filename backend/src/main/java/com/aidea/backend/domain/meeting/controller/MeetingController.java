@@ -6,6 +6,7 @@ import com.aidea.backend.domain.meeting.dto.response.MeetingResponse;
 import com.aidea.backend.domain.meeting.dto.response.MeetingSummaryResponse;
 import com.aidea.backend.domain.meeting.dto.response.MeetingLikeResponse;
 import com.aidea.backend.domain.meeting.service.MeetingService;
+import com.aidea.backend.global.common.dto.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -35,7 +36,7 @@ public class MeetingController {
          */
         @Operation(summary = "모임 생성", description = "새로운 모임을 생성합니다")
         @PostMapping
-        public ResponseEntity<MeetingResponse> createMeeting(
+        public ResponseEntity<ApiResponse<MeetingResponse>> createMeeting(
                         @Valid @RequestBody CreateMeetingRequest request) {
                 String email = org.springframework.security.core.context.SecurityContextHolder.getContext()
                                 .getAuthentication().getName();
@@ -43,7 +44,7 @@ public class MeetingController {
                                 .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
 
                 MeetingResponse response = meetingService.createMeeting(user.getUserId(), request);
-                return ResponseEntity.status(HttpStatus.CREATED).body(response);
+                return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(response));
         }
 
         /**
@@ -51,10 +52,10 @@ public class MeetingController {
          */
         @Operation(summary = "모임 상세 조회", description = "모임 ID로 상세 정보를 조회합니다")
         @GetMapping("/{id}")
-        public ResponseEntity<MeetingResponse> getMeeting(
+        public ResponseEntity<ApiResponse<MeetingResponse>> getMeeting(
                         @PathVariable Long id) {
                 MeetingResponse response = meetingService.getMeetingById(id);
-                return ResponseEntity.ok(response);
+                return ResponseEntity.ok(ApiResponse.success(response));
         }
 
         /**
@@ -62,12 +63,12 @@ public class MeetingController {
          */
         @Operation(summary = "모임 목록 조회", description = "모임 목록을 페이징하여 조회합니다")
         @GetMapping
-        public ResponseEntity<Page<MeetingSummaryResponse>> getAllMeetings(
+        public ResponseEntity<ApiResponse<Page<MeetingSummaryResponse>>> getAllMeetings(
                         @RequestParam(defaultValue = "0") int page,
                         @RequestParam(defaultValue = "10") int size) {
                 Pageable pageable = PageRequest.of(page, size);
                 Page<MeetingSummaryResponse> response = meetingService.getAllMeetings(pageable);
-                return ResponseEntity.ok(response);
+                return ResponseEntity.ok(ApiResponse.success(response));
         }
 
         /**
@@ -75,14 +76,14 @@ public class MeetingController {
          */
         @Operation(summary = "모임 검색", description = "카테고리, 지역 조건으로 모임을 검색합니다")
         @GetMapping("/search")
-        public ResponseEntity<Page<MeetingSummaryResponse>> searchMeetings(
+        public ResponseEntity<ApiResponse<Page<MeetingSummaryResponse>>> searchMeetings(
                         @RequestParam(required = false) com.aidea.backend.domain.meeting.entity.enums.MeetingCategory category,
                         @RequestParam(required = false) com.aidea.backend.domain.meeting.entity.enums.Region region,
                         @RequestParam(defaultValue = "0") int page,
                         @RequestParam(defaultValue = "10") int size) {
                 Pageable pageable = PageRequest.of(page, size);
                 Page<MeetingSummaryResponse> response = meetingService.searchMeetings(category, region, pageable);
-                return ResponseEntity.ok(response);
+                return ResponseEntity.ok(ApiResponse.success(response));
         }
 
         /**
