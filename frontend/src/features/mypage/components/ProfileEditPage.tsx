@@ -30,7 +30,7 @@ const ProfileEditPage: React.FC = () => {
   const [selectedInterests, setSelectedInterests] = useState<string[]>([]);
   const [profileImage, setProfileImage] = useState<string | undefined>(undefined);
   const [profileImageFile, setProfileImageFile] = useState<File | null>(null);
-  const [coords, setCoords] = useState({ lat: 0, lng: 0 });
+  const [coords, setCoords] = useState({ latitude: 0, longitude: 0 });
   const [showSearchModal, setShowSearchModal] = useState(false);
 
   // 유저 데이터가 있으면 초기값 설정
@@ -43,6 +43,14 @@ const ProfileEditPage: React.FC = () => {
         setRegion(user.location?.region || '');
         setSelectedInterests(user.interests || []);
         setProfileImage(user.profileImage);
+
+        // 기존 좌표가 있으면 초기값으로 설정
+        if (user.location) {
+          setCoords({
+            latitude: user.location.latitude || 0,
+            longitude: user.location.longitude || 0,
+          });
+        }
       }, 0);
     }
   }, [user]);
@@ -57,7 +65,8 @@ const ProfileEditPage: React.FC = () => {
 
   const handleSave = async () => {
     try {
-      const location = { lat: coords.lat, lng: coords.lng, region };
+      const location = { latitude: coords.latitude, longitude: coords.longitude, region };
+      console.log(location);
 
       // 프로필 정보 업데이트
       await userApi.updateProfile({
@@ -95,7 +104,7 @@ const ProfileEditPage: React.FC = () => {
         bio,
         profileImage,
         interests: selectedInterests,
-        location: { lat: coords.lat, lng: coords.lng, region },
+        location: { latitude: coords.latitude, longitude: coords.longitude, region },
       });
 
       navigate(-1);
@@ -134,7 +143,7 @@ const ProfileEditPage: React.FC = () => {
     navigator.geolocation.getCurrentPosition(
       (position) => {
         const { latitude, longitude } = position.coords;
-        setCoords({ lat: latitude, lng: longitude });
+        setCoords({ latitude, longitude });
 
         const geocoder = new kakao.maps.services.Geocoder();
         const coord = new kakao.maps.LatLng(latitude, longitude);
@@ -157,9 +166,9 @@ const ProfileEditPage: React.FC = () => {
     );
   };
 
-  const handleSelectLocation = (location: { address: string; lat: number; lng: number }) => {
+  const handleSelectLocation = (location: { address: string; latitude: number; longitude: number }) => {
     setRegion(location.address);
-    setCoords({ lat: location.lat, lng: location.lng });
+    setCoords({ latitude: location.latitude, longitude: location.longitude });
   };
 
   return (
@@ -265,8 +274,8 @@ const ProfileEditPage: React.FC = () => {
                     key={item}
                     onClick={() => handleInterestToggle(item)}
                     className={`px-3 py-1.5 rounded-full text-xs font-medium transition ${selectedInterests.includes(item)
-                        ? 'bg-primary text-white'
-                        : 'bg-gray-100 text-gray-700'
+                      ? 'bg-primary text-white'
+                      : 'bg-gray-100 text-gray-700'
                       }`}
                   >
                     {item}
