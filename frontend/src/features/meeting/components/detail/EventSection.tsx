@@ -32,7 +32,8 @@ const EventCard: React.FC<EventCardProps> = ({
   onJoin,
   onJoinMeetingFirst,
 }) => {
-  const formatDateTime = (dateString: string) => {
+  const formatDateTime = (dateString?: string) => {
+    if (!dateString) return '일시 미정';
     const date = new Date(dateString);
     const dateStr = date.toLocaleDateString('ko-KR', { month: '2-digit', day: '2-digit', weekday: 'short' });
     const timeStr = date.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
@@ -48,7 +49,7 @@ const EventCard: React.FC<EventCardProps> = ({
       )}
       <div className="space-y-2 text-sm mb-4">
         <div className="flex gap-3"><p className="text-gray-500 w-12">일시</p><p className="font-medium">{formatDateTime(event.scheduledAt)}</p></div>
-        <div className="flex gap-3"><p className="text-gray-500 w-12">위치</p><p className="font-medium">{event.location || meeting.location.region}</p></div>
+        <div className="flex gap-3"><p className="text-gray-500 w-12">위치</p><p className="font-medium">{event.location || meeting.region || '미정'}</p></div>
         <div className="flex gap-3"><p className="text-gray-500 w-12">비용</p><p className="font-medium">{event.cost || '무료'}</p></div>
         <div className="flex gap-3"><p className="text-gray-500 w-12">참석</p><p className="font-medium">{event.participantCount}명 ({event.participantCount}/{event.maxParticipants || meeting.maxMembers})</p></div>
       </div>
@@ -59,7 +60,7 @@ const EventCard: React.FC<EventCardProps> = ({
           {event.participants.slice(0, 3).map((p) => (
             <div key={p.userId} className="relative">
               <ProfileImage src={p.profileImage} alt={p.nickname} size="sm" className="border-2 border-white" />
-              {p.isHost && (
+              {'role' in p && p.role === 'HOST' && (
                 <div className="absolute -bottom-1 -right-1 bg-yellow-400 rounded-full p-0.5 border border-white">
                   <Crown size={12} className="text-white fill-white" />
                 </div>
@@ -151,8 +152,8 @@ const EventSection: React.FC<EventSectionProps> = ({
               isMember={isMember}
               isParticipating={isParticipating}
               onTitleClick={() => onEventTitleClick(event)}
-              onCancelParticipation={() => onEventAction(event.eventId, event.title, 'cancelParticipation')}
-              onJoin={() => onEventAction(event.eventId, event.title, 'join')}
+              onCancelParticipation={() => onEventAction(String(event.eventId), event.title, 'cancelParticipation')}
+              onJoin={() => onEventAction(String(event.eventId), event.title, 'join')}
               onJoinMeetingFirst={() => onJoinMeetingFirst()}
             />
           );

@@ -13,7 +13,7 @@ import ChatRoomPage from '@/features/chat/components/ChatRoomPage';
 import meetingApi from '@/shared/api/meeting/meetingApi';
 import { useMeetingStore } from '../../store/meetingStore';
 import { useMyPageStore } from '@/features/mypage/store/myPageStore';
-import { useJoinMeeting, useLeaveMeeting, useToggleLikeMeeting } from '../../hooks/useMeetings';
+import { useLeaveMeeting, useToggleLikeMeeting } from '../../hooks/useMeetings';
 import { useJoinEvent, useCancelEventParticipation } from '../../hooks/useEvents';
 import type { MeetingDetail, MeetingEvent } from '@/shared/types/Meeting.types';
 
@@ -27,7 +27,7 @@ type ModalType = 'greeting' | 'profile' | 'report' | 'leave' | 'actionSheet' | '
 
 // API 실패 시 사용할 Mock 데이터 (개발/테스트용)
 const MOCK_MEETING_DETAIL: MeetingDetail = {
-  groupId: '1',
+  groupId: 1,
   title: '맛집 탐방',
   description: '우리와 함께 맛집을 탐방해보세요. 다양한 맛을 즐길 수 있습니다.',
   imageUrl: 'https://i.pinimg.com/736x/44/e7/7e/44e77e3a2d34a147afc6a384ebd7a42f.jpg',
@@ -35,24 +35,31 @@ const MOCK_MEETING_DETAIL: MeetingDetail = {
   interestCategoryName: '맛집 탐방',
   memberCount: 2,
   maxMembers: 10,
-  location: { lat: 37.5665, lng: 126.978, region: '성수동' },
+  location: '성수동',
+  region: '성수동',
+  latitude: 37.5665,
+  longitude: 126.978,
   distanceKm: 0,
   isPublic: true,
-  ownerUserId: 'user1',
+  ownerUserId: 1,
   createdAt: '2024-01-20',
   updatedAt: '2024-01-20',
   members: [
-    { userId: 'user1', nickname: '김구름', profileImage: undefined, role: 'HOST', status: 'APPROVED', joinedAt: '2024-01-20' },
-    { userId: 'user2', nickname: '김구름2', profileImage: undefined, role: 'MEMBER', status: 'APPROVED', joinedAt: '2024-01-20' },
+    { userId: 1, nickname: '김구름', profileImage: undefined, role: 'HOST', status: 'APPROVED', joinedAt: '2024-01-20' },
+    { userId: 2, nickname: '김구름2', profileImage: undefined, role: 'MEMBER', status: 'APPROVED', joinedAt: '2024-01-20' },
   ],
   events: [{
-    eventId: '1',
+    eventId: 1,
     title: '성수 맛집 탐방',
     scheduledAt: '2024-01-22 11:00',
+    date: '2024-01-22',
+    location: '성수 카페거리',
+    cost: 10000,
+    maxParticipants: 10,
     participantCount: 2,
     participants: [
-      { userId: 'user1', nickname: '김구름', profileImage: undefined, isHost: true },
-      { userId: 'user2', nickname: '김구름2', profileImage: undefined },
+      { userId: 1, nickname: '김구름', profileImage: undefined, role: 'HOST', status: 'APPROVED', joinedAt: '2024-01-20' },
+      { userId: 2, nickname: '김구름2', profileImage: undefined, role: 'MEMBER', status: 'APPROVED', joinedAt: '2024-01-20' },
     ],
   }],
   myRole: 'HOST',
@@ -71,7 +78,7 @@ const createMeetingDetailFromStore = (
   const hostProfileImage = isOwner ? user?.profileImage : undefined;
 
   return {
-    groupId: String(storedMeeting.id),
+    groupId: storedMeeting.id,
     title: storedMeeting.title,
     description: storedMeeting.description || '모임 설명이 없습니다.',
     imageUrl: storedMeeting.image,
@@ -79,14 +86,17 @@ const createMeetingDetailFromStore = (
     interestCategoryName: storedMeeting.category,
     memberCount: storedMeeting.members,
     maxMembers: storedMeeting.maxMembers || 10,
-    location: { lat: 37.5665, lng: 126.978, region: storedMeeting.location },
+    location: storedMeeting.location,
+    region: storedMeeting.location,
+    latitude: 37.5665,
+    longitude: 126.978,
     distanceKm: 0,
     isPublic: true,
-    ownerUserId: hostUserId,
+    ownerUserId: Number(storedMeeting.ownerUserId || 1),
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
     members: [
-      { userId: hostUserId, nickname: hostNickname, profileImage: hostProfileImage, role: 'HOST', status: 'APPROVED', joinedAt: new Date().toISOString() },
+      { userId: Number(hostUserId), nickname: hostNickname, profileImage: hostProfileImage, role: 'HOST', status: 'APPROVED', joinedAt: new Date().toISOString() },
     ],
     events: existingEvents,
     myRole: storedMeeting.myRole === 'MEMBER' ? 'USER' : storedMeeting.myRole || (isOwner ? 'HOST' : undefined),
@@ -116,10 +126,9 @@ const MeetingDetailPage: React.FC = () => {
   const locationState = location.state as { newEvent?: MeetingEvent; updatedEvent?: MeetingEvent; deletedEventId?: string; updatedMembers?: MeetingDetail['members'] } | null;
 
   // 상태 관리 및 커스텀 훅 사용 (store, mutation 등)
-  const { getMeetingByGroupId, toggleLikeByGroupId, joinMeeting, leaveMeeting, getEventsByGroupId, addEvent, updateEvent: updateEventInStore, deleteEvent: deleteEventInStore, initializeMockData: initializeMeetingMockData, isInitialized: isMeetingInitialized } = useMeetingStore();
+  const { getMeetingByGroupId, toggleLikeByGroupId, leaveMeeting, getEventsByGroupId, addEvent, updateEvent: updateEventInStore, deleteEvent: deleteEventInStore, initializeMockData: initializeMeetingMockData, isInitialized: isMeetingInitialized } = useMeetingStore();
   const { user, initializeMockData: initializeUserMockData, isInitialized: isUserInitialized } = useMyPageStore();
-  // 모임 가입/탈퇴, 이벤트 참여/취소 등 API 호출을 위한 커스텀 훅
-  const { mutate: joinMeetingApi, isPending: isJoining } = useJoinMeeting();
+  // 이벤트 참여/취소 등 API 호출을 위한 커스텀 훅
   const { mutate: leaveMeetingApi } = useLeaveMeeting();
   const { mutate: toggleLikeApi } = useToggleLikeMeeting();
   const { mutate: joinEventApi } = useJoinEvent(meetingId || '');
@@ -145,7 +154,6 @@ const MeetingDetailPage: React.FC = () => {
   // 주요 상태값 정의
   const [activeTab, setActiveTab] = useState<'home' | 'chat'>('home'); // 탭 상태(홈/채팅)
   const [isLiked, setIsLiked] = useState(storedMeeting?.isLiked || false); // 좋아요 상태
-  const [greeting, setGreeting] = useState(''); // 가입 인사 메시지
   const [activeModal, setActiveModal] = useState<ModalType>(null); // 현재 활성화된 모달
   const [selectedEvent, setSelectedEvent] = useState<{ id: string; title: string } | null>(null); // 선택된 이벤트
 
@@ -187,7 +195,7 @@ const MeetingDetailPage: React.FC = () => {
     }
     if (locationState.updatedEvent) {
       // 이벤트 정보 업데이트
-      updateEventInStore(meetingId, locationState.updatedEvent.eventId, locationState.updatedEvent);
+      updateEventInStore(String(meetingId), String(locationState.updatedEvent.eventId), locationState.updatedEvent);
       setMeeting(prev => ({
         ...prev,
         events: prev.events.map(e => e.eventId === locationState.updatedEvent!.eventId ? locationState.updatedEvent! : e),
@@ -259,7 +267,7 @@ const MeetingDetailPage: React.FC = () => {
         ...prev,
         events: prev.events.map(e =>
           e.eventId === selectedEvent.id
-            ? { ...e, participantCount: Math.max(0, e.participantCount - 1), participants: (e.participants || []).filter(p => p.userId !== user.userId) }
+            ? { ...e, participantCount: Math.max(0, (e.participantCount || 0) - 1), participants: (e.participants || []).filter(p => p.userId !== user.userId) }
             : e
         ),
       }));
@@ -281,7 +289,7 @@ const MeetingDetailPage: React.FC = () => {
         ...prev,
         events: prev.events.map(e =>
           e.eventId === selectedEvent.id
-            ? { ...e, participantCount: e.participantCount + 1, participants: [...(e.participants || []), { userId: user.userId, nickname: user.nickname, profileImage: user.profileImage, isHost: isHost }] }
+            ? { ...e, participantCount: (e.participantCount || 0) + 1, participants: [...(e.participants || []), { userId: user.userId, nickname: user.nickname, profileImage: user.profileImage, role: 'MEMBER', status: 'APPROVED' }] }
             : e
         ),
       }));
@@ -294,36 +302,11 @@ const MeetingDetailPage: React.FC = () => {
     });
   };
 
-  // 모임 참석(가입) API 호출 및 상태 동기화
-  const handleJoinMeeting = () => {
-    if (!user || !meetingId) return;
-    
-    const updateState = () => {
-      setMeeting(prev => ({
-        ...prev,
-        memberCount: prev.memberCount + 1,
-        members: [...prev.members, { userId: user.userId, nickname: user.nickname, profileImage: user.profileImage, role: 'MEMBER', status: 'APPROVED', joinedAt: new Date().toISOString() }],
-        myStatus: 'APPROVED',
-      }));
-      if (meetingId) joinMeeting(meetingId, 'MEMBER');
-      setGreeting('');
-      closeModal();
-    };
-
-    joinMeetingApi(
-      { groupId: meetingId, requestMessage: greeting },
-      {
-        onSuccess: updateState,
-        onError: updateState,
-      }
-    );
-  };
-
   // 신고 API 호출 핸들러
   const handleConfirmReport = async (content: string) => {
     try {
       await reportUser({
-        targetUserId: meeting.ownerUserId,
+        targetUserId: String(meeting.ownerUserId),
         reason: 'ABUSE',
         detail: content,
       });
@@ -346,7 +329,7 @@ const MeetingDetailPage: React.FC = () => {
           members: prev.members.filter(m => m.userId !== user.userId),
           myStatus: undefined,
         }));
-        leaveMeeting(meeting.groupId);
+        leaveMeeting(String(meeting.groupId));
         closeModal();
         navigate('/meetings');
       },
@@ -355,7 +338,7 @@ const MeetingDetailPage: React.FC = () => {
 
   // 이벤트 제목 클릭 시 이벤트 수정 페이지로 이동
   const handleEventTitleClick = (event: MeetingEvent) => {
-    navigate(`/meetings/${meetingId}/events/${event.eventId}/edit`, { state: { event } });
+    navigate(`/meetings/${meetingId}/events/${String(event.eventId)}/edit`, { state: { event } });
   };
 
   // 이벤트 참여/취소 액션 핸들러 (모달 오픈)
@@ -433,8 +416,8 @@ const MeetingDetailPage: React.FC = () => {
       {/* 참석하기 버튼 (비회원/비호스트만 노출) */}
       {!isHost && !isMember && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 w-full max-w-[398px] px-4">
-          <Button variant="primary" size="md" fullWidth onClick={handleJoinClick} disabled={isJoining}>
-            {isJoining ? '가입 중...' : '참석하기'}
+          <Button variant="primary" size="md" fullWidth onClick={handleJoinClick}>
+            참석하기
           </Button>
         </div>
       )}

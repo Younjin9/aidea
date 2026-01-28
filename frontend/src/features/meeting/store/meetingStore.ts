@@ -4,30 +4,32 @@ import type { MeetingUI, MeetingEvent } from '@/shared/types/Meeting.types';
 // Mock 초기 데이터 - myStatus, myRole 포함
 // Mock 이벤트 데이터
 export const MOCK_EVENTS: Record<string, MeetingEvent[]> = {
-  '1': [{
-    eventId: '1',
+  1: [{
+    eventId: 1,
     title: '성수 맛집 탐방',
+    date: '2025-02-15',
     scheduledAt: '2025-02-15 14:00',
     location: '성수역 2번 출구',
-    cost: '각자 계산',
+    cost: 0,
     maxParticipants: 10,
     participantCount: 2,
     participants: [
-      { userId: 'user1', nickname: '김구름', profileImage: undefined, isHost: true },
-      { userId: 'user2', nickname: '김구름2', profileImage: undefined },
+      { userId: 1, nickname: '김구름', profileImage: undefined, role: 'HOST', status: 'APPROVED', joinedAt: '2024-01-20' },
+      { userId: 2, nickname: '김구름2', profileImage: undefined, role: 'MEMBER', status: 'APPROVED', joinedAt: '2024-01-20' },
     ],
   }],
-  '2': [],
-  '3': [{
-    eventId: '2',
+  2: [],
+  3: [{
+    eventId: 2,
     title: '이번 달 독서 모임',
+    date: '2025-02-20',
     scheduledAt: '2025-02-20 19:00',
     location: '홍대 카페',
-    cost: '음료 각자',
+    cost: 0,
     maxParticipants: 8,
     participantCount: 1,
     participants: [
-      { userId: 'user1', nickname: '김구름', profileImage: undefined, isHost: true },
+      { userId: 1, nickname: '김구름', profileImage: undefined, role: 'HOST', status: 'APPROVED', joinedAt: '2024-01-20' },
     ],
   }],
 };
@@ -44,7 +46,7 @@ const MOCK_MEETINGS: MeetingUI[] = [
     maxMembers: 10,
     description: '우리와 함께 맛집을 탐방해보세요.',
     isLiked: false,
-    ownerUserId: 'user1',
+    ownerUserId: 1,
     myStatus: 'APPROVED',
     myRole: 'HOST',
   },
@@ -59,7 +61,7 @@ const MOCK_MEETINGS: MeetingUI[] = [
     maxMembers: 20,
     description: '함께 달려요!',
     isLiked: true,
-    ownerUserId: 'user2',
+    ownerUserId: 2,
     myStatus: undefined, // 미가입
     myRole: undefined,
   },
@@ -74,7 +76,7 @@ const MOCK_MEETINGS: MeetingUI[] = [
     maxMembers: 15,
     description: '함께 책을 읽어요.',
     isLiked: false,
-    ownerUserId: 'user1',
+    ownerUserId: 1,
     myStatus: 'APPROVED',
     myRole: 'HOST',
   },

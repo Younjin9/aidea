@@ -5,7 +5,6 @@ import meetingApi from '@/shared/api/meeting/meetingApi';
 import { useMeetingStore } from '../store/meetingStore';
 import { myPageKeys } from '@/features/mypage/hooks/useMyPage';
 import type { Meeting, MeetingUI, MeetingListParams, CreateMeetingRequest, UpdateMeetingRequest } from '@/shared/types/Meeting.types';
-import type { PaginatedResponse } from '@/shared/types/common.types';
 
 // ============================================
 // Helper Functions
@@ -89,6 +88,7 @@ export const useMeetings = (params: MeetingListParams = {}) => {
     isLoading,
     error,
     groupByCategory: groupByCategoryFn,
+    toggleLike: toggleLikeByGroupId,
     refetch,
   };
 };
@@ -229,7 +229,7 @@ export const useUpdateMeeting = () => {
       const response = await meetingApi.update(groupId, data);
       return response.data;
     },
-    onSuccess: (data, { groupId }) => {
+    onSuccess: (_, { groupId }) => {
       queryClient.invalidateQueries({ queryKey: meetingKeys.detail(groupId) });
       queryClient.invalidateQueries({ queryKey: meetingKeys.all });
       queryClient.invalidateQueries({ queryKey: myPageKeys.myMeetings() });
@@ -241,15 +241,17 @@ export const useUpdateMeeting = () => {
 };
 
 /**
- * 모임 이미지 수정
+ * 모임 이미지 수정 (API 준비 중)
  */
 export const useUpdateMeetingImage = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ groupId, image }: { groupId: string; image: File }) => {
-      const response = await meetingApi.updateImage(groupId, image);
-      return { groupId, imageUrl: response.data.imageUrl };
+    mutationFn: async (_params: { groupId: string; image: File }) => {
+      // TODO: API가 준비되면 활성화
+      // const response = await meetingApi.updateImage(groupId, image);
+      // return { groupId, imageUrl: response.data.imageUrl };
+      throw new Error('API not implemented yet');
     },
     onSuccess: ({ groupId }) => {
       queryClient.invalidateQueries({ queryKey: meetingKeys.detail(groupId) });
