@@ -107,6 +107,7 @@ export interface CreateMeetingRequest {
   rules?: string[];
   isPublic: boolean;
   image?: File;
+  imageUrl?: string;
 }
 
 export interface UpdateMeetingRequest {
