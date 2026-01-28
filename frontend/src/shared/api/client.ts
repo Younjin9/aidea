@@ -23,7 +23,7 @@ export const apiClient: AxiosInstance = axios.create({
 
 apiClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
-    const token = useAuthStore.getState().accessToken;
+    const token = useAuthStore.getState().accessToken || localStorage.getItem('accessToken');
     if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -58,7 +58,10 @@ apiClient.interceptors.response.use(
           );
 
           const { accessToken } = response.data.data;
+
+          // Store와 localStorage 동기화
           localStorage.setItem('accessToken', accessToken);
+          useAuthStore.setState({ accessToken, isAuthenticated: true });
 
           if (originalRequest.headers) {
             originalRequest.headers.Authorization = `Bearer ${accessToken}`;

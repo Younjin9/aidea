@@ -136,18 +136,23 @@ export const useCreateMeeting = () => {
       return response.data;
     },
     onSuccess: (data) => {
+      if (!data) {
+        console.error('모임 생성 성공했으나 데이터가 없습니다.');
+        return;
+      }
+
       addMeeting({
-        groupId: data.groupId.toString(),
+        groupId: data.groupId?.toString() || '',
         image: data.imageUrl || '',
-        title: data.title,
+        title: data.title || '',
         category: data.interestCategoryName || '카테고리',
         location: data.region || '위치 정보 없음',
-        members: data.memberCount,
-        maxMembers: data.maxMembers,
-        description: data.description,
-        date: data.createdAt,
+        members: data.currentMembers || 1,
+        maxMembers: data.maxMembers || 0,
+        description: data.description || '',
+        date: data.createdAt || new Date().toISOString(),
         isLiked: false,
-        ownerUserId: data.ownerUserId,
+        ownerUserId: data.creator?.userId || 0,
         myStatus: 'APPROVED',
         myRole: 'HOST',
       });
@@ -156,8 +161,11 @@ export const useCreateMeeting = () => {
       queryClient.invalidateQueries({ queryKey: myPageKeys.myMeetings() });
       navigate('/meetings');
     },
-    onError: (error) => {
+    onError: (error: any) => {
       console.warn('모임 생성 API 실패 (fallback 처리됨):', error);
+      if (error?.details) {
+        console.error('Validation Details:', JSON.stringify(error.details, null, 2));
+      }
     },
   });
 };

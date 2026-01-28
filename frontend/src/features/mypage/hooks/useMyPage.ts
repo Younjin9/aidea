@@ -76,7 +76,7 @@ export const useMyPage = () => {
   });
 
   // 찜한 모임 (API) - meetingApi.getLiked, 실패 시 store fallback
-  const { data: likedMeetingsData, error: likedMeetingsError } = useQuery({
+  const { data: likedMeetingsData, error: likedMeetingsError, refetch: refetchLikedMeetings } = useQuery({
     queryKey: myPageKeys.likedMeetings(),
     queryFn: async () => {
       const response = await meetingApi.getLiked();
@@ -122,5 +122,6 @@ export const useMyPage = () => {
 
     // Refetch
     refetchProfile,
+    refetchLikedMeetings,
   };
 };

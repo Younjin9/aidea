@@ -126,11 +126,17 @@ const MeetingCreatePage: React.FC = () => {
       createMeeting(
         {
           title: meetingName,
-          description,
+          description: description || shortDescription, // 상세 설명 없으면 한줄 설명 사용
           interestCategoryId: selectedCategoryId || '1',
           maxMembers: capacity,
-          location: { latitude: coords.lat, longitude: coords.lng, region },
+          // Flattened location fields
+          region: region.split(' ').slice(0, 2).join(' '), // "서울시 강남구" 등
+          location: region, // 전체 주소
+          latitude: coords.lat,
+          longitude: coords.lng,
           isPublic: true,
+          // 400 Error 대응: 서버(KST) 기준 미래 시간 전송
+          meetingDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('.')[0], // 7일 후 (초 단위까지 포함)
           imageUrl: finalImageUrl,
         },
         {
