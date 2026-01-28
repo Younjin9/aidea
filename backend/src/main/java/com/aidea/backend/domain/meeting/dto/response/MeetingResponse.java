@@ -1,6 +1,5 @@
 package com.aidea.backend.domain.meeting.dto.response;
 
-import com.aidea.backend.domain.meeting.entity.enums.MeetingCategory;
 import com.aidea.backend.domain.meeting.entity.enums.MeetingStatus;
 import com.aidea.backend.domain.meeting.entity.enums.Region;
 import lombok.Builder;
@@ -15,12 +14,12 @@ import java.time.LocalDateTime;
 @Builder
 public class MeetingResponse {
 
-    private Long meetingId;
+    private Long groupId; // meetingId -> groupId (Spec unified)
     private String title;
     private String description;
     private String imageUrl;
-    private MeetingCategory category;
-    private String categoryDisplayName;
+    private String interestCategoryId; // category -> interestCategoryId (Spec unified)
+    private String interestCategoryName; // categoryDisplayName -> interestCategoryName
     private Region region;
     private String regionFullName;
     private String location;
@@ -31,7 +30,7 @@ public class MeetingResponse {
     private Integer currentMembers;
     private LocalDateTime meetingDate;
     private MeetingStatus status;
-    private Boolean isApprovalRequired;
+    private Boolean isPublic; // Added isPublic
     private CreatorDto creator;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

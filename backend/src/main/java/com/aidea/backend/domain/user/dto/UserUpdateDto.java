@@ -13,6 +13,9 @@ public class UserUpdateDto {
     @Size(max = 50, message = "이름은 50자 이하여야 합니다.")
     private String nickname;
 
+    @Size(max = 200, message = "자기소개는 200자 이하여야 합니다.")
+    private String bio;
+
     @Size(max = 500, message = "프로필 이미지 URL은 500자 이하여야 합니다.")
     private String profileImage;
 

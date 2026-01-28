@@ -1,6 +1,7 @@
 import axios from 'axios';
 import type { AxiosInstance, AxiosError, InternalAxiosRequestConfig } from 'axios';
 import type { ApiResponse, ApiError } from '@/shared/types/common.types';
+import { useAuthStore } from '@/features/auth/store/authStore';
 
 // ============================================
 // 🌐 API Client Configuration
@@ -22,7 +23,7 @@ export const apiClient: AxiosInstance = axios.create({
 
 apiClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
-    const token = localStorage.getItem('accessToken');
+    const token = useAuthStore.getState().accessToken || localStorage.getItem('accessToken');
     if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -57,7 +58,10 @@ apiClient.interceptors.response.use(
           );
 
           const { accessToken } = response.data.data;
+
+          // Store와 localStorage 동기화
           localStorage.setItem('accessToken', accessToken);
+          useAuthStore.setState({ accessToken, isAuthenticated: true });
 
           if (originalRequest.headers) {
             originalRequest.headers.Authorization = `Bearer ${accessToken}`;
@@ -74,10 +78,12 @@ apiClient.interceptors.response.use(
     }
 
     // 에러 응답 포맷팅
+    // 에러 응답 포맷팅
+    const responseData = error.response?.data as any;
     const apiError: ApiError = {
-      code: error.response?.data?.error?.code || 'UNKNOWN_ERROR',
-      message: error.response?.data?.error?.message || '오류가 발생했습니다.',
-      details: error.response?.data?.error?.details,
+      code: responseData?.code || responseData?.error?.code || 'UNKNOWN_ERROR',
+      message: responseData?.message || responseData?.error?.message || '오류가 발생했습니다.',
+      details: responseData?.errors || responseData?.error?.details,
     };
 
     return Promise.reject(apiError);

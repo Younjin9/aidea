@@ -1,9 +1,8 @@
 package com.aidea.backend.domain.meeting.dto.request;
 
-import com.aidea.backend.domain.meeting.entity.enums.MeetingCategory;
-import com.aidea.backend.domain.meeting.entity.enums.Region;
 import jakarta.validation.constraints.*;
 import lombok.Getter;
+import lombok.Setter;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
@@ -12,6 +11,7 @@ import java.time.LocalDateTime;
  * 모임 생성 요청 DTO
  */
 @Getter
+@Setter // Added for @ModelAttribute binding
 @NoArgsConstructor
 public class CreateMeetingRequest {
 
@@ -23,10 +23,10 @@ public class CreateMeetingRequest {
     private String imageUrl;
 
     @NotNull(message = "카테고리는 필수입니다")
-    private MeetingCategory category;
+    private String interestCategoryId; // category -> interestCategoryId
 
     @NotNull(message = "지역은 필수입니다")
-    private Region region;
+    private String region;
 
     // 정모 상세 위치 (선택)
     private String location;
@@ -43,7 +43,11 @@ public class CreateMeetingRequest {
 
     @NotNull(message = "모임 날짜는 필수입니다")
     @Future(message = "과거 날짜는 선택할 수 없습니다")
+    @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE_TIME)
     private LocalDateTime meetingDate;
 
-    private Boolean isApprovalRequired;
+    private Boolean isPublic; // Added
+
+    // Spec mentions rules
+    private java.util.List<String> rules;
 }

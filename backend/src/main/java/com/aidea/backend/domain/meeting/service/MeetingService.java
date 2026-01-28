@@ -3,23 +3,34 @@ package com.aidea.backend.domain.meeting.service;
 import com.aidea.backend.domain.meeting.dto.request.CreateMeetingRequest;
 import com.aidea.backend.domain.meeting.dto.response.MeetingResponse;
 import com.aidea.backend.domain.meeting.dto.response.MeetingSummaryResponse;
+import com.aidea.backend.domain.meeting.dto.response.MeetingLikeResponse;
+import com.aidea.backend.domain.meeting.dto.response.LikedMeetingResponse;
 import com.aidea.backend.domain.meeting.entity.Meeting;
 import com.aidea.backend.domain.meeting.entity.MeetingMember;
+import com.aidea.backend.domain.meeting.entity.MeetingLike;
 import com.aidea.backend.domain.meeting.entity.enums.MemberRole;
 import com.aidea.backend.domain.meeting.entity.enums.MemberStatus;
 import com.aidea.backend.domain.meeting.repository.MeetingMemberRepository;
 import com.aidea.backend.domain.meeting.repository.MeetingRepository;
+import com.aidea.backend.domain.meeting.repository.MeetingLikeRepository;
 import com.aidea.backend.domain.user.entity.User;
 import com.aidea.backend.domain.user.repository.UserRepository;
+import com.aidea.backend.global.infra.s3.S3Service;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.util.List;
+import java.util.stream.Collectors;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * 모임 비즈니스 로직
  */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -28,6 +39,8 @@ public class MeetingService {
     private final MeetingRepository meetingRepository;
     private final MeetingMemberRepository meetingMemberRepository;
     private final UserRepository userRepository;
+    private final MeetingLikeRepository meetingLikeRepository;
+    private final S3Service s3Service;
 
     /**
      * 모임 생성
@@ -36,6 +49,11 @@ public class MeetingService {
      */
     @Transactional
     public MeetingResponse createMeeting(Long userId, CreateMeetingRequest request) {
+        log.info("=== 모임 생성 시작 ===");
+        log.info("Request: {}", request);
+        log.info("Category Code: {}", request.getInterestCategoryId());
+        log.info("Region: {}", request.getRegion());
+
         // 1. User 조회
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
@@ -45,16 +63,19 @@ public class MeetingService {
                 .title(request.getTitle())
                 .description(request.getDescription())
                 .imageUrl(request.getImageUrl())
-                .category(request.getCategory())
-                .region(request.getRegion())
+                .category(com.aidea.backend.domain.meeting.entity.enums.MeetingCategory
+                        .findByCode(request.getInterestCategoryId())) // String -> Enum
+                .region(com.aidea.backend.domain.meeting.entity.enums.Region.findByFullName(request.getRegion())) // String
+                                                                                                                  // ->
+                                                                                                                  // Enum
                 .location(request.getLocation())
                 .latitude(request.getLatitude())
                 .longitude(request.getLongitude())
                 .locationDetail(request.getLocationDetail())
                 .maxMembers(request.getMaxMembers())
                 .meetingDate(request.getMeetingDate())
-                .isApprovalRequired(request.getIsApprovalRequired())
-                .creator(user)
+                .isApprovalRequired(!request.getIsPublic()) // Assuming isPublic=true means approval not required
+                .creator(user) // Fix: Set creator
                 .build();
 
         Meeting savedMeeting = meetingRepository.save(meeting);
@@ -340,5 +361,97 @@ public class MeetingService {
         // 5. 퇴출 처리
         member.leave();
         meeting.decrementMembers();
+    }
+
+    // ========== 찜 기능 ==========
+
+    /**
+     * 모임 찜하기/찜 취소 (토글)
+     */
+    @Transactional
+    public MeetingLikeResponse toggleMeetingLike(Long meetingId, Long userId) {
+        log.info("찜 토글 요청: meetingId={}, userId={}", meetingId, userId);
+
+        // 1. 사용자와 모임 존재 확인
+        userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
+
+        Meeting meeting = meetingRepository.findById(meetingId)
+                .orElseThrow(() -> new RuntimeException("모임을 찾을 수 없습니다."));
+
+        // 2. 기존 찜 여부 확인
+        var existingLike = meetingLikeRepository.findByUser_UserIdAndMeeting_Id(userId, meetingId);
+
+        if (existingLike.isPresent()) {
+            // 찜 취소
+            meetingLikeRepository.delete(existingLike.get());
+
+            return MeetingLikeResponse.builder()
+                    .isLiked(false)
+                    .likeCount((long) meetingLikeRepository.countByMeeting_Id(meetingId))
+                    .message("찜을 취소했습니다.")
+                    .build();
+        } else {
+            // 찜하기
+            User user = userRepository.getReferenceById(userId);
+            MeetingLike meetingLike = MeetingLike.builder()
+                    .user(user)
+                    .meeting(meeting)
+                    .build();
+            meetingLikeRepository.save(meetingLike);
+
+            return MeetingLikeResponse.builder()
+                    .isLiked(true)
+                    .likeCount((long) meetingLikeRepository.countByMeeting_Id(meetingId))
+                    .message("찜했습니다.")
+                    .build();
+        }
+    }
+
+    /**
+     * 찜한 모임 목록 조회
+     */
+    @Transactional(readOnly = true)
+    public List<LikedMeetingResponse> getLikedMeetings(Long userId) {
+        log.info("찜한 모임 목록 조회: userId={}", userId);
+
+        List<MeetingLike> likes = meetingLikeRepository.findByUser_UserIdOrderByCreatedAtDesc(userId);
+
+        return likes.stream()
+                .map(like -> LikedMeetingResponse.builder()
+                        .meetingLikeId(like.getMeetingLikeId())
+                        .meeting(like.getMeeting().toResponse())
+                        .likedAt(like.getCreatedAt())
+                        .build())
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * 특정 모임의 찜 상태 확인
+     */
+    @Transactional(readOnly = true)
+    public MeetingLikeResponse getLikeStatus(Long meetingId, Long userId) {
+        boolean isLiked = meetingLikeRepository.existsByUser_UserIdAndMeeting_Id(userId, meetingId);
+        long likeCount = meetingLikeRepository.countByMeeting_Id(meetingId);
+
+        return MeetingLikeResponse.builder()
+                .isLiked(isLiked)
+                .likeCount(likeCount)
+                .build();
+    }
+
+    /**
+     * 모임의 총 찜 개수 조회
+     */
+    @Transactional(readOnly = true)
+    public long getLikeCount(Long meetingId) {
+        return meetingLikeRepository.countByMeeting_Id(meetingId);
+    }
+
+    /**
+     * 모임 이미지 업로드
+     */
+    public String uploadMeetingImage(MultipartFile image) {
+        return s3Service.uploadFile(image, "meeting-images");
     }
 }

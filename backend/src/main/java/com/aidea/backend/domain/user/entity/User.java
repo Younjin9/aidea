@@ -34,6 +34,9 @@ public class User {
     @Column(nullable = false, length = 50)
     private String nickname;
 
+    @Column(length = 200)
+    private String bio;
+
     @Column(name = "phone_number", length = 20)
     private String phoneNumber;
 
@@ -86,9 +89,10 @@ public class User {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
-    public User update(String nickname, String profileImage, String phoneNumber, 
-                     String gender, String location, Double latitude, Double longitude) {
+    public User update(String nickname, String bio, String profileImage, String phoneNumber,
+            String gender, String location, Double latitude, Double longitude) {
         this.nickname = nickname;
+        this.bio = bio;
         this.profileImage = profileImage;
         this.phoneNumber = phoneNumber;
         this.gender = gender;

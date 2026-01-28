@@ -11,7 +11,8 @@ export const chatApi = {
 
   // 2. 채팅 메시지 조회
   getMessages: async (meetingId: number): Promise<ChatMessageListResponse> => {
-    const response = await apiClient.get<ChatMessageListResponse>(`/api/chat/rooms/${meetingId}`);
+    // Backend: /api/chat/meetings/{meetingId}/messages
+    const response = await apiClient.get<ChatMessageListResponse>(`/api/chat/meetings/${meetingId}/messages`);
     return response as unknown as ChatMessageListResponse;
   },
 

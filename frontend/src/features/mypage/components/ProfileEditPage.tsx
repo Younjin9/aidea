@@ -14,15 +14,6 @@ const ProfileEditPage: React.FC = () => {
 
   const user = useMyPageStore((state) => state.user);
   const updateUser = useMyPageStore((state) => state.updateUser);
-  const initializeMockData = useMyPageStore((state) => state.initializeMockData);
-  const isInitialized = useMyPageStore((state) => state.isInitialized);
-
-  // Mock 데이터 초기화
-  useEffect(() => {
-    if (!isInitialized) {
-      initializeMockData();
-    }
-  }, [isInitialized, initializeMockData]);
 
   const [name, setName] = useState('');
   const [bio, setBio] = useState('');
@@ -30,12 +21,13 @@ const ProfileEditPage: React.FC = () => {
   const [selectedInterests, setSelectedInterests] = useState<string[]>([]);
   const [profileImage, setProfileImage] = useState<string | undefined>(undefined);
   const [profileImageFile, setProfileImageFile] = useState<File | null>(null);
-  const [coords, setCoords] = useState({ lat: 0, lng: 0 });
+  const [coords, setCoords] = useState({ latitude: 0, longitude: 0 });
   const [showSearchModal, setShowSearchModal] = useState(false);
+  const hasInitialized = useRef(false);
 
   // 유저 데이터가 있으면 초기값 설정
   useEffect(() => {
-    if (user) {
+    if (user && !hasInitialized.current) {
       // 비동기 큐에 넣어 렌더링 경고를 회피
       setTimeout(() => {
         setName(user.nickname || '');
@@ -43,6 +35,15 @@ const ProfileEditPage: React.FC = () => {
         setRegion(user.location?.region || '');
         setSelectedInterests(user.interests || []);
         setProfileImage(user.profileImage);
+
+        // 기존 좌표가 있으면 초기값으로 설정
+        if (user.location) {
+          setCoords({
+            latitude: user.location.latitude || 0,
+            longitude: user.location.longitude || 0,
+          });
+        }
+        hasInitialized.current = true;
       }, 0);
     }
   }, [user]);
@@ -57,45 +58,44 @@ const ProfileEditPage: React.FC = () => {
 
   const handleSave = async () => {
     try {
-      const location = { lat: coords.lat, lng: coords.lng, region };
+      const location = { latitude: coords.latitude, longitude: coords.longitude, region };
 
-      // 프로필 정보 업데이트
+      // 1. 프로필 정보 업데이트
       await userApi.updateProfile({
         nickname: name,
         bio,
       });
 
-      // 위치 업데이트
+      // 2. 위치 업데이트
       await userApi.updateLocation(location);
 
-      // 관심사 업데이트 (별도 API)
-      if (selectedInterests.length > 0) {
-        await userApi.updateUserInterests(selectedInterests);
-      }
+      // 3. 관심사 업데이트 (항상 호출하여 빈 리스트도 반영되도록 함)
+      await userApi.updateUserInterests(selectedInterests);
 
-      // 프로필 이미지 업데이트 (파일이 있는 경우만)
+      // 4. 프로필 이미지 업데이트 (파일이 있는 경우만)
       if (profileImageFile) {
         await userApi.updateProfileImage(profileImageFile);
       }
 
-      updateUser({
-        nickname: name,
-        bio,
-        profileImage,
-        interests: selectedInterests,
-        location,
-      });
+      // 5. 서버에서 최신 프로필 정보를 가져와서 스토어 업데이트
+      const response = await userApi.getMyProfile();
+      if (response.success) {
+        updateUser(response.data);
+      }
 
       navigate(-1);
     } catch (error) {
       console.error('프로필 저장 실패:', error);
       // 서버 연결 실패 시에도 로컬에 임시 반영 (조용한 폴백)
+      alert('프로필 저장 중 오류가 발생했습니다.');
+
+      // 서버 연결 실패 시에도 로컬에 임시 반영 (폴백)
       updateUser({
         nickname: name,
         bio,
         profileImage,
         interests: selectedInterests,
-        location: { lat: coords.lat, lng: coords.lng, region },
+        location: { latitude: coords.latitude, longitude: coords.longitude, region },
       });
 
       navigate(-1);
@@ -134,7 +134,7 @@ const ProfileEditPage: React.FC = () => {
     navigator.geolocation.getCurrentPosition(
       (position) => {
         const { latitude, longitude } = position.coords;
-        setCoords({ lat: latitude, lng: longitude });
+        setCoords({ latitude, longitude });
 
         const geocoder = new kakao.maps.services.Geocoder();
         const coord = new kakao.maps.LatLng(latitude, longitude);
@@ -157,9 +157,9 @@ const ProfileEditPage: React.FC = () => {
     );
   };
 
-  const handleSelectLocation = (location: { address: string; lat: number; lng: number }) => {
+  const handleSelectLocation = (location: { address: string; latitude: number; longitude: number }) => {
     setRegion(location.address);
-    setCoords({ lat: location.lat, lng: location.lng });
+    setCoords({ latitude: location.latitude, longitude: location.longitude });
   };
 
   return (
@@ -265,8 +265,8 @@ const ProfileEditPage: React.FC = () => {
                     key={item}
                     onClick={() => handleInterestToggle(item)}
                     className={`px-3 py-1.5 rounded-full text-xs font-medium transition ${selectedInterests.includes(item)
-                        ? 'bg-primary text-white'
-                        : 'bg-gray-100 text-gray-700'
+                      ? 'bg-primary text-white'
+                      : 'bg-gray-100 text-gray-700'
                       }`}
                   >
                     {item}

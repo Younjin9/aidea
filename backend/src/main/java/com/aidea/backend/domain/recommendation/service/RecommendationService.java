@@ -6,6 +6,10 @@ import com.aidea.backend.domain.meeting.entity.Meeting;
 import com.aidea.backend.domain.meeting.entity.enums.MeetingStatus;
 import com.aidea.backend.domain.meeting.repository.MeetingRepository;
 import com.aidea.backend.domain.recommendation.dto.MeetingRecommendationDto;
+import com.aidea.backend.domain.recommendation.dto.RecommendedMeetingResponse;
+import com.aidea.backend.domain.recommendation.dto.RecommendedMeetingCardResponse;
+import com.aidea.backend.domain.recommendation.repository.HobbyVectorRepository;
+import com.aidea.backend.domain.recommendation.repository.MySqlRecommendationRepository;
 import com.aidea.backend.domain.user.entity.User;
 import com.aidea.backend.domain.user.entity.UserInterest;
 import com.aidea.backend.domain.user.repository.UserInterestRepository;
@@ -17,13 +21,17 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
+import java.util.Objects;
 
 /**
  * 모임 추천 서비스
- * 규칙 기반(Rule-Based) 추천 로직을 제공합니다.
+ * - develop: 규칙 기반(Rule-Based) 추천
+ * - mingyu: MVP(취미 벡터 TOP-K 기반) 추천
  */
 @Slf4j
 @Service
@@ -31,188 +39,223 @@ import java.util.stream.Collectors;
 @Transactional(readOnly = true)
 public class RecommendationService {
 
-  private final UserRepository userRepository;
-  private final MeetingRepository meetingRepository;
-  private final UserInterestRepository userInterestRepository;
+    // ✅ develop 쪽 의존성
+    private final UserRepository userRepository;
+    private final MeetingRepository meetingRepository;
+    private final UserInterestRepository userInterestRepository;
 
-  // 가중치 상수
-  private static final double INTEREST_WEIGHT = 40.0;
-  private static final double LOCATION_WEIGHT = 30.0;
-  private static final double POPULARITY_WEIGHT = 20.0;
-  private static final double FRESHNESS_WEIGHT = 10.0;
+    // ✅ mingyu(MVP) 쪽 의존성 (브랜치에 이미 repo가 있다면 컴파일 OK)
+    private final MySqlRecommendationRepository mySqlRepo;
+    private final HobbyVectorRepository hobbyVectorRepo;
 
-  // 최소 추천 점수
-  private static final double MIN_SCORE_THRESHOLD = 20.0;
+    // 가중치 상수 (develop)
+    private static final double INTEREST_WEIGHT = 40.0;
+    private static final double LOCATION_WEIGHT = 30.0;
+    private static final double POPULARITY_WEIGHT = 20.0;
+    private static final double FRESHNESS_WEIGHT = 10.0;
+    private static final double MIN_SCORE_THRESHOLD = 20.0;
 
-  /**
-   * 사용자에게 추천할 모임 목록을 반환합니다.
-   * 
-   * @param email 사용자 이메일
-   * @param limit 반환할 최대 개수
-   * @return 추천 모임 목록
-   */
-  public List<MeetingSummaryResponse> getRecommendedMeetings(String email, int limit) {
-    User user = userRepository.findByEmail(email)
-        .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다: " + email));
+    /**
+     * ✅ develop: 로그인 유저(email) 기반 추천 모임 목록 반환
+     */
+    public List<MeetingSummaryResponse> getRecommendedMeetings(String email, int limit) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다: " + email));
 
-    // 모집 중인 모임만 조회
-    List<Meeting> allMeetings = meetingRepository.findAll().stream()
-        .filter(meeting -> meeting.getStatus() == MeetingStatus.RECRUITING)
-        .filter(meeting -> !meeting.isFull())
-        .collect(Collectors.toList());
+        List<Meeting> allMeetings = meetingRepository.findAll().stream()
+                .filter(meeting -> meeting.getStatus() == MeetingStatus.RECRUITING)
+                .filter(meeting -> !meeting.isFull())
+                .collect(Collectors.toList());
 
-    if (allMeetings.isEmpty()) {
-      log.info("추천 가능한 모임이 없습니다.");
-      return Collections.emptyList();
+        if (allMeetings.isEmpty()) {
+            log.info("추천 가능한 모임이 없습니다.");
+            return Collections.emptyList();
+        }
+
+        List<MeetingRecommendationDto> recommendations = allMeetings.stream()
+                .map(meeting -> {
+                    double score = calculateScore(user, meeting);
+                    String reason = buildRecommendationReason(user, meeting);
+                    return MeetingRecommendationDto.builder()
+                            .meeting(meeting)
+                            .score(score)
+                            .reason(reason)
+                            .build();
+                })
+                .filter(dto -> dto.getScore() >= MIN_SCORE_THRESHOLD)
+                .sorted()
+                .limit(limit)
+                .collect(Collectors.toList());
+
+        log.info("사용자 {}에게 {} 개의 모임을 추천합니다.", email, recommendations.size());
+
+        return recommendations.stream()
+                .map(dto -> dto.getMeeting().toSummary())
+                .collect(Collectors.toList());
     }
 
-    // 각 모임에 대해 점수 계산
-    List<MeetingRecommendationDto> recommendations = allMeetings.stream()
-        .map(meeting -> {
-          double score = calculateScore(user, meeting);
-          String reason = buildRecommendationReason(user, meeting);
-          return MeetingRecommendationDto.builder()
-              .meeting(meeting)
-              .score(score)
-              .reason(reason)
-              .build();
-        })
-        .filter(dto -> dto.getScore() >= MIN_SCORE_THRESHOLD)
-        .sorted() // Comparable 구현에 의해 점수 높은 순 정렬
-        .limit(limit)
-        .collect(Collectors.toList());
+    /**
+     * ✅ mingyu: nickname 기반 추천 (테스트/데모용 MVP)
+     * - Postgres(벡터): 유저 취미 평균 벡터 기준 TOP-K 취미 추출
+     * - MySQL: TOP-K 취미에 연결된 모임 조회
+     */
+    @Transactional(readOnly = true)
+    public List<RecommendedMeetingCardResponse> recommendMeetingsByNickname(String nickname, int topK, int limit) {
+        Long userId = mySqlRepo.findUserIdByNickname(nickname);
+        List<Long> selectedHobbyIds = mySqlRepo.findSelectedHobbyIdsByUserId(userId);
 
-    log.info("사용자 {}에게 {} 개의 모임을 추천합니다.", email, recommendations.size());
+        if (selectedHobbyIds == null || selectedHobbyIds.isEmpty()) {
+            return List.of();
+        }
 
-    return recommendations.stream()
-        .map(dto -> dto.getMeeting().toSummary())
-        .collect(Collectors.toList());
-  }
+        // 1) 후보 취미 TopK 뽑기 (기존 로직 유지)
+        List<Map<String, Object>> topHobbies =
+                hobbyVectorRepo.findTopHobbiesByUserVector(selectedHobbyIds, topK);
 
-  /**
-   * 개별 모임에 대한 총 추천 점수를 계산합니다.
-   */
-  private double calculateScore(User user, Meeting meeting) {
-    double interestScore = calculateInterestScore(user, meeting);
-    double locationScore = calculateLocationScore(user, meeting);
-    double popularityScore = calculatePopularityScore(meeting);
-    double freshnessScore = calculateFreshnessScore(meeting);
+        List<Long> candidateHobbyIds = new ArrayList<>();
+        for (Map<String, Object> row : topHobbies) {
+            candidateHobbyIds.add(((Number) row.get("hobby_id")).longValue());
+        }
+        if (candidateHobbyIds.isEmpty()) return List.of();
 
-    return interestScore + locationScore + popularityScore + freshnessScore;
-  }
+        // 2) 후보 취미에 해당하는 meetingIds
+        List<Long> meetingIds = mySqlRepo.findMeetingIdsByHobbyIds(candidateHobbyIds);
 
-  /**
-   * 관심사 매칭 점수 (최대 40점)
-   */
-  private double calculateInterestScore(User user, Meeting meeting) {
-    List<UserInterest> userInterests = userInterestRepository.findAll().stream()
-        .filter(ui -> ui.getUser().getUserId().equals(user.getUserId()))
-        .collect(Collectors.toList());
+        if (meetingIds == null || meetingIds.isEmpty()) return List.of();
 
-    if (userInterests.isEmpty()) {
-      return 0.0;
+        // 3) meetingId -> (meeting이 가진 hobbyIds)까지 같이 가져와서 score/reason 계산
+        //    아래 메서드는 다음 스텝에서 추가할 거야.
+        Map<Long, List<Long>> meetingToHobbyIds = mySqlRepo.findHobbyIdsGroupedByMeetingIds(meetingIds);
+
+        // 4) Meeting 엔티티 조회 (MeetingRepository 필요)
+        List<Meeting> meetings = meetingRepository.findAllById(meetingIds);
+
+        // 5) 카드 응답 생성
+        return meetings.stream()
+                .distinct()
+                .limit(limit)
+                .map(meeting -> {
+                    List<Long> meetingHobbyIds = meetingToHobbyIds.getOrDefault(meeting.getId(), List.of());
+
+                    // score = (겹치는 취미 수 / 유저 선택 취미 수)
+                    List<Long> matchedHobbyIds = meetingHobbyIds.stream()
+                            .filter(selectedHobbyIds::contains)
+                            .toList();
+
+                    long overlapCount = matchedHobbyIds.size();
+                    double score = (double) overlapCount / (double) selectedHobbyIds.size();
+
+                    // ✅ hobby_id -> hobby_name 변환
+                    Map<Long, String> hobbyNameMap = mySqlRepo.findHobbyNamesByIds(matchedHobbyIds);
+
+                    List<String> matchedHobbyNames = matchedHobbyIds.stream()
+                            .map(hobbyNameMap::get)
+                            .filter(Objects::nonNull)
+                            .toList();
+
+                    // ✅ reason 생성
+                    String reason;
+                    if (matchedHobbyNames.isEmpty()) {
+                        reason = "관심사 기반으로 추천된 모임이에요";
+                    } else {
+                        reason = "선택한 취미 중 "
+                                + String.join(", ", matchedHobbyNames)
+                                + "와(과) 잘 맞는 모임이에요";
+                    }
+
+                    return new RecommendedMeetingCardResponse(
+                            meeting.getId(),
+                            meeting.getTitle(),
+                            meeting.getCategory().name(),
+                            meeting.getRegion().name(),
+                            meeting.getCurrentMembers(),
+                            meeting.getMaxMembers(),
+                            score,
+                            reason
+                    );
+                })
+                .filter(card -> card.getScore() > 0)  
+                .sorted((a, b) -> Double.compare(b.getScore(), a.getScore()))
+                .limit(limit)
+                .toList();
     }
 
-    double maxScore = 0.0;
+    // ---------- develop 내부 점수 계산 로직 ----------
 
-    for (UserInterest userInterest : userInterests) {
-      Interest interest = userInterest.getInterest();
-      double score = 0.0;
-
-      // 1. 카테고리 완전 일치 (40점)
-      if (interest.getCategory() != null &&
-          interest.getCategory().equalsIgnoreCase(meeting.getCategory().name())) {
-        score = INTEREST_WEIGHT;
-      }
-      // 2. 제목 또는 설명에 관심사 이름 포함 (20점)
-      else if (meeting.getTitle().contains(interest.getInterestName()) ||
-          (meeting.getDescription() != null && meeting.getDescription().contains(interest.getInterestName()))) {
-        score = INTEREST_WEIGHT / 2.0;
-      }
-
-      maxScore = Math.max(maxScore, score);
+    private double calculateScore(User user, Meeting meeting) {
+        double interestScore = calculateInterestScore(user, meeting);
+        double locationScore = calculateLocationScore(user, meeting);
+        double popularityScore = calculatePopularityScore(meeting);
+        double freshnessScore = calculateFreshnessScore(meeting);
+        return interestScore + locationScore + popularityScore + freshnessScore;
     }
 
-    return maxScore;
-  }
+    private double calculateInterestScore(User user, Meeting meeting) {
+        List<UserInterest> userInterests = userInterestRepository.findAll().stream()
+                .filter(ui -> ui.getUser().getUserId().equals(user.getUserId()))
+                .collect(Collectors.toList());
 
-  /**
-   * 지역 근접도 점수 (최대 30점)
-   */
-  private double calculateLocationScore(User user, Meeting meeting) {
-    if (user.getLocation() == null || meeting.getRegion() == null) {
-      return 0.0;
+        if (userInterests.isEmpty()) return 0.0;
+
+        double maxScore = 0.0;
+
+        for (UserInterest userInterest : userInterests) {
+            Interest interest = userInterest.getInterest();
+            double score = 0.0;
+
+            if (interest.getCategory() != null &&
+                    interest.getCategory().equalsIgnoreCase(meeting.getCategory().name())) {
+                score = INTEREST_WEIGHT;
+            } else if (meeting.getTitle().contains(interest.getInterestName()) ||
+                    (meeting.getDescription() != null && meeting.getDescription().contains(interest.getInterestName()))) {
+                score = INTEREST_WEIGHT / 2.0;
+            }
+
+            maxScore = Math.max(maxScore, score);
+        }
+
+        return maxScore;
     }
 
-    // 사용자 위치에서 Region 추출 (간단한 문자열 매칭)
-    String userLocation = user.getLocation().toUpperCase();
-    String meetingRegion = meeting.getRegion().name();
+    private double calculateLocationScore(User user, Meeting meeting) {
+        if (user.getLocation() == null || meeting.getRegion() == null) return 0.0;
 
-    // 완전 일치 (30점)
-    if (userLocation.contains(meetingRegion.replace("_", " "))) {
-      return LOCATION_WEIGHT;
+        String userLocation = user.getLocation().toUpperCase();
+        String meetingRegion = meeting.getRegion().name();
+
+        if (userLocation.contains(meetingRegion.replace("_", " "))) return LOCATION_WEIGHT;
+        if (userLocation.contains("SEOUL") && meetingRegion.startsWith("SEOUL")) return LOCATION_WEIGHT / 2.0;
+
+        return 0.0;
     }
 
-    // 서울 내 다른 구 (15점)
-    if (userLocation.contains("SEOUL") && meetingRegion.startsWith("SEOUL")) {
-      return LOCATION_WEIGHT / 2.0;
+    private double calculatePopularityScore(Meeting meeting) {
+        if (meeting.getMaxMembers() == 0) return 0.0;
+        double ratio = (double) meeting.getCurrentMembers() / meeting.getMaxMembers();
+        return ratio * POPULARITY_WEIGHT;
     }
 
-    return 0.0;
-  }
-
-  /**
-   * 인기도 점수 (최대 20점)
-   */
-  private double calculatePopularityScore(Meeting meeting) {
-    if (meeting.getMaxMembers() == 0) {
-      return 0.0;
+    private double calculateFreshnessScore(Meeting meeting) {
+        if (meeting.getCreatedAt() == null) return 0.0;
+        long daysSinceCreation = ChronoUnit.DAYS.between(meeting.getCreatedAt(), LocalDateTime.now());
+        return Math.max(0, FRESHNESS_WEIGHT - daysSinceCreation);
     }
 
-    double ratio = (double) meeting.getCurrentMembers() / meeting.getMaxMembers();
-    return ratio * POPULARITY_WEIGHT;
-  }
+    private String buildRecommendationReason(User user, Meeting meeting) {
+        StringBuilder reason = new StringBuilder();
 
-  /**
-   * 신선도 점수 (최대 10점)
-   */
-  private double calculateFreshnessScore(Meeting meeting) {
-    if (meeting.getCreatedAt() == null) {
-      return 0.0;
+        double interestScore = calculateInterestScore(user, meeting);
+        if (interestScore > 0) reason.append("관심사 일치(").append(String.format("%.1f", interestScore)).append("점) ");
+
+        double locationScore = calculateLocationScore(user, meeting);
+        if (locationScore > 0) reason.append("지역 근접(").append(String.format("%.1f", locationScore)).append("점) ");
+
+        double popularityScore = calculatePopularityScore(meeting);
+        if (popularityScore > 0) reason.append("인기도(").append(String.format("%.1f", popularityScore)).append("점) ");
+
+        double freshnessScore = calculateFreshnessScore(meeting);
+        if (freshnessScore > 0) reason.append("신규(").append(String.format("%.1f", freshnessScore)).append("점)");
+
+        return reason.toString().trim();
     }
-
-    long daysSinceCreation = ChronoUnit.DAYS.between(meeting.getCreatedAt(), LocalDateTime.now());
-    double score = Math.max(0, FRESHNESS_WEIGHT - daysSinceCreation);
-
-    return score;
-  }
-
-  /**
-   * 추천 이유를 생성합니다 (디버깅용)
-   */
-  private String buildRecommendationReason(User user, Meeting meeting) {
-    StringBuilder reason = new StringBuilder();
-
-    double interestScore = calculateInterestScore(user, meeting);
-    if (interestScore > 0) {
-      reason.append("관심사 일치(").append(String.format("%.1f", interestScore)).append("점) ");
-    }
-
-    double locationScore = calculateLocationScore(user, meeting);
-    if (locationScore > 0) {
-      reason.append("지역 근접(").append(String.format("%.1f", locationScore)).append("점) ");
-    }
-
-    double popularityScore = calculatePopularityScore(meeting);
-    if (popularityScore > 0) {
-      reason.append("인기도(").append(String.format("%.1f", popularityScore)).append("점) ");
-    }
-
-    double freshnessScore = calculateFreshnessScore(meeting);
-    if (freshnessScore > 0) {
-      reason.append("신규(").append(String.format("%.1f", freshnessScore)).append("점)");
-    }
-
-    return reason.toString().trim();
-  }
 }
