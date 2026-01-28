@@ -241,15 +241,17 @@ export const useUpdateMeeting = () => {
 };
 
 /**
- * 모임 이미지 수정
+ * 모임 이미지 수정 (API 준비 중)
  */
 export const useUpdateMeetingImage = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ groupId, image }: { groupId: string; image: File }) => {
-      const response = await meetingApi.updateImage(groupId, image);
-      return { groupId, imageUrl: response.data.imageUrl };
+    mutationFn: async (_params: { groupId: string; image: File }) => {
+      // TODO: API가 준비되면 활성화
+      // const response = await meetingApi.updateImage(groupId, image);
+      // return { groupId, imageUrl: response.data.imageUrl };
+      throw new Error('API not implemented yet');
     },
     onSuccess: ({ groupId }) => {
       queryClient.invalidateQueries({ queryKey: meetingKeys.detail(groupId) });
