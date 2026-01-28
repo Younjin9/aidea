@@ -19,7 +19,7 @@ export interface User {
   phoneNumber?: string;
   birthDate?: string;
   gender?: Gender;
-  location?: Location | { lat: number; lng: number; region: string };
+  location?: Location | { latitude: number; longitude: number; region: string };
   interests?: string[];
   provider?: Provider;
   providerId?: string;
