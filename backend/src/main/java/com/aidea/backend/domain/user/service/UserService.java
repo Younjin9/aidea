@@ -63,23 +63,7 @@ public class UserService {
                 User savedUser = userRepository.save(user);
                 log.info("회원가입 완료: userId={}", savedUser.getUserId());
 
-                return new UserResponse(
-                                String.valueOf(savedUser.getUserId()),
-                                savedUser.getEmail(),
-                                savedUser.getNickname(),
-                                savedUser.getBio(),
-                                savedUser.getPhoneNumber(),
-                                savedUser.getBirthDate(),
-                                savedUser.getGender(),
-                                savedUser.getProfileImage(),
-                                new UserResponse.Location(
-                                                savedUser.getLatitude(),
-                                                savedUser.getLongitude(),
-                                                savedUser.getLocation()),
-                                savedUser.getProvider().name(),
-                                java.util.Collections.emptyList(),
-                                savedUser.getCreatedAt(),
-                                savedUser.getUpdatedAt());
+                return convertToUserResponse(savedUser);
         }
 
         @Transactional(readOnly = true)
@@ -104,23 +88,7 @@ public class UserService {
                                 .build();
                 refreshTokenRepository.save(refreshTokenEntity);
 
-                UserResponse userResponse = new UserResponse(
-                                String.valueOf(user.getUserId()),
-                                user.getEmail(),
-                                user.getNickname(),
-                                user.getBio(),
-                                user.getPhoneNumber(),
-                                user.getBirthDate(),
-                                user.getGender(),
-                                user.getProfileImage(),
-                                new UserResponse.Location(
-                                                user.getLatitude(),
-                                                user.getLongitude(),
-                                                user.getLocation()),
-                                user.getProvider().name(),
-                                java.util.Collections.emptyList(),
-                                user.getCreatedAt(),
-                                user.getUpdatedAt());
+                UserResponse userResponse = convertToUserResponse(user);
                 log.info("로그인 성공: email={}", dto.getEmail());
                 return new LoginResponse(accessToken, refreshToken, userResponse);
         }
@@ -155,23 +123,7 @@ public class UserService {
                 User user = userRepository.findByEmail(email)
                                 .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
 
-                UserResponse userResponse = new UserResponse(
-                                String.valueOf(user.getUserId()),
-                                user.getEmail(),
-                                user.getNickname(),
-                                user.getBio(),
-                                user.getPhoneNumber(),
-                                user.getBirthDate(),
-                                user.getGender(),
-                                user.getProfileImage(),
-                                new UserResponse.Location(
-                                                user.getLatitude(),
-                                                user.getLongitude(),
-                                                user.getLocation()),
-                                user.getProvider().name(),
-                                java.util.Collections.emptyList(),
-                                user.getCreatedAt(),
-                                user.getUpdatedAt());
+                UserResponse userResponse = convertToUserResponse(user);
 
                 return new TokenRefreshResponse(newAccessToken, newRefreshToken, 1800, userResponse);
         }
@@ -207,23 +159,7 @@ public class UserService {
                 User user = userRepository.findByEmail(email)
                                 .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
 
-                return new UserResponse(
-                                String.valueOf(user.getUserId()),
-                                user.getEmail(),
-                                user.getNickname(),
-                                user.getBio(),
-                                user.getPhoneNumber(),
-                                user.getBirthDate(),
-                                user.getGender(),
-                                user.getProfileImage(),
-                                new UserResponse.Location(
-                                                user.getLatitude(),
-                                                user.getLongitude(),
-                                                user.getLocation()),
-                                user.getProvider().name(),
-                                java.util.Collections.emptyList(),
-                                user.getCreatedAt(),
-                                user.getUpdatedAt());
+                return convertToUserResponse(user);
         }
 
         @Transactional
@@ -247,23 +183,7 @@ public class UserService {
 
                 User updatedUser = userRepository.save(user);
 
-                return new UserResponse(
-                                String.valueOf(updatedUser.getUserId()),
-                                updatedUser.getEmail(),
-                                updatedUser.getNickname(),
-                                updatedUser.getBio(),
-                                updatedUser.getPhoneNumber(),
-                                updatedUser.getBirthDate(),
-                                updatedUser.getGender(),
-                                updatedUser.getProfileImage(),
-                                new UserResponse.Location(
-                                                updatedUser.getLatitude(),
-                                                updatedUser.getLongitude(),
-                                                updatedUser.getLocation()),
-                                updatedUser.getProvider().name(),
-                                java.util.Collections.emptyList(),
-                                updatedUser.getCreatedAt(),
-                                updatedUser.getUpdatedAt());
+                return convertToUserResponse(updatedUser);
         }
 
         @Transactional
@@ -290,17 +210,10 @@ public class UserService {
                 User user = userRepository.findByEmail(email)
                                 .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
 
-                log.info("==============================");
-                log.info("유저 정보: {}, lat: {}, lon: {}, region: {}", user.toString(), dto.getLatitude(),
-                                dto.getLongitude(), dto.getRegion());
-                log.info("==============================");
-
                 user.setLatitude(dto.getLatitude());
                 user.setLongitude(dto.getLongitude());
                 user.setLocation(dto.getRegion());
                 user.setLocationUpdatedAt(java.time.LocalDateTime.now());
-
-                log.info("lat: {}, lon: {}, Region: {}", user.getLatitude(), user.getLongitude(), user.getLocation());
 
                 userRepository.save(user);
 
@@ -492,6 +405,7 @@ public class UserService {
 
                 // 기존 관심사 삭제
                 userInterestRepository.deleteByUser_UserId(user.getUserId());
+                userInterestRepository.flush();
 
                 // 새로운 관심사 추가
                 if (interests != null && !interests.isEmpty()) {
@@ -514,5 +428,31 @@ public class UserService {
                 }
 
                 log.info("사용자 관심사 업데이트 완료: email={}", email);
+        }
+
+        private UserResponse convertToUserResponse(User user) {
+                return new UserResponse(
+                                String.valueOf(user.getUserId()),
+                                user.getEmail(),
+                                user.getNickname(),
+                                user.getBio(),
+                                user.getPhoneNumber(),
+                                user.getBirthDate(),
+                                user.getGender(),
+                                user.getProfileImage(),
+                                new UserResponse.Location(
+                                                user.getLatitude(),
+                                                user.getLongitude(),
+                                                user.getLocation()),
+                                user.getProvider().name(),
+                                getUserInterests(user),
+                                user.getCreatedAt(),
+                                user.getUpdatedAt());
+        }
+
+        private List<String> getUserInterests(User user) {
+                return userInterestRepository.findAllByUser(user).stream()
+                                .map(ui -> ui.getInterest().getInterestName())
+                                .toList();
         }
 }
