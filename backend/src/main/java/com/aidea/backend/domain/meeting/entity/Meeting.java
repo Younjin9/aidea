@@ -224,9 +224,51 @@ public class Meeting {
     }
 
     /**
+     * MeetingResponse로 변환 (권한 정보 포함)
+     */
+    public com.aidea.backend.domain.meeting.dto.response.MeetingResponse toResponse(String myRole, String myStatus) {
+        return com.aidea.backend.domain.meeting.dto.response.MeetingResponse.builder()
+                .groupId(this.id)
+                .title(this.title)
+                .description(this.description)
+                .imageUrl(this.imageUrl)
+                .interestCategoryId(this.category.name())
+                .interestCategoryName(this.category.getDisplayName())
+                .region(this.region)
+                .regionFullName(this.region.getFullName())
+                .location(this.location)
+                .latitude(this.latitude)
+                .longitude(this.longitude)
+                .locationDetail(this.locationDetail)
+                .maxMembers(this.maxMembers)
+                .currentMembers(this.currentMembers)
+                .meetingDate(this.meetingDate)
+                .status(this.status)
+                .isPublic(!this.isApprovalRequired)
+                .creator(com.aidea.backend.domain.meeting.dto.response.CreatorDto.builder()
+                        .userId(this.creator.getUserId())
+                        .nickname(this.creator.getNickname())
+                        .profileImage(this.creator.getProfileImage())
+                        .build())
+                .createdAt(this.createdAt)
+                .updatedAt(this.updatedAt)
+                .myRole(myRole)
+                .myStatus(myStatus)
+                .build();
+    }
+
+    /**
      * MeetingSummaryResponse로 변환
      */
     public com.aidea.backend.domain.meeting.dto.response.MeetingSummaryResponse toSummary() {
+        return toSummary(null, null);
+    }
+
+    /**
+     * MeetingSummaryResponse로 변환 (권한 정보 포함)
+     */
+    public com.aidea.backend.domain.meeting.dto.response.MeetingSummaryResponse toSummary(String myRole,
+            String myStatus) {
         return com.aidea.backend.domain.meeting.dto.response.MeetingSummaryResponse.builder()
                 .groupId(this.id) // meetingId -> groupId
                 .title(this.title)
@@ -240,6 +282,8 @@ public class Meeting {
                 .currentMembers(this.currentMembers)
                 .maxMembers(this.maxMembers)
                 .status(this.status)
+                .myRole(myRole)
+                .myStatus(myStatus)
                 .build();
     }
 }

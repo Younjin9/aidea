@@ -26,7 +26,7 @@ export const getMembers = async (groupId: string): Promise<ApiResponse<Member[]>
  * GET /api/groups/{groupId}/members/pending
  */
 export const getPendingMembers = async (groupId: string): Promise<ApiResponse<Member[]>> => {
-  return apiClient.get(`/api/groups/${groupId}/members/pending`);
+  return apiClient.get(`/api/groups/${groupId}/join-requests`);
 };
 
 /**

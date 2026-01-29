@@ -8,9 +8,15 @@ export const useMembers = (groupId: string) => {
   return useQuery({
     queryKey: ['members', groupId],
     queryFn: async () => {
-      const response = await memberApi.getMembers(groupId);
-      return response.data;
+      try {
+        const response = await memberApi.getMembers(groupId);
+        return response.data || [];
+      } catch (error) {
+        console.error('Failed to fetch members:', error);
+        return [];
+      }
     },
+    enabled: !!groupId,
     staleTime: 1000 * 60 * 3,
   });
 };
@@ -22,9 +28,15 @@ export const usePendingMembers = (groupId: string) => {
   return useQuery({
     queryKey: ['members', groupId, 'pending'],
     queryFn: async () => {
-      const response = await memberApi.getPendingMembers(groupId);
-      return response.data;
+      try {
+        const response = await memberApi.getPendingMembers(groupId);
+        return response.data || [];
+      } catch (error) {
+        console.error('Failed to fetch pending members:', error);
+        return [];
+      }
     },
+    enabled: !!groupId,
     staleTime: 1000 * 60 * 3,
   });
 };

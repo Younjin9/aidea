@@ -49,7 +49,7 @@ const EventCard: React.FC<EventCardProps> = ({
       )}
       <div className="space-y-2 text-sm mb-4">
         <div className="flex gap-3"><p className="text-gray-500 w-12">일시</p><p className="font-medium">{formatDateTime(event.scheduledAt)}</p></div>
-        <div className="flex gap-3"><p className="text-gray-500 w-12">위치</p><p className="font-medium">{event.location || meeting.region || '미정'}</p></div>
+        <div className="flex gap-3"><p className="text-gray-500 w-12">위치</p><p className="font-medium">{event.placeName || meeting.region || '미정'}</p></div>
         <div className="flex gap-3"><p className="text-gray-500 w-12">비용</p><p className="font-medium">{event.cost || '무료'}</p></div>
         <div className="flex gap-3"><p className="text-gray-500 w-12">참석</p><p className="font-medium">{event.participantCount}명 ({event.participantCount}/{event.maxParticipants || meeting.maxMembers})</p></div>
       </div>
@@ -76,16 +76,33 @@ const EventCard: React.FC<EventCardProps> = ({
       )}
 
       {/* Buttons */}
-      <div className="flex gap-2">
+      <div className="flex gap-2 items-center">
         <Button variant="outline" size="md" className="flex-1">공유</Button>
-        {isHost || isMember ? (
-          isParticipating ? (
-            <Button variant="primary" size="md" className="flex-1" onClick={onCancelParticipation}>취소</Button>
-          ) : (
-            <Button variant="primary" size="md" className="flex-1" onClick={onJoin}>참석</Button>
-          )
+        {isHost ? (
+          <div className="flex-1 flex items-center justify-center gap-1 text-green-600 font-medium py-2 bg-green-50 rounded-md border border-green-200">
+            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+            </svg>
+            필참 (모임장)
+          </div>
         ) : (
-          <Button variant="primary" size="md" className="flex-1" onClick={onJoinMeetingFirst}>참석</Button>
+          isMember ? (
+            isParticipating ? (
+              <Button variant="primary" size="md" className="flex-1 bg-gray-500 hover:bg-gray-600 border-gray-500" onClick={onCancelParticipation}>취소</Button>
+            ) : (
+              <Button
+                variant="primary"
+                size="md"
+                className="flex-1"
+                onClick={onJoin}
+                disabled={event.participantCount! >= (event.maxParticipants || meeting.maxMembers)}
+              >
+                {event.participantCount! >= (event.maxParticipants || meeting.maxMembers) ? '마감' : '참석'}
+              </Button>
+            )
+          ) : (
+            <Button variant="primary" size="md" className="flex-1" onClick={onJoinMeetingFirst}>참석</Button>
+          )
         )}
       </div>
     </div>
