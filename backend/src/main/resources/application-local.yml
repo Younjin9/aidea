@@ -43,12 +43,12 @@ spring:
   cloud:
     aws:
       credentials:
-        access-key: ${AWS_ACCESS_KEY:your-access-key}
-        secret-key: ${AWS_SECRET_ACCESS_KEY:your-secret-key}
+        access-key: ${AWS_ACCESS_KEY}
+        secret-key: ${AWS_SECRET_ACCESS_KEY}
       region:
         static: ap-northeast-2
       s3:
-        bucket: ${AWS_S3_BUCKET:aidea-s3-bucket}
+        bucket: ${AWS_S3_BUCKET}
 
 
 jwt:
