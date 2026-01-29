@@ -21,6 +21,12 @@ public class S3Service {
   @Value("${spring.cloud.aws.s3.bucket}")
   private String bucket;
 
+  @Value("${spring.cloud.aws.region.static:ap-northeast-2}")
+  private String region;
+
+  @Value("${app.s3.base-url:}")
+  private String baseUrl;
+
   /**
    * 파일을 S3에 업로드하고 접근 가능한 URL을 반환합니다.
    */
@@ -37,9 +43,13 @@ public class S3Service {
     try (InputStream inputStream = file.getInputStream()) {
       s3Template.upload(bucket, savedFilename, inputStream);
 
-      // S3 URL 구성 (Region에 따라 형식이 다를 수 있음)
-      // 기본 형식: https://{bucket}.s3.{region}.amazonaws.com/{key}
-      return String.format("https://%s.s3.ap-northeast-2.amazonaws.com/%s", bucket, savedFilename);
+      // baseUrl이 설정되어 있으면 해당 URL 사용 (예: CloudFront)
+      if (baseUrl != null && !baseUrl.isEmpty()) {
+        return String.format("%s/%s", baseUrl.replaceAll("/$", ""), savedFilename);
+      }
+
+      // S3 URL 구성 (S3 버추얼 호스팅 스타일)
+      return String.format("https://%s.s3.%s.amazonaws.com/%s", bucket, region, savedFilename);
     } catch (IOException e) {
       log.error("S3 파일 업로드 실패", e);
       throw new RuntimeException("파일 업로드 중 오류가 발생했습니다.");
