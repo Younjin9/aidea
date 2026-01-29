@@ -26,60 +26,26 @@ export const myPageKeys = {
  * 마이페이지 통합 훅 - API 호출 후 실패 시 Mock 데이터 fallback
  */
 export const useMyPage = () => {
-  // MyPage Store (user 정보만)
-  const user = useMyPageStore((state) => state.user);
-  const setUser = useMyPageStore((state) => state.setUser);
-  const updateUser = useMyPageStore((state) => state.updateUser);
-  const clearUser = useMyPageStore((state) => state.clearUser);
-
-  // Auth Store (현재 로그인 사용자)
+  // MyPage Store는 사용하지 않음 (authStore에서 직접 가져옴)
+  const toggleLikeByGroupId = useMeetingStore((state) => state.toggleLikeByGroupId);
+  const meetings = useMeetingStore((state) => state.meetings);
   const authUser = useAuthStore((state) => state.user);
-
   const queryClient = useQueryClient();
   const prevUserIdRef = useRef<string | number | null>(null);
 
-  // Meeting Store (모임 정보)
-  const meetings = useMeetingStore((state) => state.meetings);
-  const toggleLikeByGroupId = useMeetingStore((state) => state.toggleLikeByGroupId);
-
-  // 로그인 사용자 변경 시 캐시/스토어 정리 (useCallback 없이 직접 실행)
+  // 사용자 변경 시 React Query 캐시 무효화
   useEffect(() => {
     const currentUserId = authUser?.userId ?? null;
     if (prevUserIdRef.current !== currentUserId && currentUserId !== null) {
       prevUserIdRef.current = currentUserId;
-      clearUser();
-      // 캐시 무효화: setQueryData로 null 설정 후 refetch
-      queryClient.setQueryData(myPageKeys.profile(), null);
-      queryClient.setQueryData(myPageKeys.myMeetings(), null);
-      queryClient.setQueryData(myPageKeys.likedMeetings(), null);
+      // 이전 캐시 완전 제거
+      queryClient.removeQueries({ queryKey: myPageKeys.profile() });
+      queryClient.removeQueries({ queryKey: myPageKeys.myMeetings() });
+      queryClient.removeQueries({ queryKey: myPageKeys.likedMeetings() });
     }
-  }, [authUser?.userId]); // authUser?.userId만 의존성에
+  }, [authUser?.userId, queryClient]);
 
-  // 프로필 API 호출
-  const {
-    data: profileData,
-    isLoading: isLoadingProfile,
-    error: profileError,
-    refetch: refetchProfile,
-  } = useQuery({
-    queryKey: myPageKeys.profile(),
-    queryFn: async () => {
-      const response = await mypageApi.getMyProfile();
-      return response.data;
-    },
-    staleTime: 1000 * 60 * 5,
-    retry: 1,
-    enabled: !!authUser,
-  });
-
-  // API 성공 시 store 업데이트
-  useEffect(() => {
-    if (profileData) {
-      setUser(profileData);
-    }
-  }, [profileData, setUser]);
-
-  // 내 모임 (API) - 실패 시 store fallback
+  // 내 모임 (API)
   const { data: myMeetingsData, error: myMeetingsError } = useQuery({
     queryKey: myPageKeys.myMeetings(),
     queryFn: async () => {
@@ -91,19 +57,19 @@ export const useMyPage = () => {
     enabled: !!authUser,
   });
 
-  // 찜한 모임 (API) - meetingApi.getLiked, 실패 시 store fallback
+  // 찜한 모임 (API)
   const { data: likedMeetingsData, error: likedMeetingsError, refetch: refetchLikedMeetings } = useQuery({
     queryKey: myPageKeys.likedMeetings(),
     queryFn: async () => {
       const response = await meetingApi.getLiked();
       return transformMeetingsToUI(response.data || []);
     },
-    staleTime: 0, // 항상 최신 데이터 가져오기
+    staleTime: 0,
     retry: 1,
     enabled: !!authUser,
   });
 
-  // meetingStore에서 파생된 데이터 (useMemo로 참조 안정성 보장)
+  // 파생 데이터
   const myMeetings = useMemo(() => {
     if (myMeetingsData && !myMeetingsError) return myMeetingsData;
     return meetings.filter((m) => m.myStatus === 'APPROVED');
@@ -114,24 +80,13 @@ export const useMyPage = () => {
     return meetings.filter((m) => m.isLiked);
   }, [meetings, likedMeetingsData, likedMeetingsError]);
 
+  const isLoading = false; // authUser가 있으면 isLoading은 false
+
   return {
-    // 사용자 정보
-    user,
-    isLoading: isLoadingProfile,
-    error: profileError,
-
-    // 내 모임
     myMeetings,
-
-    // 찜한 모임
     likedMeetings,
-
-    // Actions
+    isLoading,
     unlikeMeeting: toggleLikeByGroupId,
-    updateUser,
-
-    // Refetch
-    refetchProfile,
     refetchLikedMeetings,
   };
 };
