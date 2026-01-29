@@ -63,7 +63,7 @@ logging:
     org.springframework.web: DEBUG
 
 vector-datasource:
-  url: jdbc:mysql://localhost:3307/aidea_dev?useSSL=false&allowPublicKeyRetrieval=true&characterEncoding=UTF-8&serverTimezone=UTC
+  url: jdbc:postgresql://localhost:5432/aidea_dev
   username: aidea
   password: aidea1234
-  driver-class-name: com.mysql.cj.jdbc.Driver
+  driver-class-name: org.postgresql.Driver
