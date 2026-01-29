@@ -22,7 +22,6 @@ export const myPageKeys = {
 
 export const useMyPage = () => {
   const authUser = useAuthStore((state) => state.user);
-  const toggleLikeByGroupId = useMeetingStore((state) => state.toggleLikeByGroupId);
   const meetings = useMeetingStore((state) => state.meetings);
   const queryClient = useQueryClient();
   const prevUserIdRef = useRef<string | number | null>(null);
@@ -64,7 +63,7 @@ export const useMyPage = () => {
     enabled: !!authUser,
   });
 
-  // 파생 데이터
+// 파생 데이터
   const myMeetings = useMemo(() => {
     if (myMeetingsData && !myMeetingsError) return myMeetingsData;
     return meetings.filter((m) => m.myStatus === 'APPROVED');
@@ -79,7 +78,6 @@ export const useMyPage = () => {
     myMeetings,
     likedMeetings,
     isLoading: false,
-    unlikeMeeting: toggleLikeByGroupId,
     refetchLikedMeetings,
   };
 };
