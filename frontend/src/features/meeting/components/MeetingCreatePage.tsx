@@ -245,7 +245,7 @@ const MeetingCreatePage: React.FC = () => {
                 readOnly
                 placeholder="장소를 검색하거나 현재 위치를 사용하세요"
                 onClick={() => setShowSearchModal(true)}
-                className="flex-1 bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                className="flex-1 bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 text-sm text-gray-900 placeholder-gray-400"
                 rightElement={
                   <button
                     type="button"

@@ -13,9 +13,11 @@ export interface DetailHeaderProps {
   activeTab: 'home' | 'chat';
   onLikeToggle: () => void;
   onTabChange: (tab: 'home' | 'chat') => void;
+  isHost: boolean;
   isMember: boolean;
   onConfirmReport: (content: string) => void;
   onConfirmLeave: () => void;
+  onConfirmDelete?: () => void;
 }
 
 const DetailHeader: React.FC<DetailHeaderProps> = ({
@@ -24,18 +26,29 @@ const DetailHeader: React.FC<DetailHeaderProps> = ({
   activeTab,
   onLikeToggle,
   onTabChange,
+  isHost,
   isMember,
   onConfirmReport,
   onConfirmLeave,
+  onConfirmDelete,
 }) => {
   const [showActionSheet, setShowActionSheet] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
   const [showLeaveModal, setShowLeaveModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [reportContent, setReportContent] = useState('');
 
   const actionSheetActions = [
-    { label: '모임 신고', onClick: () => { setShowActionSheet(false); setShowReportModal(true); } },
-    ...(isMember ? [{ label: '모임 탈퇴', onClick: () => { setShowActionSheet(false); setShowLeaveModal(true); }, variant: 'danger' as const }] : []),
+    ...(isHost ? [
+      { label: '모임 삭제', onClick: () => { setShowActionSheet(false); setShowDeleteModal(true); }, variant: 'danger' as const }
+    ] : []),
+    ...(isMember && !isHost ? [
+      { label: '모임 신고', onClick: () => { setShowActionSheet(false); setShowReportModal(true); } },
+      { label: '모임 탈퇴', onClick: () => { setShowActionSheet(false); setShowLeaveModal(true); }, variant: 'danger' as const }
+    ] : []),
+    ...(!isHost && !isMember ? [
+      { label: '모임 신고', onClick: () => { setShowActionSheet(false); setShowReportModal(true); } }
+    ] : []),
   ];
 
   return (
@@ -92,6 +105,17 @@ const DetailHeader: React.FC<DetailHeaderProps> = ({
         confirmText="탈퇴"
         cancelText="취소"
         onConfirm={() => { onConfirmLeave(); setShowLeaveModal(false); }}
+      />
+
+      <Modal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        message="모임을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다."
+        showCheckbox
+        checkboxLabel="삭제에 동의합니다"
+        confirmText="삭제"
+        cancelText="취소"
+        onConfirm={() => { onConfirmDelete?.(); setShowDeleteModal(false); }}
       />
     </>
   );
