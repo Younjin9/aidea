@@ -55,7 +55,9 @@ export const useMyPage = () => {
     queryKey: myPageKeys.likedMeetings(),
     queryFn: async () => {
       const response = await meetingApi.getLiked();
-      return transformMeetingsToUI(response.data || []);
+      const meetings = transformMeetingsToUI(response.data || []);
+      // 찜 목록은 모두 isLiked = true로 설정
+      return meetings.map(meeting => ({ ...meeting, isLiked: true }));
     },
     staleTime: 0,
     retry: 1,
