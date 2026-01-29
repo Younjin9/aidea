@@ -11,12 +11,16 @@ const KakaoLoginButton: React.FC = () => {
   return (
     <button
       onClick={handleKakaoLogin}
-      className="w-full flex items-center justify-center gap-2 bg-[#FEE500] text-[#000000] py-3 rounded-lg font-medium hover:bg-[#FDD835] transition-colors"
+      className="w-full flex items-center justify-center gap-2 bg-[#FEE500] text-[#000000] py-4 rounded-xl font-medium text-lg hover:bg-[#FDD835] transition-colors"
     >
-        {/* 카카오 아이콘 SVG (Optional) */}
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-            <path d="M12 3C7.58 3 4 5.28 4 8.1c0 1.97 1.74 3.7 4.36 4.6-.2 1.3-1.03 4.3-.1 4.5.15 0 .34-.1.7-.6 2.05-2.8 3.25-4.43 3.4-4.66.55.08 1.1.12 1.64.12 4.42 0 8-2.28 8-5.1S16.42 3 12 3z"/>
-        </svg>
+        {/* 카카오 아이콘 */}
+        <img 
+          src="https://www.svgrepo.com/show/368252/kakao.svg" 
+          alt="카카오" 
+          width="20" 
+          height="20"
+          className="flex-shrink-0"
+        />
       카카오로 시작하기
     </button>
   );
