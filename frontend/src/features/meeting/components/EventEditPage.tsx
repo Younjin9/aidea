@@ -20,11 +20,12 @@ const EventEditPage: React.FC = () => {
   const eventData = (location.state as { event?: MeetingEvent })?.event;
 
   // API Mutations
-  const { mutate: updateEvent, isPending: isUpdating } = useUpdateEvent(meetingId || '', eventId || eventData?.eventId || '');
-  const { mutate: deleteEvent, isPending: isDeleting } = useDeleteEvent(meetingId || '');
+  const { mutate: updateEvent, isPending: isUpdating } = useUpdateEvent(String(meetingId || ''), String(eventId || eventData?.eventId || ''));
+  const { mutate: deleteEvent, isPending: isDeleting } = useDeleteEvent(String(meetingId || ''));
 
   // 날짜/시간 파싱
-  const parseDateTime = (scheduledAt: string) => {
+  const parseDateTime = (scheduledAt?: string) => {
+    if (!scheduledAt) return { date: '', time: '' };
     const [datePart, timePart] = scheduledAt.split(' ');
     return { date: datePart || '', time: timePart || '' };
   };
@@ -40,7 +41,7 @@ const EventEditPage: React.FC = () => {
   const [eventLocation, setEventLocation] = useState(eventData?.location || '');
   const [description, setDescription] = useState(eventData?.description || '');
   const [cost, setCost] = useState(eventData?.cost || '');
-  const [maxParticipants, setMaxParticipants] = useState(eventData?.maxParticipants || 10);
+  const [maxParticipants, setMaxParticipants] = useState<number>(typeof eventData?.maxParticipants === 'number' ? eventData.maxParticipants : 10);
 
   // Map State
   const [selectedLocation, setSelectedLocation] = useState<SelectedPlace | null>(null);
@@ -65,15 +66,16 @@ const EventEditPage: React.FC = () => {
 
   const handleSubmit = () => {
     const updatedEvent: MeetingEvent = {
-      eventId: eventId || eventData?.eventId || '',
+      eventId: Number(eventId || eventData?.eventId || 0),
       title: eventName,
+      date,
       description,
       scheduledAt: `${date} ${time}`,
       location: eventLocation,
       mapUrl: selectedLocation
         ? `https://map.kakao.com/link/map/${selectedLocation.name},${selectedLocation.lat},${selectedLocation.lng}`
         : eventData?.mapUrl,
-      cost,
+      cost: typeof cost === 'number' ? cost : 0,
       maxParticipants,
       participantCount: eventData?.participantCount || 0,
       participants: eventData?.participants || [],
@@ -105,8 +107,8 @@ const EventEditPage: React.FC = () => {
     const targetEventId = eventId || eventData?.eventId;
     if (!targetEventId) return;
 
-    // API 호출 시도
-    deleteEvent(targetEventId, {
+    // API 호출 시도String(targetEventId)
+    deleteEvent(typeof targetEventId === 'string' ? targetEventId : String(targetEventId), {
       onError: () => {
         // API 실패 시 로컬에서 처리 (fallback)
         navigate(`/meetings/${meetingId}`, { state: { deletedEventId: targetEventId } });
