@@ -14,6 +14,8 @@ import { useMyPageStore } from '@/features/mypage/store/myPageStore';
 import { useCreateMeeting } from '../hooks/useMeetings';
 import * as meetingApi from '@/shared/api/meeting/meetingApi';
 
+const getFutureMeetingDate = () => new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('.')[0];
+
 const MeetingCreatePage: React.FC = () => {
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -136,7 +138,7 @@ const MeetingCreatePage: React.FC = () => {
           longitude: coords.lng,
           isPublic: true,
           // 400 Error 대응: 서버(KST) 기준 미래 시간 전송
-          meetingDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('.')[0], // 7일 후 (초 단위까지 포함)
+          meetingDate: getFutureMeetingDate(), // 7일 후 (초 단위까지 포함)
           imageUrl: finalImageUrl,
         },
         {

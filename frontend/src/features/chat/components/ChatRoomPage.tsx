@@ -42,8 +42,7 @@ const ChatRoomPage: React.FC = () => {
         queryFn: async () => {
             try {
                 const response = await chatApi.getMessages(parsedMeetingId);
-                // @ts-expect-error
-                return Array.isArray(response) ? response : [];
+                return response.data ?? [];
             } catch {
                 // Fallback Dummy Data for UI Dev
                 return [
