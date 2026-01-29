@@ -11,14 +11,12 @@ import MeetingCard from '@/shared/components/ui/MeetingCard';
 import Modal from '@/shared/components/ui/Modal';
 import logo from '@/assets/images/logo.png';
 import { useMyPage } from '../hooks/useMyPage';
-import { useMyPageStore } from '../store/myPageStore';
 import type { MeetingUI } from '@/shared/types/Meeting.types';
 
 const MyPageView: React.FC<{ onUnlike?: (id: number) => void }> = ({ onUnlike }) => {
   const navigate = useNavigate();
   const authUser = useAuthStore((state) => state.user); // ← authStore에서 직접 가져오기
   const { myMeetings, likedMeetings, isLoading, unlikeMeeting, refetchLikedMeetings } = useMyPage();
-  const clearUser = useMyPageStore((state) => state.clearUser);
   const logoutAuth = useAuthStore((state) => state.logout);
 
   // 로그아웃/회원탈퇴 모달 상태
@@ -75,7 +73,6 @@ const MyPageView: React.FC<{ onUnlike?: (id: number) => void }> = ({ onUnlike })
       console.warn('로그아웃 API 실패, 로컬만 정리:', error);
     }
     logoutAuth();
-    clearUser();
     setShowLogoutModal(false);
     navigate('/');
   };
@@ -88,7 +85,6 @@ const MyPageView: React.FC<{ onUnlike?: (id: number) => void }> = ({ onUnlike })
       console.warn('회원탈퇴 API 실패, 로컬만 정리:', error);
     }
     logoutAuth();
-    clearUser();
     setShowWithdrawModal(false);
     navigate('/');
   };
