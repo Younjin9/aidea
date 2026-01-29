@@ -18,7 +18,7 @@ const MyPageView: React.FC<{ onUnlike?: (id: number) => void }> = ({ onUnlike })
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const authUser = useAuthStore((state) => state.user); // ← authStore에서 직접 가져오기
-  const { myMeetings, likedMeetings, isLoading, unlikeMeeting, refetchLikedMeetings } = useMyPage();
+  const { myMeetings, likedMeetings, isLoading, refetchLikedMeetings } = useMyPage();
   const logoutAuth = useAuthStore((state) => state.logout);
 
   // 로그아웃/회원탈퇴 모달 상태
@@ -60,7 +60,6 @@ const MyPageView: React.FC<{ onUnlike?: (id: number) => void }> = ({ onUnlike })
         } catch (error) {
           console.error('찜 취소 실패:', error);
         }
-        unlikeMeeting(originalMeeting.groupId);
       }
       setDisplayedLikedMeetings(prev => prev.filter(m => m.id !== id));
       onUnlike?.(id);

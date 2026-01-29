@@ -79,6 +79,7 @@ apiClient.interceptors.response.use(
 
     // 에러 응답 포맷팅
     // 에러 응답 포맷팅
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const responseData = error.response?.data as any;
     const apiError: ApiError = {
       code: responseData?.code || responseData?.error?.code || 'UNKNOWN_ERROR',

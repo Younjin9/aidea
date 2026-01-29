@@ -22,7 +22,6 @@ export const myPageKeys = {
 
 export const useMyPage = () => {
   const authUser = useAuthStore((state) => state.user);
-  const toggleLikeByGroupId = useMeetingStore((state) => state.toggleLikeByGroupId);
   const meetings = useMeetingStore((state) => state.meetings);
   const queryClient = useQueryClient();
   const prevUserIdRef = useRef<string | number | null>(null);
@@ -55,14 +54,16 @@ export const useMyPage = () => {
     queryKey: myPageKeys.likedMeetings(),
     queryFn: async () => {
       const response = await meetingApi.getLiked();
-      return transformMeetingsToUI(response.data || []);
+      const meetings = transformMeetingsToUI(response.data || []);
+      // 찜 목록은 모두 isLiked = true로 설정
+      return meetings.map(meeting => ({ ...meeting, isLiked: true }));
     },
     staleTime: 0,
     retry: 1,
     enabled: !!authUser,
   });
 
-  // 파생 데이터
+// 파생 데이터
   const myMeetings = useMemo(() => {
     if (myMeetingsData && !myMeetingsError) return myMeetingsData;
     return meetings.filter((m) => m.myStatus === 'APPROVED');
@@ -77,7 +78,6 @@ export const useMyPage = () => {
     myMeetings,
     likedMeetings,
     isLoading: false,
-    unlikeMeeting: toggleLikeByGroupId,
     refetchLikedMeetings,
   };
 };
