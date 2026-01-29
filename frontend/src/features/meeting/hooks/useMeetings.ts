@@ -79,13 +79,33 @@ export const useMeetings = (params: MeetingListParams = {}) => {
     }
   }, [data, error, setMeetings]);
 
+  // Like/Unlike API 호출 (useToggleLikeMeeting 활용)
+  const { mutate: toggleLikeApi } = useToggleLikeMeeting();
+
+  const toggleLikeMeeting = (groupId: string | number, isCurrentlyLiked: boolean) => {
+    console.log(`[useMeetings] Toggle like for ${groupId}, currently liked: ${isCurrentlyLiked}`);
+    // 로컬 스토어 먼저 업데이트 (낙관적 업데이트)
+    toggleLikeByGroupId(String(groupId));
+    // API 호출
+    toggleLikeApi(
+      { groupId: String(groupId), isLiked: isCurrentlyLiked },
+      {
+        onError: (error) => {
+          console.error(`[useMeetings] Like toggle failed for ${groupId}:`, error);
+          // 실패 시 롤백
+          toggleLikeByGroupId(String(groupId));
+        },
+      }
+    );
+  };
+
   return {
     meetings,
     total: meetings.length,
     isLoading,
     error,
     groupByCategory: groupByCategoryFn,
-    toggleLike: toggleLikeByGroupId,
+    toggleLikeMeeting,
     refetch,
   };
 };
@@ -99,18 +119,31 @@ export const useToggleLikeMeeting = () => {
 
   return useMutation({
     mutationFn: async ({ groupId, isLiked }: { groupId: string; isLiked: boolean }) => {
-      if (isLiked) {
-        await meetingApi.unlike(groupId);
-      } else {
-        await meetingApi.like(groupId);
+      console.log(`[Like] Toggling like for group ${groupId}, isLiked: ${isLiked}`);
+      try {
+        if (isLiked) {
+          console.log(`[Like] Calling unlike API for group ${groupId}`);
+          await meetingApi.unlike(groupId);
+        } else {
+          console.log(`[Like] Calling like API for group ${groupId}`);
+          await meetingApi.like(groupId);
+        }
+        console.log(`[Like] Success for group ${groupId}`);
+        return { groupId };
+      } catch (error) {
+        console.error(`[Like] Error toggling like for group ${groupId}:`, error);
+        throw error;
       }
-      return { groupId };
     },
     onSuccess: (_, { groupId }) => {
+      console.log(`[Like] onSuccess - Invalidating caches for group ${groupId}`);
       queryClient.invalidateQueries({ queryKey: meetingKeys.all });
       queryClient.invalidateQueries({ queryKey: myPageKeys.myMeetings() });
       queryClient.invalidateQueries({ queryKey: myPageKeys.likedMeetings() });
       queryClient.invalidateQueries({ queryKey: ['members', groupId] });
+    },
+    onError: (error, { groupId, isLiked }) => {
+      console.error(`[Like] Error for group ${groupId} (isLiked: ${isLiked}):`, error);
     },
   });
 };

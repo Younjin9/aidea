@@ -8,7 +8,7 @@ import { INTEREST_CATEGORIES } from '@/shared/config/constants';
 
 const MeetingListPage: React.FC = () => {
   const navigate = useNavigate();
-  const { meetings, isLoading, groupByCategory, toggleLike } = useMeetings();
+  const { meetings, isLoading, groupByCategory, toggleLikeMeeting } = useMeetings();
 
   const groupedMeetings = groupByCategory();
 
@@ -68,7 +68,10 @@ const MeetingListPage: React.FC = () => {
                     key={meeting.id}
                     meeting={meeting}
                     onClick={() => navigate(`/meetings/${meeting.groupId}`)}
-                    onLike={() => toggleLike(meeting.groupId)}
+                    onLike={() => {
+                      console.log(`[MeetingListPage] Like clicked for ${meeting.groupId}`);
+                      toggleLikeMeeting(meeting.groupId, meeting.isLiked || false);
+                    }}
                     showLikeButton={true}
                   />
                 ))}

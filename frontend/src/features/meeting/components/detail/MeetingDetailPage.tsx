@@ -17,6 +17,7 @@ import { useMeetingStore } from '../../store/meetingStore';
 import { useAuthStore } from '@/features/auth/store/authStore';
 import { useLeaveMeeting, useToggleLikeMeeting } from '../../hooks/useMeetings';
 import { useJoinEvent, useCancelEventParticipation } from '../../hooks/useEvents';
+import { useMembers } from '../../hooks/useMembers';
 import type { MeetingDetail, MeetingEvent } from '@/shared/types/Meeting.types';
 
 
@@ -145,6 +146,16 @@ const MeetingDetailPage: React.FC = () => {
     retry: 1, // 실패 시 1회 재시도
   });
 
+  // 멤버 목록 조회 (별도 API 호출)
+  const { data: apiMembers = [], isLoading: isMembersLoading, error: membersError } = useMembers(meetingId || '');
+
+  // DEBUG: members 상태 확인
+  useEffect(() => {
+    if (meetingId) {
+      console.log(`[MemberSection] groupId: ${meetingId}, members:`, apiMembers, 'isLoading:', isMembersLoading, 'error:', membersError);
+    }
+  }, [apiMembers, meetingId, isMembersLoading, membersError]);
+
   // 스토어에서 모임 정보 조회 및 소유자 여부 판단
   const storedMeeting = getMeetingByGroupId(meetingId || '');
   const isOwner = storedMeeting?.myRole === 'HOST' || (storedMeeting?.myRole === undefined && storedMeeting?.ownerUserId === user?.userId);
@@ -199,6 +210,15 @@ const MeetingDetailPage: React.FC = () => {
       next = { ...next, events: nextEvents };
     }
 
+    // API에서 조회한 멤버 목록 적용
+    if (apiMembers.length > 0) {
+      next = {
+        ...next,
+        members: apiMembers,
+        memberCount: apiMembers.filter((m) => m.status === 'APPROVED').length,
+      };
+    }
+
     if (locationState?.newEvent) {
       const exists = (next.events || []).some(e => e.eventId === locationState.newEvent!.eventId);
       if (!exists) {
@@ -231,7 +251,7 @@ const MeetingDetailPage: React.FC = () => {
     }
 
     return next;
-  }, [apiMeetingDetail, meeting, storedEvents, locationState]);
+  }, [apiMeetingDetail, meeting, storedEvents, locationState, apiMembers]);
 
   // 내 역할/상태 및 모달 오픈 함수
   const isHost = displayMeeting.myRole === 'HOST';
@@ -248,6 +268,7 @@ const MeetingDetailPage: React.FC = () => {
 
   // 좋아요 토글 핸들러 (API 연동 및 스토어/상태 동기화)
   const handleLikeToggle = () => {
+    console.log(`[DetailPage] Like toggle - meetingId: ${meetingId}, current isLiked: ${isLiked}`);
     const newLikeState = !isLiked;
     setIsLiked(newLikeState);
     if (meetingId) {
@@ -255,7 +276,12 @@ const MeetingDetailPage: React.FC = () => {
       toggleLikeApi(
         { groupId: meetingId, isLiked: newLikeState },
         {
-          onError: () => {
+          onSuccess: () => {
+            console.log(`[DetailPage] Like toggle success for ${meetingId}`);
+          },
+          onError: (error) => {
+            console.error(`[DetailPage] Like toggle failed for ${meetingId}:`, error);
+            // Rollback
             setIsLiked(!newLikeState);
             toggleLikeByGroupId(meetingId);
           },
@@ -432,6 +458,7 @@ const MeetingDetailPage: React.FC = () => {
             <MemberSection
               members={displayMeeting.members}
               isHost={isHost}
+              isLoading={isMembersLoading}
               onManage={() => navigate(`/meetings/${meetingId}/members`, { state: { members: displayMeeting.members } })}
             />
           </>
