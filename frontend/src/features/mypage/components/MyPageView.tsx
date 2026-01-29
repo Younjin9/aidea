@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Edit2 } from 'lucide-react';
+import { useQueryClient } from '@tanstack/react-query';
 import meetingApi from '@/shared/api/meeting/meetingApi';
 import userApi from '@/shared/api/user/userApi';
 import { authApi } from '@/shared/api/authApi';
@@ -15,6 +16,7 @@ import type { MeetingUI } from '@/shared/types/Meeting.types';
 
 const MyPageView: React.FC<{ onUnlike?: (id: number) => void }> = ({ onUnlike }) => {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const authUser = useAuthStore((state) => state.user); // ← authStore에서 직접 가져오기
   const { myMeetings, likedMeetings, isLoading, unlikeMeeting, refetchLikedMeetings } = useMyPage();
   const logoutAuth = useAuthStore((state) => state.logout);
@@ -72,6 +74,9 @@ const MyPageView: React.FC<{ onUnlike?: (id: number) => void }> = ({ onUnlike })
     } catch (error) {
       console.warn('로그아웃 API 실패, 로컬만 정리:', error);
     }
+    queryClient.removeQueries({ queryKey: ['mypage'] });
+    queryClient.removeQueries({ queryKey: ['meetings'] });
+    queryClient.removeQueries({ queryKey: ['meeting'] });
     logoutAuth();
     setShowLogoutModal(false);
     navigate('/');
@@ -84,6 +89,9 @@ const MyPageView: React.FC<{ onUnlike?: (id: number) => void }> = ({ onUnlike })
     } catch (error) {
       console.warn('회원탈퇴 API 실패, 로컬만 정리:', error);
     }
+    queryClient.removeQueries({ queryKey: ['mypage'] });
+    queryClient.removeQueries({ queryKey: ['meetings'] });
+    queryClient.removeQueries({ queryKey: ['meeting'] });
     logoutAuth();
     setShowWithdrawModal(false);
     navigate('/');
