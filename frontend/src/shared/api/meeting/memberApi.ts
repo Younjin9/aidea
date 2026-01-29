@@ -17,7 +17,7 @@ import type {
  * 모임 멤버 목록 조회
  * GET /api/groups/{groupId}/members
  */
-export const getMembers = async (groupId: string): Promise<ApiResponse<Member[]>> => {
+export const getMembers = async (groupId: string): Promise<Member[]> => {
   return apiClient.get(`/api/groups/${groupId}/members`);
 };
 
@@ -25,7 +25,7 @@ export const getMembers = async (groupId: string): Promise<ApiResponse<Member[]>
  * 대기 중인 가입 요청 목록
  * GET /api/groups/{groupId}/members/pending
  */
-export const getPendingMembers = async (groupId: string): Promise<ApiResponse<Member[]>> => {
+export const getPendingMembers = async (groupId: string): Promise<Member[]> => {
   return apiClient.get(`/api/groups/${groupId}/join-requests`);
 };
 
