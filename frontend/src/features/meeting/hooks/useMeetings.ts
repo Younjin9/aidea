@@ -137,10 +137,14 @@ export const useToggleLikeMeeting = () => {
     },
     onSuccess: (_, { groupId }) => {
       console.log(`[Like] onSuccess - Invalidating caches for group ${groupId}`);
+      // 모든 관련 캐시 무효화 (모임 목록, 상세, 찜 목록, 멤버)
       queryClient.invalidateQueries({ queryKey: meetingKeys.all });
+      queryClient.invalidateQueries({ queryKey: ['meetings', 'search'] });
+      queryClient.invalidateQueries({ queryKey: ['meeting', 'detail'] });
       queryClient.invalidateQueries({ queryKey: myPageKeys.myMeetings() });
       queryClient.invalidateQueries({ queryKey: myPageKeys.likedMeetings() });
       queryClient.invalidateQueries({ queryKey: ['members', groupId] });
+      console.log(`[Like] All caches invalidated for group ${groupId}`);
     },
     onError: (error, { groupId, isLiked }) => {
       console.error(`[Like] Error for group ${groupId} (isLiked: ${isLiked}):`, error);
