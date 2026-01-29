@@ -16,7 +16,8 @@ import type { MeetingUI } from '@/shared/types/Meeting.types';
 
 const MyPageView: React.FC<{ onUnlike?: (id: number) => void }> = ({ onUnlike }) => {
   const navigate = useNavigate();
-  const { user, myMeetings, likedMeetings, isLoading, unlikeMeeting, refetchLikedMeetings } = useMyPage();
+  const authUser = useAuthStore((state) => state.user); // ← authStore에서 직접 가져오기
+  const { myMeetings, likedMeetings, isLoading, unlikeMeeting, refetchLikedMeetings } = useMyPage();
   const clearUser = useMyPageStore((state) => state.clearUser);
   const logoutAuth = useAuthStore((state) => state.logout);
 
@@ -113,14 +114,14 @@ const MyPageView: React.FC<{ onUnlike?: (id: number) => void }> = ({ onUnlike })
         {/* Profile */}
         <section className="px-6 py-6 border-b border-gray-100">
           <div className="flex items-start gap-4 relative">
-            <ProfileImage src={user?.profileImage || ''} alt={user?.nickname || '사용자'} fallback={user?.nickname || '사용자'} size="lg" />
+            <ProfileImage src={authUser?.profileImage || ''} alt={authUser?.nickname || '사용자'} fallback={authUser?.nickname || '사용자'} size="lg" />
             <div className="flex-1 pt-1">
-              <h2 className="text-base font-bold text-gray-900 mb-0.5">{user?.nickname || '이름 없음'}</h2>
-              <p className="text-xs text-gray-500 mb-0.5">{user?.location?.region || '위치 없음'}</p>
-              <p className="text-xs text-gray-600 mb-2">{user?.bio || '소개가 없습니다'}</p>
+              <h2 className="text-base font-bold text-gray-900 mb-0.5">{authUser?.nickname || '이름 없음'}</h2>
+              <p className="text-xs text-gray-500 mb-0.5">{authUser?.location?.region || '위치 없음'}</p>
+              <p className="text-xs text-gray-600 mb-2">{authUser?.bio || '소개가 없습니다'}</p>
               <div className="flex flex-wrap gap-2">
-                {user?.interests?.length ? (
-                  user.interests.map((interest, i) => (
+                {authUser?.interests?.length ? (
+                  authUser.interests.map((interest, i) => (
                     <span key={i} className="px-3 py-1 bg-mint text-white text-xs rounded-full">{interest}</span>
                   ))
                 ) : (
