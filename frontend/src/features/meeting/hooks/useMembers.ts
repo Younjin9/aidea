@@ -11,7 +11,7 @@ export const useMembers = (groupId: string) => {
     queryKey: ['members', groupId],
     queryFn: async () => {
       const response = await memberApi.getMembers(groupId);
-      return response.data || [];
+      return response || [];
     },
     enabled: !!groupId,
     staleTime: 1000 * 60 * 3, // 3분
@@ -31,7 +31,7 @@ export const usePendingMembers = (groupId: string) => {
     queryKey: ['members', groupId, 'pending'],
     queryFn: async () => {
       const response = await memberApi.getPendingMembers(groupId);
-      return response.data || [];
+      return response || [];
     },
     enabled: !!groupId,
     staleTime: 1000 * 60 * 3, // 3분
