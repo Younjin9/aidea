@@ -42,17 +42,18 @@ export const useMyPage = () => {
   const meetings = useMeetingStore((state) => state.meetings);
   const toggleLikeByGroupId = useMeetingStore((state) => state.toggleLikeByGroupId);
 
-  // 로그인 사용자 변경 시 캐시/스토어 정리
+  // 로그인 사용자 변경 시 캐시/스토어 정리 (useCallback 없이 직접 실행)
   useEffect(() => {
     const currentUserId = authUser?.userId ?? null;
-    if (prevUserIdRef.current !== currentUserId) {
+    if (prevUserIdRef.current !== currentUserId && currentUserId !== null) {
       prevUserIdRef.current = currentUserId;
       clearUser();
-      queryClient.removeQueries({ queryKey: myPageKeys.profile() });
-      queryClient.removeQueries({ queryKey: myPageKeys.myMeetings() });
-      queryClient.removeQueries({ queryKey: myPageKeys.likedMeetings() });
+      // 캐시 무효화: setQueryData로 null 설정 후 refetch
+      queryClient.setQueryData(myPageKeys.profile(), null);
+      queryClient.setQueryData(myPageKeys.myMeetings(), null);
+      queryClient.setQueryData(myPageKeys.likedMeetings(), null);
     }
-  }, [authUser?.userId, clearUser, queryClient]);
+  }, [authUser?.userId]); // authUser?.userId만 의존성에
 
   // 프로필 API 호출
   const {
