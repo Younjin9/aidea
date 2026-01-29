@@ -47,7 +47,10 @@ jobs:
 
       - name: Sync to S3
         run: |
-          aws s3 sync dist/ s3://${{ secrets.S3_BUCKET_NAME }} --delete
+          aws s3 sync dist/ s3://${{ secrets.S3_BUCKET_NAME }} --delete \
+            --exclude "profile-images/*" \
+            --exclude "meeting-images/*" \
+            --exclude "chat-images/*"
 
       # 4. Invalidate CloudFront and Wait for completion
       - name: Invalidate CloudFront
