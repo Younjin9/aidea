@@ -5,7 +5,7 @@ import userApi from '@/shared/api/user/userApi';
 import BackButton from '@/shared/components/ui/BackButton';
 import ProfileImage from '@/shared/components/ui/ProfileImage';
 import { INTEREST_CATEGORIES } from '@/shared/config/constants';
-import { useMyPageStore } from '../store/myPageStore';
+import { useAuthStore } from '@/features/auth/store/authStore';
 import LocationSearchModal from '@/features/meeting/components/LocationSearchModal';
 import { useQueryClient } from '@tanstack/react-query';
 import { myPageKeys } from '../hooks/useMyPage';
@@ -15,8 +15,8 @@ const ProfileEditPage: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
 
-  const user = useMyPageStore((state) => state.user);
-  const updateUser = useMyPageStore((state) => state.updateUser);
+  const user = useAuthStore((state) => state.user);
+  const updateAuthUser = useAuthStore((state) => state.updateUser);
 
   const [name, setName] = useState('');
   const [bio, setBio] = useState('');
@@ -80,10 +80,10 @@ const ProfileEditPage: React.FC = () => {
         await userApi.updateProfileImage(profileImageFile);
       }
 
-      // 5. 서버에서 최신 프로필 정보를 가져와서 스토어 업데이트
+      // 5. 서버에서 최신 프로필 정보를 가져와서 authStore 업데이트
       const response = await userApi.getMyProfile();
       if (response.success) {
-        updateUser(response.data);
+        updateAuthUser(response.data);
         queryClient.setQueryData(myPageKeys.profile(), response.data);
         queryClient.invalidateQueries({ queryKey: myPageKeys.profile() });
       }
@@ -95,13 +95,13 @@ const ProfileEditPage: React.FC = () => {
       alert('프로필 저장 중 오류가 발생했습니다.');
 
       // 서버 연결 실패 시에도 로컬에 임시 반영 (폴백)
-      updateUser({
+      updateAuthUser({
         nickname: name,
         bio,
         profileImage,
         interests: selectedInterests,
         location: { latitude: coords.latitude, longitude: coords.longitude, region },
-      });
+      } as any);
 
       navigate(-1);
     }
