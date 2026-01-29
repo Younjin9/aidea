@@ -3,7 +3,7 @@ import ProfileImage from '@/shared/components/ui/ProfileImage';
 import { UsersRound } from 'lucide-react';
 import type { MeetingDetail } from '@/shared/types/Meeting.types';
 
-const MemberSection: React.FC<{ members: MeetingDetail['members']; isHost: boolean; onManage: () => void }> = ({ members, isHost, onManage }) => (
+const MemberSection: React.FC<{ members: MeetingDetail['members']; isHost: boolean; onManage: () => void }> = ({ members = [], isHost, onManage }) => (
   <section className="px-4 pb-8 border-t border-gray-200">
     <div className="flex items-center justify-between py-4">
       <h3 className="font-semibold">멤버</h3>

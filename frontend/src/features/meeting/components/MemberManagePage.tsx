@@ -44,10 +44,10 @@ const MemberManagePage: React.FC = () => {
   const [members, setMembers] = useState<Member[]>(passedMembers || []);
   const [pendingMembers, setPendingMembers] = useState<Member[]>([]);
 
-  // API 데이터가 로드되면 state 업데이트
+  // API 데이터가 로드되면 state 업데이트 (안전하게 타입 단언 및 fallback)
   useEffect(() => {
     if (apiMembers) {
-      setMembers(apiMembers as Member[]);
+      setMembers(apiMembers as Member[] || []);
     } else if (membersError) {
       console.warn('멤버 목록 API 호출 실패:', membersError);
     }
@@ -55,7 +55,7 @@ const MemberManagePage: React.FC = () => {
 
   useEffect(() => {
     if (apiPendingMembers) {
-      setPendingMembers(apiPendingMembers as Member[]);
+      setPendingMembers(apiPendingMembers as Member[] || []);
     } else if (pendingError) {
       console.warn('대기 멤버 목록 API 호출 실패:', pendingError);
     }

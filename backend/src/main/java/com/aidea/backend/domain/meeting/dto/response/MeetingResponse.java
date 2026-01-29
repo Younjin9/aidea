@@ -34,4 +34,8 @@ public class MeetingResponse {
     private CreatorDto creator;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+
+    // 사용자 권한 정보 (조회 시점 기준)
+    private String myRole; // HOST, MEMBER, NONE
+    private String myStatus; // APPROVED, PENDING, REJECTED, NONE
 }
