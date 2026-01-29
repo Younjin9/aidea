@@ -39,6 +39,17 @@ spring:
     redis:
       host: localhost
       port: 6379
+  
+  cloud:
+    aws:
+      credentials:
+        access-key: ${AWS_ACCESS_KEY:your-access-key}
+        secret-key: ${AWS_SECRET_ACCESS_KEY:your-secret-key}
+      region:
+        static: ap-northeast-2
+      s3:
+        bucket: ${AWS_S3_BUCKET:aidea-s3-bucket}
+
 
 jwt:
   secret: local-dev-secret-key-change-this-in-production-environment-aidea-2026

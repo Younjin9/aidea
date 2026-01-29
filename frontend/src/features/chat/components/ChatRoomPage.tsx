@@ -1,7 +1,7 @@
-import React, { useEffect, useState, useRef, useMemo } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation } from '@tanstack/react-query';
-import { Send, Users, ChevronLeft } from 'lucide-react';
+import { Send, ChevronLeft } from 'lucide-react';
 import { Client } from '@stomp/stompjs';
 import { chatApi } from '@/shared/api/chatAPI';
 import { useAuthStore } from '@/features/auth/store/authStore';
@@ -14,10 +14,8 @@ const ChatRoomPage: React.FC = () => {
     const user = useAuthStore((state) => state.user);
 
     // 테스트를 위한 임시 유저 (로그인 안 된 경우)
-    const guestId = useMemo(() => `guest-${Math.floor(Math.random() * 10000)}`, []);
+    const [guestId] = useState(() => `guest-${Math.floor(Math.random() * 10000)}`);
     const myId = user?.userId ? String(user.userId) : guestId;
-    const myNickname = user?.nickname || '게스트';
-    const myProfileImage = user?.profileImage;
 
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [inputMessage, setInputMessage] = useState('');
@@ -44,13 +42,13 @@ const ChatRoomPage: React.FC = () => {
         queryFn: async () => {
             try {
                 const response = await chatApi.getMessages(parsedMeetingId);
-                // @ts-ignore
-                return response.result || response.data || [];
-            } catch (e) {
+                // @ts-expect-error
+                return Array.isArray(response) ? response : [];
+            } catch {
                 // Fallback Dummy Data for UI Dev
                 return [
-                    { messageId: '1', senderId: 101, senderName: '김철수', content: '같이 가요!', createdAt: '2023-10-25T10:00:00', senderProfileImage: undefined },
-                    { messageId: '2', senderId: 202, senderName: '김쩌고', content: '다른 사람이 말하는 버전 1줄 버전!', createdAt: '2023-10-25T10:05:00', senderProfileImage: undefined },
+                    { messageId: '1', senderId: '101', senderName: '김철수', message: '같이 가요!', createdAt: '2023-10-25T10:00:00', senderProfileImage: undefined, type: 'TALK' },
+                    { messageId: '2', senderId: '202', senderName: '김쩌고', message: '다른 사람이 말하는 버전 1줄 버전!', createdAt: '2023-10-25T10:05:00', senderProfileImage: undefined, type: 'TALK' },
                 ] as ChatMessage[];
             }
         },
@@ -71,7 +69,7 @@ const ChatRoomPage: React.FC = () => {
                 markAsRead(parsedMeetingId);
             }
         }
-    }, [initialMessages, parsedMeetingId]);
+    }, [initialMessages, parsedMeetingId, markAsRead]);
 
     // 2. STOMP 연결
     useEffect(() => {
@@ -122,9 +120,9 @@ const ChatRoomPage: React.FC = () => {
         // 전송할 메시지 객체 생성
         const messagePayload = {
             meetingId: parsedMeetingId,
-            senderId: myId, // 로그인 안했으면 게스트 ID
-            content: inputMessage,
-            type: 'TALK'
+            senderId: String(myId), // 로그인 안했으면 게스트 ID
+            message: inputMessage,
+            messageType: 'TALK'
         };
 
         // STOMP 전송
@@ -201,7 +199,7 @@ const ChatRoomPage: React.FC = () => {
                                             ? 'bg-[#FF206E] text-white rounded-[20px] rounded-tr-none'
                                             : 'bg-[#BDBDBD] text-white rounded-[20px] rounded-tl-none'
                                             }`}>
-                                            {msg.content}
+                                            {msg.message}
                                         </div>
                                         {!isMe && <span className="text-[10px] text-gray-400 min-w-fit mb-1">{formatTime(msg.createdAt)}</span>}
                                     </div>

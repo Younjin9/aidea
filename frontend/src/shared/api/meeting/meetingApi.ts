@@ -1,4 +1,4 @@
-import apiClient, { buildQueryString, createFormData } from '../client';
+import apiClient, { buildQueryString } from '../client';
 import type { ApiResponse, PaginatedResponse } from '@/shared/types/common.types';
 import type {
   Meeting,
@@ -70,10 +70,7 @@ export const getDetail = async (groupId: string): Promise<ApiResponse<MeetingDet
  * POST /api/groups
  */
 export const create = async (data: CreateMeetingRequest): Promise<ApiResponse<MeetingDetail>> => {
-  const formData = createFormData(data);
-  return apiClient.post('/api/groups', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-  });
+  return apiClient.post('/api/groups', data);
 };
 
 /**
@@ -88,14 +85,14 @@ export const update = async (
 };
 
 /**
- * 모임 이미지 변경
- * POST /api/groups/{groupId}/image
+ * 모임 이미지 업로드 (S3 전용)
+ * POST /api/groups/image
  */
-export const updateImage = async (groupId: string, image: File): Promise<ApiResponse<{ imageUrl: string }>> => {
+export const uploadImage = async (image: File): Promise<ApiResponse<{ imageUrl: string }>> => {
   const formData = new FormData();
   formData.append('image', image);
 
-  return apiClient.post(`/api/groups/${groupId}/image`, formData, {
+  return apiClient.post('/api/groups/image', formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
   });
 };
@@ -167,7 +164,7 @@ const meetingApi = {
   getDetail,
   create,
   update,
-  updateImage,
+  uploadImage,
   remove,
   join,
   leave,

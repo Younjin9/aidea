@@ -3,7 +3,6 @@
 // 모임 목록 / 검색 / 개설 / 상세
 // ============================================
 
-import type { Location } from './common.types';
 import type { Member } from './Member.types';
 
 export type MeetingStatus = 'RECRUITING' | 'CONFIRMED' | 'COMPLETED' | 'CANCELLED';
@@ -19,7 +18,8 @@ export interface Meeting {
   imageUrl?: string;
   interestCategoryId: string;
   interestCategoryName?: string;
-  memberCount: number;
+  memberCount: number; // For UI backward compatibility
+  currentMembers?: number; // Backend field
   maxMembers: number;
   location: string; // Backend 'location' string (address)
   latitude: number;
@@ -29,6 +29,11 @@ export interface Meeting {
   isPublic: boolean;
   rules?: string[];
   ownerUserId: number; // Backend uses userId Long
+  creator?: {
+    userId: number;
+    nickname: string;
+    profileImage?: string;
+  };
   createdAt: string;
   updatedAt: string;
 }
@@ -40,7 +45,14 @@ export interface MeetingDetail extends Meeting {
   myStatus?: 'PENDING' | 'APPROVED';
 }
 
-// ... MapMeeting skipped ...
+// Map에서 사용하는 간단한 모임 타입
+export interface MapMeeting {
+  groupId: number;
+  title: string;
+  lat: number;
+  lng: number;
+  memberCount: number;
+}
 
 export interface CreateMeetingRequest {
   title: string;
@@ -56,8 +68,8 @@ export interface CreateMeetingRequest {
 
   rules?: string[];
   isPublic: boolean;
-  image?: File;
   meetingDate: string; // Backend requires meetingDate
+  imageUrl?: string;
 }
 
 export interface UpdateMeetingRequest {
