@@ -32,6 +32,8 @@ public class ChatController {
     private final ChatService chatService;
     private final UserRepository userRepository;
 
+    private final org.springframework.messaging.simp.SimpMessagingTemplate messagingTemplate; // 추가
+
     // ========== WebSocket (STOMP) ==========
 
     /**
@@ -40,8 +42,8 @@ public class ChatController {
      * - 브로드캐스트: /topic/meeting/{meetingId}
      */
     @MessageMapping("/chat.send.{meetingId}")
-    @SendTo("/topic/meeting/{meetingId}")
-    public ChatMessageResponse sendMessage(
+    // @SendTo 어노테이션 제거 (template 직접 사용)
+    public void sendMessage(
             @Payload ChatMessageRequest request,
             @DestinationVariable Long meetingId,
             SimpMessageHeaderAccessor headerAccessor) {
@@ -58,8 +60,11 @@ public class ChatController {
             request.setMessage(request.getMessage() + "님이 입장하셨습니다.");
         }
 
-        // 메시지 저장 및 브로드캐스트
-        return chatService.saveMessage(request, userId);
+        // 메시지 저장
+        ChatMessageResponse response = chatService.saveMessage(request, userId);
+
+        // 명시적 브로드캐스트 (가장 확실한 방법)
+        messagingTemplate.convertAndSend("/topic/meeting/" + meetingId, response);
     }
 
     // ========== REST API ==========

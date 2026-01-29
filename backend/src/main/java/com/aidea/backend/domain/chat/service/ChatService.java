@@ -86,6 +86,7 @@ public class ChatService {
         /**
          * 채팅방의 최근 메시지 조회
          */
+        @Transactional
         public List<ChatMessageResponse> getRecentMessages(Long meetingId, int limit) {
                 // 1. ChatRoom 조회 (없으면 생성 시도)
                 ChatRoom chatRoom = chatRoomRepository.findByMeetingId(meetingId)

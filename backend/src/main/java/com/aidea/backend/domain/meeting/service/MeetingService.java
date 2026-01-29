@@ -22,6 +22,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+import com.aidea.backend.domain.chat.repository.ChatRoomRepository; // Added import
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -40,6 +41,11 @@ public class MeetingService {
     private final MeetingMemberRepository meetingMemberRepository;
     private final UserRepository userRepository;
     private final MeetingLikeRepository meetingLikeRepository;
+    private final ChatRoomRepository chatRoomRepository; // Inject ChatRoomRepository
+    private final com.aidea.backend.domain.chat.repository.ChatMessageRepository chatMessageRepository; // Inject
+                                                                                                        // ChatMessageRepository
+    private final com.aidea.backend.domain.event.repository.EventRepository eventRepository; // Inject EventRepository
+    private final com.aidea.backend.domain.event.repository.EventParticipantRepository eventParticipantRepository; // Inject
     private final S3Service s3Service;
 
     /**
@@ -58,110 +64,169 @@ public class MeetingService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
 
-        // 2. Meeting 생성
-        Meeting meeting = Meeting.builder()
-                .title(request.getTitle())
-                .description(request.getDescription())
-                .imageUrl(request.getImageUrl())
-                .category(com.aidea.backend.domain.meeting.entity.enums.MeetingCategory
-                        .findByCode(request.getInterestCategoryId())) // String -> Enum
-                .region(com.aidea.backend.domain.meeting.entity.enums.Region.findByFullName(request.getRegion())) // String
-                                                                                                                  // ->
-                                                                                                                  // Enum
-                .location(request.getLocation())
-                .latitude(request.getLatitude())
-                .longitude(request.getLongitude())
-                .locationDetail(request.getLocationDetail())
-                .maxMembers(request.getMaxMembers())
-                .meetingDate(request.getMeetingDate())
-                .isApprovalRequired(!request.getIsPublic()) // Assuming isPublic=true means approval not required
-                .creator(user) // Fix: Set creator
-                .build();
+        // 2. 모임 생성
+        Meeting meeting = request.toEntity(user);
+        meetingRepository.save(meeting);
 
-        Meeting savedMeeting = meetingRepository.save(meeting);
-
-        // 3. 생성자를 HOST로 등록
-        MeetingMember hostMember = MeetingMember.builder()
-                .meeting(savedMeeting)
-                .user(user)
-                .role(MemberRole.HOST)
-                .status(MemberStatus.APPROVED)
-                .build();
-
+        // 3. HOST 등록
+        MeetingMember hostMember = MeetingMember.createHost(meeting, user);
         meetingMemberRepository.save(hostMember);
 
-        // 4. Response 반환
-        return savedMeeting.toResponse();
+        return meeting.toResponse("HOST", "APPROVED");
     }
 
     /**
      * 모임 상세 조회
      */
-    public MeetingResponse getMeetingById(Long meetingId) {
+    public MeetingResponse getMeetingById(Long meetingId, Long userId) {
         Meeting meeting = meetingRepository.findById(meetingId)
                 .orElseThrow(() -> new RuntimeException("모임을 찾을 수 없습니다."));
 
-        return meeting.toResponse();
+        String myRole = "NONE";
+        String myStatus = "NONE";
+
+        if (userId != null) {
+            // 1. 호스트 여부 확인
+            if (meeting.getCreator().getUserId().equals(userId)) {
+                myRole = "HOST";
+                myStatus = "APPROVED";
+            } else {
+                // 2. 멤버 여부 확인
+                var member = meetingMemberRepository.findByMeetingIdAndUser_UserId(meetingId, userId);
+                if (member.isPresent()) {
+                    myRole = "MEMBER";
+                    myStatus = member.get().getStatus().name();
+                }
+            }
+        }
+
+        return meeting.toResponse(myRole, myStatus);
     }
 
     /**
      * 모임 목록 조회 (페이징)
      */
-    public Page<MeetingSummaryResponse> getAllMeetings(Pageable pageable) {
+    public Page<MeetingSummaryResponse> getAllMeetings(Pageable pageable, Long userId) {
         Page<Meeting> meetings = meetingRepository.findAllByOrderByCreatedAtDesc(pageable);
-        return meetings.map(Meeting::toSummary);
+        return mapToSummaryWithAuth(meetings, userId);
     }
 
     /**
      * 모임 검색 (조건별 통합 검색)
-     * - category만 있음 → category 조회
-     * - region만 있음 → region 조회
-     * - 둘 다 있음 → category AND region 조회
-     * - 둘 다 없음 → 전체 조회
      */
     public Page<MeetingSummaryResponse> searchMeetings(
             com.aidea.backend.domain.meeting.entity.enums.MeetingCategory category,
             com.aidea.backend.domain.meeting.entity.enums.Region region,
-            Pageable pageable) {
+            Pageable pageable,
+            Long userId) {
 
         Page<Meeting> meetings;
 
         // 조건에 따른 분기 처리
         if (category != null && region != null) {
-            // 둘 다 있음 → AND 조건
             meetings = meetingRepository.findByCategoryAndRegion(category, region, pageable);
         } else if (category != null) {
-            // category만 있음
             meetings = meetingRepository.findByCategory(category, pageable);
         } else if (region != null) {
-            // region만 있음
             meetings = meetingRepository.findByRegion(region, pageable);
         } else {
-            // 둘 다 없음 → 전체 조회
             meetings = meetingRepository.findAllByOrderByCreatedAtDesc(pageable);
         }
 
-        return meetings.map(Meeting::toSummary);
+        return mapToSummaryWithAuth(meetings, userId);
+    }
+
+    /**
+     * 모임 목록을 SummaryResponse로 변환 (권한 정보 포함)
+     * - N+1 문제 해결을 위해 배치 조회 사용
+     */
+    private Page<MeetingSummaryResponse> mapToSummaryWithAuth(Page<Meeting> meetings, Long userId) {
+        if (userId == null) {
+            return meetings.map(m -> m.toSummary("NONE", "NONE"));
+        }
+
+        // 현재 페이지의 모임 ID 목록
+        List<Long> meetingIds = meetings.getContent().stream()
+                .map(Meeting::getId)
+                .toList();
+
+        // 유저가 참여 중인 멤버 정보 일괄 조회
+        List<MeetingMember> myMemberships = meetingMemberRepository.findByUser_UserIdAndMeeting_IdIn(userId,
+                meetingIds);
+
+        // Map으로 변환 (MeetingId -> MeetingMember)
+        var membershipMap = myMemberships.stream()
+                .collect(Collectors.toMap(m -> m.getMeeting().getId(), m -> m));
+
+        return meetings.map(meeting -> {
+            String myRole = "NONE";
+            String myStatus = "NONE";
+
+            if (meeting.getCreator().getUserId().equals(userId)) {
+                myRole = "HOST";
+                myStatus = "APPROVED";
+            } else {
+                MeetingMember member = membershipMap.get(meeting.getId());
+                if (member != null) {
+                    myRole = "MEMBER";
+                    myRole = member.getRole().name();
+                    myStatus = member.getStatus().name();
+                }
+            }
+            return meeting.toSummary(myRole, myStatus);
+        });
     }
 
     /**
      * 모임 삭제
      * - HOST 권한 확인
-     * - 연관된 MeetingMember도 자동 삭제 (Cascade)
+     * - 연관된 데이터 순차 삭제 (DB Constraint 해결)
      */
     @Transactional
     public void deleteMeeting(Long meetingId, Long userId) {
-        // 1. Meeting 조회
-        Meeting meeting = meetingRepository.findById(meetingId)
-                .orElseThrow(() -> new RuntimeException("모임을 찾을 수 없습니다."));
+        try {
+            // 1. Meeting 조회
+            Meeting meeting = meetingRepository.findById(meetingId)
+                    .orElseThrow(() -> new RuntimeException("모임을 찾을 수 없습니다."));
 
-        // 2. HOST 권한 확인
-        if (!meeting.getCreator().getUserId().equals(userId)) {
-            throw new RuntimeException("모임을 삭제할 권한이 없습니다.");
+            // 2. HOST 권한 확인
+            if (!meeting.getCreator().getUserId().equals(userId)) {
+                throw new RuntimeException("모임을 삭제할 권한이 없습니다.");
+            }
+
+            // 3. 연관 데이터 삭제 (순서 중요)
+
+            // 3-1. EventParticipant 삭제 (이벤트 참여자)
+            eventParticipantRepository.deleteByEvent_Meeting_Id(meetingId);
+
+            // 3-2. Event 삭제
+            eventRepository.deleteByMeetingId(meetingId);
+
+            // 3-3. ChatRoom & ChatMessage 삭제 (순서 중요: 메시지 -> 방)
+            // Fix: Delete ChatMessage first to avoid FK constraint
+            com.aidea.backend.domain.chat.entity.ChatRoom chatRoom = chatRoomRepository.findByMeetingId(meetingId)
+                    .orElse(null);
+            if (chatRoom != null) {
+                long messageCount = chatMessageRepository.countByChatRoomId(chatRoom.getId());
+                log.info("Deleting {} messages for meeting ID: {}", messageCount, meetingId);
+
+                chatMessageRepository.deleteByChatRoomId(chatRoom.getId());
+                chatRoomRepository.delete(chatRoom);
+            }
+
+            // 3-4. MeetingLike 삭제
+            meetingLikeRepository.deleteByMeeting_Id(meetingId);
+
+            // 3-5. MeetingMember 삭제
+            meetingMemberRepository.deleteAllByMeetingId(meetingId);
+
+            // 4. 모임 삭제
+            log.info("Deleting meeting ID: {}", meetingId);
+            meetingRepository.delete(meeting);
+        } catch (Exception e) {
+            log.error("Meeting deletion failed for ID: {}", meetingId, e);
+            throw new RuntimeException("모임 삭제에 실패했습니다.", e);
         }
-
-        // 3. 삭제 (MeetingMember는 Cascade로 자동 삭제)
-        meetingRepository.delete(meeting);
     }
 
     /**
@@ -187,8 +252,6 @@ public class MeetingService {
         // 4. Response 반환 (변경 감지로 자동 저장)
         return meeting.toResponse();
     }
-
-    // ========== 참가 관리 ==========
 
     /**
      * 모임 참가 신청

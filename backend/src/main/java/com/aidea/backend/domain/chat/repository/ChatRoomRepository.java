@@ -16,4 +16,9 @@ public interface ChatRoomRepository extends JpaRepository<ChatRoom, Long> {
      * 모임 ID로 채팅방 존재 여부 확인
      */
     boolean existsByMeetingId(Long meetingId);
+
+    /**
+     * 모임 ID로 채팅방 삭제 (모임 삭제 시 사용)
+     */
+    void deleteByMeetingId(Long meetingId);
 }

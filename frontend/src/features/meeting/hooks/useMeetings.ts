@@ -25,9 +25,9 @@ const transformMeetingToUI = (meeting: Meeting): MeetingUI => {
     maxMembers: meeting.maxMembers,
     description: meeting.description,
     isLiked: false,
-    ownerUserId: meeting.ownerUserId,
-    myStatus: undefined,
-    myRole: undefined,
+    ownerUserId: meeting.ownerUserId, // still keep this but relying on myRole is better
+    myStatus: meeting.myStatus as 'PENDING' | 'APPROVED' | undefined,
+    myRole: meeting.myRole as 'HOST' | 'MEMBER' | undefined,
   };
 };
 

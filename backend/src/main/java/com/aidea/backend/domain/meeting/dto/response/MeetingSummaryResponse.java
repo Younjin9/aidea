@@ -26,4 +26,8 @@ public class MeetingSummaryResponse {
     private Integer currentMembers;
     private Integer maxMembers;
     private MeetingStatus status;
+
+    // 사용자 권한 정보 (조회 시점 기준)
+    private String myRole; // HOST, MEMBER, NONE
+    private String myStatus; // APPROVED, PENDING, REJECTED, NONE
 }
