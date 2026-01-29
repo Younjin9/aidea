@@ -146,8 +146,10 @@ const MeetingDetailPage: React.FC = () => {
   });
 
   // mock 데이터 초기화 (스토어가 초기화 안됐을 때)
-  if (!isMeetingInitialized) initializeMeetingMockData();
-  if (!isUserInitialized) initializeUserMockData();
+  useEffect(() => {
+    if (!isMeetingInitialized) initializeMeetingMockData();
+    if (!isUserInitialized) initializeUserMockData();
+  }, [isMeetingInitialized, isUserInitialized, initializeMeetingMockData, initializeUserMockData]);
 
   // 스토어에서 모임 정보 조회 및 소유자 여부 판단
   const storedMeeting = getMeetingByGroupId(meetingId || '');
@@ -183,9 +185,9 @@ const MeetingDetailPage: React.FC = () => {
       const exists = getEventsByGroupId(meetingId).some(e => e.eventId === locationState.newEvent!.eventId);
       if (!exists) addEvent(meetingId, locationState.newEvent);
       setMeeting(prev => {
-        const localExists = prev.events.some(e => e.eventId === locationState.newEvent!.eventId);
+        const localExists = prev.events?.some(e => e.eventId === locationState.newEvent!.eventId);
         if (localExists) return prev;
-        return { ...prev, events: [...prev.events, locationState.newEvent!] };
+        return { ...prev, events: [...(prev.events || []), locationState.newEvent!] };
       });
     }
     if (locationState.updatedMembers) {
@@ -264,7 +266,7 @@ const MeetingDetailPage: React.FC = () => {
   // 이벤트 참여 취소 핸들러 (API 호출 및 상태 동기화)
   const handleCancelParticipation = () => {
     if (!selectedEvent || !user) return;
-    
+
     const updateState = () => {
       setMeeting(prev => ({
         ...prev,
@@ -286,7 +288,7 @@ const MeetingDetailPage: React.FC = () => {
   // 이벤트 참여 핸들러 (API 호출 및 상태 동기화)
   const handleJoinEvent = () => {
     if (!selectedEvent || !user) return;
-    
+
     const updateState = () => {
       setMeeting(prev => ({
         ...prev,
@@ -346,7 +348,7 @@ const MeetingDetailPage: React.FC = () => {
     try {
       // API 호출 - 모임 삭제
       await meetingApi.remove(meetingId);
-      
+
       // 삭제 성공 시 store에서 제거 및 페이지 이동
       leaveMeeting(String(meetingId));
       closeModal();
@@ -369,7 +371,7 @@ const MeetingDetailPage: React.FC = () => {
     openModal(action === 'cancelParticipation' ? 'cancelParticipation' : 'joinEvent');
   };
 
-  
+
 
   // API 로딩 중일 때 로딩 UI 표시
   if (isLoading) {

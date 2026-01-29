@@ -24,4 +24,8 @@ public interface ChatMessageRepository extends JpaRepository<ChatMessage, Long> 
      * 채팅방의 가장 최근 메시지 1개 조회
      */
     java.util.Optional<ChatMessage> findTopByChatRoomIdOrderByCreatedAtDesc(Long chatRoomId);
+
+    long countByChatRoomId(Long chatRoomId);
+
+    void deleteByChatRoomId(Long chatRoomId);
 }
