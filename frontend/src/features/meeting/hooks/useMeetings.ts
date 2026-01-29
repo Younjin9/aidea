@@ -24,7 +24,7 @@ const transformMeetingToUI = (meeting: Meeting): MeetingUI => {
     members: meeting.memberCount,
     maxMembers: meeting.maxMembers,
     description: meeting.description,
-    isLiked: false,
+    isLiked: meeting.isLiked || false, // 백엔드에서 받은 isLiked 사용
     ownerUserId: meeting.ownerUserId, // still keep this but relying on myRole is better
     myStatus: meeting.myStatus as 'PENDING' | 'APPROVED' | undefined,
     myRole: meeting.myRole as 'HOST' | 'MEMBER' | undefined,
@@ -58,6 +58,17 @@ export const useMeetings = (params: MeetingListParams = {}) => {
   const groupByCategoryFn = useMeetingStore((state) => state.groupByCategory);
   const toggleLikeByGroupId = useMeetingStore((state) => state.toggleLikeByGroupId);
 
+  // 찜 목록 조회 (백엔드가 isLiked를 반환하지 않으므로 별도 조회)
+  const { data: likedMeetings } = useQuery({
+    queryKey: ['meetings', 'liked'],
+    queryFn: async () => {
+      const response = await meetingApi.getLiked();
+      return response.data || [];
+    },
+    staleTime: 1000 * 60 * 3,
+    retry: 1,
+  });
+
   // API 호출
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: meetingKeys.list(),
@@ -70,15 +81,23 @@ export const useMeetings = (params: MeetingListParams = {}) => {
     retry: 1,
   });
 
-  // API 성공 시 store 업데이트
+  // API 성공 시 store 업데이트 + isLiked 동기화
   useEffect(() => {
-    if (data) {
+    if (data && likedMeetings) {
+      const likedGroupIds = new Set(likedMeetings.map(m => m.groupId));
+      const meetingsWithLikeStatus = data.map(meeting => ({
+        ...meeting,
+        isLiked: likedGroupIds.has(meeting.id),
+      }));
+      console.log('[useMeetings] Setting meetings with like status:', meetingsWithLikeStatus);
+      setMeetings(meetingsWithLikeStatus);
+    } else if (data) {
       console.log('[useMeetings] Setting meetings from API:', data);
       setMeetings(data);
     } else if (error) {
       console.warn('모임 목록 API 호출 실패:', error);
     }
-  }, [data, error, setMeetings]);
+  }, [data, likedMeetings, error, setMeetings]);
 
   // Like/Unlike API 호출 (useToggleLikeMeeting 활용)
   const { mutate: toggleLikeApi } = useToggleLikeMeeting();
