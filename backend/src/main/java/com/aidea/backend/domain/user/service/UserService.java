@@ -409,6 +409,7 @@ public class UserService {
                                 .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
 
                 // TODO: 관련 데이터 처리 (모임 탈퇴, 채팅방 등)
+                refreshTokenRepository.deleteByEmail(email);
 
                 userRepository.delete(user);
 
