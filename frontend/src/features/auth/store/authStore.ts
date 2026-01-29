@@ -15,7 +15,7 @@ export const useAuthStore = create<AuthState>()(
   persist(
     (set) => ({
       user: null,
-      isAuthenticated: false,
+      isAuthenticated: true,
       accessToken: null,
       setAuth: (user, token) => {
         // 1. localStorage에서 이전 사용자 정보 완전 제거
