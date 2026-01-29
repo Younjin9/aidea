@@ -101,7 +101,7 @@ const KakaoMapModal: React.FC<KakaoMapModalProps> = ({ isOpen, onClose, onSelect
 
     const kakao = window.kakao;
     if (!kakao || !kakao.maps) {
-      console.error('Kakao Maps API is not loaded');
+      console.warn('Kakao Maps script is not yet available, retrying...');
       return;
     }
 
@@ -114,34 +114,34 @@ const KakaoMapModal: React.FC<KakaoMapModalProps> = ({ isOpen, onClose, onSelect
       });
 
       mapRef.current = map;
-      
+
       const initialPosition = currentLocation
         ? new kakao.maps.LatLng(currentLocation.latitude, currentLocation.longitude)
         : new kakao.maps.LatLng(37.5665, 126.978);
-        
+
       markerRef.current = new kakao.maps.Marker({
         position: initialPosition,
         map,
       });
 
       placesRef.current = new kakao.maps.services.Places();
-      
+
       // ✅ 지도 클릭 이벤트 - 클릭한 위치로 마커 이동 & 주소 가져오기
       kakao.maps.event.addListener(map, 'click', (mouseEvent: any) => {
         const latlng = mouseEvent.latLng;
-        
+
         // 마커 위치 이동
         if (markerRef.current) {
           markerRef.current.setPosition(latlng);
         }
-        
+
         // 좌표를 주소로 변환
         const geocoder = new kakao.maps.services.Geocoder();
         geocoder.coord2Address(latlng.getLng(), latlng.getLat(), (result: any, status: any) => {
           if (status === kakao.maps.services.Status.OK) {
             const address = result[0].address;
             const roadAddress = result[0].road_address;
-            
+
             setSelectedPlace({
               place_name: roadAddress?.building_name || address.region_3depth_name || '선택한 위치',
               address_name: address.address_name,
@@ -269,7 +269,7 @@ const KakaoMapModal: React.FC<KakaoMapModalProps> = ({ isOpen, onClose, onSelect
               <p className="text-sm text-gray-500">지도를 불러오는 중...</p>
             </div>
           )}
-          
+
           {/* 지도 사용 안내 */}
           {isMapLoaded && !selectedPlace && (
             <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-white/90 backdrop-blur-sm px-4 py-2 rounded-full shadow-md pointer-events-none select-none">
