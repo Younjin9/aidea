@@ -2,7 +2,6 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useMemo, useRef } from 'react';
 import mypageApi from '@/shared/api/user/userApi';
 import meetingApi from '@/shared/api/meeting/meetingApi';
-import { useMyPageStore } from '../store/myPageStore';
 import { useMeetingStore } from '@/features/meeting/store/meetingStore';
 import { transformMeetingsToUI } from '@/features/meeting/hooks/useMeetings';
 import { useAuthStore } from '@/features/auth/store/authStore';
@@ -13,7 +12,6 @@ import { useAuthStore } from '@/features/auth/store/authStore';
 
 export const myPageKeys = {
   all: ['mypage'] as const,
-  profile: () => [...myPageKeys.all, 'profile'] as const,
   myMeetings: () => [...myPageKeys.all, 'my-meetings'] as const,
   likedMeetings: () => [...myPageKeys.all, 'liked-meetings'] as const,
 };
@@ -22,14 +20,10 @@ export const myPageKeys = {
 // Custom Hook
 // ============================================
 
-/**
- * 마이페이지 통합 훅 - API 호출 후 실패 시 Mock 데이터 fallback
- */
 export const useMyPage = () => {
-  // MyPage Store는 사용하지 않음 (authStore에서 직접 가져옴)
+  const authUser = useAuthStore((state) => state.user);
   const toggleLikeByGroupId = useMeetingStore((state) => state.toggleLikeByGroupId);
   const meetings = useMeetingStore((state) => state.meetings);
-  const authUser = useAuthStore((state) => state.user);
   const queryClient = useQueryClient();
   const prevUserIdRef = useRef<string | number | null>(null);
 
@@ -39,7 +33,6 @@ export const useMyPage = () => {
     if (prevUserIdRef.current !== currentUserId && currentUserId !== null) {
       prevUserIdRef.current = currentUserId;
       // 이전 캐시 완전 제거
-      queryClient.removeQueries({ queryKey: myPageKeys.profile() });
       queryClient.removeQueries({ queryKey: myPageKeys.myMeetings() });
       queryClient.removeQueries({ queryKey: myPageKeys.likedMeetings() });
     }
@@ -80,12 +73,10 @@ export const useMyPage = () => {
     return meetings.filter((m) => m.isLiked);
   }, [meetings, likedMeetingsData, likedMeetingsError]);
 
-  const isLoading = false; // authUser가 있으면 isLoading은 false
-
   return {
     myMeetings,
     likedMeetings,
-    isLoading,
+    isLoading: false,
     unlikeMeeting: toggleLikeByGroupId,
     refetchLikedMeetings,
   };
