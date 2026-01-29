@@ -38,6 +38,7 @@ export interface Meeting {
   updatedAt: string;
   myRole?: 'HOST' | 'MEMBER' | 'NONE'; // Backend driven permission
   myStatus?: 'APPROVED' | 'PENDING' | 'REJECTED' | 'NONE';
+  isLiked?: boolean; // 사용자가 찜한 모임 여부
 }
 
 export interface MeetingDetail extends Meeting {
