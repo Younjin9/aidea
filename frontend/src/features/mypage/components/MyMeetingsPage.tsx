@@ -19,7 +19,7 @@ const MyMeetingsPage: React.FC = () => {
     setSearchParams({ tab }, { replace: true });
   };
 
-  const { myMeetings, likedMeetings, isLoading, unlikeMeeting } = useMyPage();
+  const { myMeetings, likedMeetings, isLoading, unlikeMeeting, refetchLikedMeetings } = useMyPage();
 
   // 찜 목록 로컬 state (1초 딜레이용)
   const [displayedLikedMeetings, setDisplayedLikedMeetings] = useState<MeetingUI[]>([]);
@@ -54,6 +54,8 @@ const MyMeetingsPage: React.FC = () => {
       const originalMeeting = likedMeetings.find(m => m.id === id);
       if (originalMeeting) {
         unlikeMeeting(originalMeeting.groupId);
+        // API 호출 후 찜 목록 다시 조회
+        refetchLikedMeetings();
       }
       setDisplayedLikedMeetings((prev) => prev.filter((meeting) => meeting.id !== id));
     }, 1000);
