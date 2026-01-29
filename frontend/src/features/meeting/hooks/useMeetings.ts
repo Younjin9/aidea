@@ -73,6 +73,7 @@ export const useMeetings = (params: MeetingListParams = {}) => {
   // API 성공 시 store 업데이트
   useEffect(() => {
     if (data) {
+      console.log('[useMeetings] Setting meetings from API:', data);
       setMeetings(data);
     } else if (error) {
       console.warn('모임 목록 API 호출 실패:', error);
@@ -90,6 +91,11 @@ export const useMeetings = (params: MeetingListParams = {}) => {
     toggleLikeApi(
       { groupId: String(groupId), isLiked: isCurrentlyLiked },
       {
+        onSuccess: () => {
+          console.log(`[useMeetings] Like toggle success for ${groupId}, refetching meetings`);
+          // API 성공 후 모임 목록 재조회 (isLiked 값 동기화)
+          refetch();
+        },
         onError: (error) => {
           console.error(`[useMeetings] Like toggle failed for ${groupId}:`, error);
           // 실패 시 롤백
