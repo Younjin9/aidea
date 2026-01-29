@@ -12,12 +12,25 @@ const MeetingListPage: React.FC = () => {
 
   const groupedMeetings = groupByCategory();
 
-  // 카테고리 이모지 찾기
+  // 카테고리별 이모티콘 찾기
   const getCategoryIcon = (categoryName: string) => {
-    const category = INTEREST_CATEGORIES.find(
-      (cat) => cat.label === categoryName || cat.items.some((item) => item === categoryName)
+    // 1. 대분류 label과 정확 일치
+    const exactMatch = INTEREST_CATEGORIES.find((cat) => cat.label === categoryName);
+    if (exactMatch) return exactMatch.icon;
+    
+    // 2. 세부 카테고리 items에 포함
+    const itemMatch = INTEREST_CATEGORIES.find((cat) => 
+      cat.items.some((item) => item === categoryName)
     );
-    return category?.icon || '📌';
+    if (itemMatch) return itemMatch.icon;
+    
+    // 3. 부분 문자열 매칭
+    const partialMatch = INTEREST_CATEGORIES.find((cat) => {
+      const mainKeyword = cat.label.split(' /')[0].trim();
+      return categoryName.includes(mainKeyword);
+    });
+    
+    return partialMatch?.icon || '';
   };
 
   return (
