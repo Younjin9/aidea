@@ -15,24 +15,24 @@ export const useAuthStore = create<AuthState>()(
   persist(
     (set) => ({
       user: null,
-      isAuthenticated: true,
+      isAuthenticated: false,
       accessToken: null,
       setAuth: (user, token) => {
-        // 1. localStorage에서 이전 사용자 정보 완전 제거
-        localStorage.removeItem('auth-storage-v2');
-        // 2. 새로운 사용자 정보로 업데이트
+        // 새로운 사용자 정보로 완전 교체
         localStorage.setItem('accessToken', token);
         set({ 
           user: { ...user },
           accessToken: token, 
           isAuthenticated: true 
-        });
+        }, true); // true = replace state (완전 교체)
       },
       updateUser: (user) => set({ user }),
       logout: () => {
-        // 상태 초기화 후 localStorage 완전 제거
-        set({ user: null, accessToken: null, isAuthenticated: false });
+        // 1. 먼저 상태 완전 초기화
+        set({ user: null, accessToken: null, isAuthenticated: false }, true);
+        // 2. 인증 관련 localStorage만 제거
         localStorage.removeItem('accessToken');
+        localStorage.removeItem('refreshToken');
         localStorage.removeItem('auth-storage-v2');
       },
     }),
