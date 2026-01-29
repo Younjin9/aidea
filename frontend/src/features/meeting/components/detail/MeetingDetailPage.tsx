@@ -14,7 +14,7 @@ import { reportUser } from '@/shared/api/safety/safetyApi';
 import ChatRoomPage from '@/features/chat/components/ChatRoomPage';
 import meetingApi from '@/shared/api/meeting/meetingApi';
 import { useMeetingStore } from '../../store/meetingStore';
-import { useMyPageStore } from '@/features/mypage/store/myPageStore';
+import { useAuthStore } from '@/features/auth/store/authStore';
 import { useLeaveMeeting, useToggleLikeMeeting } from '../../hooks/useMeetings';
 import { useJoinEvent, useCancelEventParticipation } from '../../hooks/useEvents';
 import type { MeetingDetail, MeetingEvent } from '@/shared/types/Meeting.types';
@@ -129,7 +129,7 @@ const MeetingDetailPage: React.FC = () => {
 
   // 상태 관리 및 커스텀 훅 사용 (store, mutation 등)
   const { getMeetingByGroupId, toggleLikeByGroupId, leaveMeeting, getEventsByGroupId, addEvent, updateEvent: updateEventInStore, deleteEvent: deleteEventInStore } = useMeetingStore();
-  const { user } = useMyPageStore();
+  const user = useAuthStore((state) => state.user);
   // 이벤트 참여/취소 등 API 호출을 위한 커스텀 훅
   const { mutate: leaveMeetingApi } = useLeaveMeeting();
   const { mutate: toggleLikeApi } = useToggleLikeMeeting();

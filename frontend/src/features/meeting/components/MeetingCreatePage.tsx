@@ -10,7 +10,7 @@ import LocationSearchModal from './LocationSearchModal';
 import { INTEREST_CATEGORIES } from '@/shared/config/constants';
 import defaultLogo from '@/assets/images/logo.png';
 import { useMeetingStore } from '../store/meetingStore';
-import { useMyPageStore } from '@/features/mypage/store/myPageStore';
+import { useAuthStore } from '@/features/auth/store/authStore';
 import { useCreateMeeting } from '../hooks/useMeetings';
 import * as meetingApi from '@/shared/api/meeting/meetingApi';
 
@@ -22,7 +22,7 @@ const MeetingCreatePage: React.FC = () => {
   const addMeeting = useMeetingStore((state) => state.addMeeting);
 
   // 유저 프로필 이미지 가져오기
-  const user = useMyPageStore((state) => state.user);
+  const user = useAuthStore((state) => state.user);
   const currentUserProfileImage = user?.profileImage;
 
   // API Mutation
