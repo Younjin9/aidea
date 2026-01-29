@@ -19,12 +19,11 @@ export const useAuthStore = create<AuthState>()(
       accessToken: null,
       setAuth: (user, token) => {
         localStorage.setItem('accessToken', token);
-        set({ user, accessToken: token, isAuthenticated: true }, true); // true = replace state
+        set({ user, accessToken: token, isAuthenticated: true });
       },
       updateUser: (user) => set({ user }),
       logout: () => {
-        // 순서 중요: 먼저 상태 초기화, 그 다음 localStorage 클리어
-        set({ user: null, accessToken: null, isAuthenticated: false }, true);
+        set({ user: null, accessToken: null, isAuthenticated: false });
         localStorage.removeItem('accessToken');
         localStorage.removeItem('auth-storage-v2');
       },
