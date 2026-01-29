@@ -7,13 +7,10 @@ import ProfileImage from '@/shared/components/ui/ProfileImage';
 import { INTEREST_CATEGORIES } from '@/shared/config/constants';
 import { useAuthStore } from '@/features/auth/store/authStore';
 import LocationSearchModal from '@/features/meeting/components/LocationSearchModal';
-import { useQueryClient } from '@tanstack/react-query';
-import { myPageKeys } from '../hooks/useMyPage';
 
 const ProfileEditPage: React.FC = () => {
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const queryClient = useQueryClient();
 
   const user = useAuthStore((state) => state.user);
   const updateAuthUser = useAuthStore((state) => state.updateUser);
@@ -84,8 +81,6 @@ const ProfileEditPage: React.FC = () => {
       const response = await userApi.getMyProfile();
       if (response.success) {
         updateAuthUser(response.data);
-        queryClient.setQueryData(myPageKeys.profile(), response.data);
-        queryClient.invalidateQueries({ queryKey: myPageKeys.profile() });
       }
 
       navigate(-1);
