@@ -5,6 +5,7 @@ import Button from '@/shared/components/ui/Button';
 import { useToggleLikeMeeting } from '@/features/meeting/hooks/useMeetings';
 import { useMeetingStore } from '@/features/meeting/store/meetingStore';
 import { INTEREST_CATEGORIES } from '@/shared/config/constants';
+import defaultLogo from '@/assets/images/logo.png';
 import type { MeetingUI } from '@/shared/types/Meeting.types';
 
 interface RecommendedMeetingCardProps {
@@ -101,12 +102,20 @@ const RecommendedMeetingCard: React.FC<RecommendedMeetingCardProps> = ({ meeting
 
         {/* Center Section: Main Card Image (Flexible Height) */}
         <div className="flex-1 w-full min-h-0 flex items-center justify-center py-4">
-          <div className="relative w-full h-full max-h-full aspect-[4/5] rounded-2xl overflow-hidden shadow-2xl bg-gray-800/50 ring-1 ring-white/10">
-            <img 
-              src={meeting.image} 
-              alt={meeting.title} 
-              className="w-full h-full object-cover"
-            />
+          <div className="relative w-full h-full max-h-full aspect-[4/5] rounded-2xl overflow-hidden shadow-2xl bg-gray-200 ring-1 ring-white/10 flex items-center justify-center">
+            {meeting.image && !meeting.image.includes('logo') ? (
+              <img 
+                src={meeting.image} 
+                alt={meeting.title} 
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <img 
+                src={defaultLogo} 
+                alt="로고" 
+                className="w-20 h-20 object-contain"
+              />
+            )}
             <button 
               onClick={handleLike}
               className="absolute top-4 right-4 p-2.5 rounded-full bg-black/30 backdrop-blur-md transition-all active:scale-95 hover:bg-black/50 border border-white/10"

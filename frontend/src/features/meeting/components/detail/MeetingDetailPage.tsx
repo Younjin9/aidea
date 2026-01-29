@@ -4,6 +4,8 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 
 import Button from '@/shared/components/ui/Button';
+import Modal from '@/shared/components/ui/Modal';
+import ProfileImage from '@/shared/components/ui/ProfileImage';
 import DetailHeader from './DetailHeader';
 import MeetingInfoSection from './MeetingInfoSection';
 import EventSection from './EventSection';
@@ -156,6 +158,7 @@ const MeetingDetailPage: React.FC = () => {
   const [isLiked, setIsLiked] = useState(storedMeeting?.isLiked || false); // 좋아요 상태
   const [activeModal, setActiveModal] = useState<ModalType>(null); // 현재 활성화된 모달
   const [selectedEvent, setSelectedEvent] = useState<{ id: string; title: string } | null>(null); // 선택된 이벤트
+  const [greeting, setGreeting] = useState(''); // 가입 인사 메시지
 
   // 이벤트 및 모임 정보 상태
   const storedEvents = getEventsByGroupId(meetingId || '');
@@ -336,6 +339,25 @@ const MeetingDetailPage: React.FC = () => {
     });
   };
 
+  // 모임 삭제 핸들러 (모임장만 가능)
+  const handleDeleteMeeting = async () => {
+    if (!meetingId) return;
+
+    try {
+      // API 호출 - 모임 삭제
+      await meetingApi.remove(meetingId);
+      
+      // 삭제 성공 시 store에서 제거 및 페이지 이동
+      leaveMeeting(String(meetingId));
+      closeModal();
+      navigate('/meetings');
+      alert('모임이 삭제되었습니다.');
+    } catch (error) {
+      console.error('모임 삭제 실패:', error);
+      alert('모임 삭제에 실패했습니다.');
+    }
+  };
+
   // 이벤트 제목 클릭 시 이벤트 수정 페이지로 이동
   const handleEventTitleClick = (event: MeetingEvent) => {
     navigate(`/meetings/${meetingId}/events/${String(event.eventId)}/edit`, { state: { event } });
@@ -362,16 +384,18 @@ const MeetingDetailPage: React.FC = () => {
   // 메인 렌더링 (상세 헤더, 정보/이벤트/멤버/채팅, 모달 등)
   return (
     <div className="min-h-screen bg-white flex flex-col relative">
-      {/* 상단 헤더: 제목, 좋아요, 탭, 신고/탈퇴 등 */}
+      {/* 상단 헤더: 제목, 좋아요, 탭, 신고/탈퇴/삭제 등 */}
       <DetailHeader
         title={meeting.title}
         isLiked={isLiked}
         activeTab={activeTab}
         onLikeToggle={handleLikeToggle}
         onTabChange={setActiveTab}
+        isHost={isHost}
         isMember={!!isMember}
         onConfirmReport={handleConfirmReport}
         onConfirmLeave={handleLeaveMeeting}
+        onConfirmDelete={handleDeleteMeeting}
       />
 
       {/* 메인 컨텐츠: 홈(정보/이벤트/멤버) or 채팅 */}
@@ -421,6 +445,42 @@ const MeetingDetailPage: React.FC = () => {
           </Button>
         </div>
       )}
+
+      {/* 프로필 미등록 모달 */}
+      <Modal
+        isOpen={activeModal === 'profile'}
+        onClose={closeModal}
+        message="프로필 사진을 등록해주세요."
+        showLogo
+        confirmText="OK"
+        singleButton
+        onConfirm={() => {
+          closeModal();
+          navigate('/mypage/edit');
+        }}
+      />
+
+      {/* 가입 인사 모달 */}
+      <Modal
+        isOpen={activeModal === 'greeting'}
+        onClose={closeModal}
+        message="가입인사를 작성해주세요."
+        image={user?.profileImage ? <ProfileImage src={user.profileImage} alt="프로필" size="md" /> : undefined}
+        showInput
+        inputPlaceholder="가입인사를 작성해주세요!"
+        inputValue={greeting}
+        onInputChange={setGreeting}
+        confirmText="확인"
+        cancelText="취소"
+        onConfirm={() => {
+          if (meetingId) {
+            // TODO: API 연동 시 greeting 메시지를 함께 전송
+            closeModal();
+            setGreeting('');
+            alert('참석 신청이 완료되었습니다!');
+          }
+        }}
+      />
     </div>
   );
 };
