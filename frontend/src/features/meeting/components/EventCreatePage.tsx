@@ -175,6 +175,7 @@ const EventCreatePage: React.FC = () => {
             <input
               type="date"
               value={date}
+              min={new Date().toISOString().split('T')[0]} // Prevent past dates
               onChange={(e) => setDate(e.target.value)}
               className="w-full bg-gray-50 border border-gray-100 rounded-lg px-4 py-3 text-gray-dark placeholder-gray-light focus:outline-none text-sm"
             />

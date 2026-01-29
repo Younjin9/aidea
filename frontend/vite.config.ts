@@ -35,6 +35,9 @@ export default defineConfig(({ mode }) => {
           secure: false,
         },
       },
+      port: 5173,
+      strictPort: true,
+
     },
   }
 })

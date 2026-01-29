@@ -38,7 +38,7 @@ spring:
 
   jpa:
     hibernate:
-      ddl-auto: validate
+      ddl-auto: update
     properties:
       hibernate:
         show_sql: true
@@ -47,6 +47,22 @@ spring:
     redis:
       host: ${REDIS_HOST:redis}
       port: 6379
+
+  cloud:
+    aws:
+      credentials:
+        access-key: ${AWS_ACCESS_KEY}
+        secret-key: ${AWS_SECRET_ACCESS_KEY}
+      region:
+        static: ap-northeast-2
+      s3:
+        bucket: ${AWS_S3_BUCKET}
+
+vector-datasource:
+  url: jdbc:postgresql://${PG_HOST:postgres}:5432/${PG_DB:aidea_dev}
+  username: ${PG_USER:aidea}
+  password: ${PG_PASSWORD:aidea1234}
+  driver-class-name: org.postgresql.Driver
 
 app:
   oauth2:

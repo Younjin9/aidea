@@ -1,10 +1,11 @@
-import { useQuery } from '@tanstack/react-query';
-import { useEffect, useMemo } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useEffect, useMemo, useRef } from 'react';
 import mypageApi from '@/shared/api/user/userApi';
 import meetingApi from '@/shared/api/meeting/meetingApi';
 import { useMyPageStore } from '../store/myPageStore';
 import { useMeetingStore } from '@/features/meeting/store/meetingStore';
 import { transformMeetingsToUI } from '@/features/meeting/hooks/useMeetings';
+import { useAuthStore } from '@/features/auth/store/authStore';
 
 // ============================================
 // React Query Keys
@@ -28,15 +29,30 @@ export const useMyPage = () => {
   // MyPage Store (user 정보만)
   const user = useMyPageStore((state) => state.user);
   const setUser = useMyPageStore((state) => state.setUser);
-  const initializeMockData = useMyPageStore((state) => state.initializeMockData);
   const updateUser = useMyPageStore((state) => state.updateUser);
-  const isUserInitialized = useMyPageStore((state) => state.isInitialized);
+  const clearUser = useMyPageStore((state) => state.clearUser);
+
+  // Auth Store (현재 로그인 사용자)
+  const authUser = useAuthStore((state) => state.user);
+
+  const queryClient = useQueryClient();
+  const prevUserIdRef = useRef<string | number | null>(null);
 
   // Meeting Store (모임 정보)
   const meetings = useMeetingStore((state) => state.meetings);
   const toggleLikeByGroupId = useMeetingStore((state) => state.toggleLikeByGroupId);
-  const initializeMeetingMockData = useMeetingStore((state) => state.initializeMockData);
-  const isMeetingInitialized = useMeetingStore((state) => state.isInitialized);
+
+  // 로그인 사용자 변경 시 캐시/스토어 정리
+  useEffect(() => {
+    const currentUserId = authUser?.userId ?? null;
+    if (prevUserIdRef.current !== currentUserId) {
+      prevUserIdRef.current = currentUserId;
+      clearUser();
+      queryClient.removeQueries({ queryKey: myPageKeys.profile() });
+      queryClient.removeQueries({ queryKey: myPageKeys.myMeetings() });
+      queryClient.removeQueries({ queryKey: myPageKeys.likedMeetings() });
+    }
+  }, [authUser?.userId, clearUser, queryClient]);
 
   // 프로필 API 호출
   const {
@@ -52,17 +68,15 @@ export const useMyPage = () => {
     },
     staleTime: 1000 * 60 * 5,
     retry: 1,
+    enabled: !!authUser,
   });
 
-  // API 성공 시 store 업데이트, 실패 시 Mock 데이터 사용
+  // API 성공 시 store 업데이트
   useEffect(() => {
     if (profileData) {
       setUser(profileData);
-    } else if (profileError && !isUserInitialized) {
-      console.warn('MyPage API 호출 실패, Mock 데이터 사용');
-      initializeMockData();
     }
-  }, [profileData, profileError, isUserInitialized, setUser, initializeMockData]);
+  }, [profileData, setUser]);
 
   // 내 모임 (API) - 실패 시 store fallback
   const { data: myMeetingsData, error: myMeetingsError } = useQuery({
@@ -73,6 +87,7 @@ export const useMyPage = () => {
     },
     staleTime: 1000 * 60 * 3,
     retry: 1,
+    enabled: !!authUser,
   });
 
   // 찜한 모임 (API) - meetingApi.getLiked, 실패 시 store fallback
@@ -84,14 +99,8 @@ export const useMyPage = () => {
     },
     staleTime: 0, // 항상 최신 데이터 가져오기
     retry: 1,
+    enabled: !!authUser,
   });
-
-  // Meeting Mock 데이터 초기화
-  useEffect(() => {
-    if (!isMeetingInitialized) {
-      initializeMeetingMockData();
-    }
-  }, [isMeetingInitialized, initializeMeetingMockData]);
 
   // meetingStore에서 파생된 데이터 (useMemo로 참조 안정성 보장)
   const myMeetings = useMemo(() => {

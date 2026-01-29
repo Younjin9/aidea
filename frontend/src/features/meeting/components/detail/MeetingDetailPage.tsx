@@ -128,8 +128,8 @@ const MeetingDetailPage: React.FC = () => {
   const locationState = location.state as { newEvent?: MeetingEvent; updatedEvent?: MeetingEvent; deletedEventId?: string; updatedMembers?: MeetingDetail['members'] } | null;
 
   // 상태 관리 및 커스텀 훅 사용 (store, mutation 등)
-  const { getMeetingByGroupId, toggleLikeByGroupId, leaveMeeting, getEventsByGroupId, addEvent, updateEvent: updateEventInStore, deleteEvent: deleteEventInStore, initializeMockData: initializeMeetingMockData, isInitialized: isMeetingInitialized } = useMeetingStore();
-  const { user, initializeMockData: initializeUserMockData, isInitialized: isUserInitialized } = useMyPageStore();
+  const { getMeetingByGroupId, toggleLikeByGroupId, leaveMeeting, getEventsByGroupId, addEvent, updateEvent: updateEventInStore, deleteEvent: deleteEventInStore } = useMeetingStore();
+  const { user } = useMyPageStore();
   // 이벤트 참여/취소 등 API 호출을 위한 커스텀 훅
   const { mutate: leaveMeetingApi } = useLeaveMeeting();
   const { mutate: toggleLikeApi } = useToggleLikeMeeting();
@@ -144,10 +144,6 @@ const MeetingDetailPage: React.FC = () => {
     staleTime: 1000 * 60 * 3, // 3분간 캐싱
     retry: 1, // 실패 시 1회 재시도
   });
-
-  // mock 데이터 초기화 (스토어가 초기화 안됐을 때)
-  if (!isMeetingInitialized) initializeMeetingMockData();
-  if (!isUserInitialized) initializeUserMockData();
 
   // 스토어에서 모임 정보 조회 및 소유자 여부 판단
   const storedMeeting = getMeetingByGroupId(meetingId || '');
@@ -183,9 +179,9 @@ const MeetingDetailPage: React.FC = () => {
       const exists = getEventsByGroupId(meetingId).some(e => e.eventId === locationState.newEvent!.eventId);
       if (!exists) addEvent(meetingId, locationState.newEvent);
       setMeeting(prev => {
-        const localExists = prev.events.some(e => e.eventId === locationState.newEvent!.eventId);
+        const localExists = prev.events?.some(e => e.eventId === locationState.newEvent!.eventId);
         if (localExists) return prev;
-        return { ...prev, events: [...prev.events, locationState.newEvent!] };
+        return { ...prev, events: [...(prev.events || []), locationState.newEvent!] };
       });
     }
     if (locationState.updatedMembers) {
@@ -264,7 +260,7 @@ const MeetingDetailPage: React.FC = () => {
   // 이벤트 참여 취소 핸들러 (API 호출 및 상태 동기화)
   const handleCancelParticipation = () => {
     if (!selectedEvent || !user) return;
-    
+
     const updateState = () => {
       setMeeting(prev => ({
         ...prev,
@@ -286,7 +282,7 @@ const MeetingDetailPage: React.FC = () => {
   // 이벤트 참여 핸들러 (API 호출 및 상태 동기화)
   const handleJoinEvent = () => {
     if (!selectedEvent || !user) return;
-    
+
     const updateState = () => {
       setMeeting(prev => ({
         ...prev,
@@ -346,7 +342,7 @@ const MeetingDetailPage: React.FC = () => {
     try {
       // API 호출 - 모임 삭제
       await meetingApi.remove(meetingId);
-      
+
       // 삭제 성공 시 store에서 제거 및 페이지 이동
       leaveMeeting(String(meetingId));
       closeModal();
@@ -369,10 +365,10 @@ const MeetingDetailPage: React.FC = () => {
     openModal(action === 'cancelParticipation' ? 'cancelParticipation' : 'joinEvent');
   };
 
-  
+
 
   // API 로딩 중일 때 로딩 UI 표시
-  if (isLoading) {
+  if (isLoading && !storedMeeting) {
     return (
       <div className="min-h-screen bg-white flex flex-col items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />

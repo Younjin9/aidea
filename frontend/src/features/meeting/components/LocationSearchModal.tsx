@@ -37,26 +37,34 @@ const LocationSearchModal: React.FC<LocationSearchModalProps> = ({
         if (!keyword.trim()) return;
 
         const kakao = (window as any).kakao;
-        if (!kakao || !kakao.maps || !kakao.maps.services) {
+        if (!kakao || !kakao.maps) {
             console.error('Kakao Maps API is not loaded');
             setStatus('error');
             return;
         }
 
-        setStatus('searching');
-        const ps = new kakao.maps.services.Places();
-
-        ps.keywordSearch(keyword, (data: any[], status: any) => {
-            if (status === kakao.maps.services.Status.OK) {
-                setResults(data);
-                setStatus('idle');
-            } else if (status === kakao.maps.services.Status.ZERO_RESULT) {
-                setResults([]);
-                setStatus('no_result');
-            } else {
-                setResults([]);
+        kakao.maps.load(() => {
+            if (!kakao.maps.services) {
+                console.error('Kakao Maps Services library is not loaded');
                 setStatus('error');
+                return;
             }
+
+            setStatus('searching');
+            const ps = new kakao.maps.services.Places();
+
+            ps.keywordSearch(keyword, (data: any[], status: any) => {
+                if (status === kakao.maps.services.Status.OK) {
+                    setResults(data);
+                    setStatus('idle');
+                } else if (status === kakao.maps.services.Status.ZERO_RESULT) {
+                    setResults([]);
+                    setStatus('no_result');
+                } else {
+                    setResults([]);
+                    setStatus('error');
+                }
+            });
         });
     };
 

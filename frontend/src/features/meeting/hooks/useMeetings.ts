@@ -25,9 +25,9 @@ const transformMeetingToUI = (meeting: Meeting): MeetingUI => {
     maxMembers: meeting.maxMembers,
     description: meeting.description,
     isLiked: false,
-    ownerUserId: meeting.ownerUserId,
-    myStatus: undefined,
-    myRole: undefined,
+    ownerUserId: meeting.ownerUserId, // still keep this but relying on myRole is better
+    myStatus: meeting.myStatus as 'PENDING' | 'APPROVED' | undefined,
+    myRole: meeting.myRole as 'HOST' | 'MEMBER' | undefined,
   };
 };
 
@@ -57,8 +57,6 @@ export const useMeetings = (params: MeetingListParams = {}) => {
   const setMeetings = useMeetingStore((state) => state.setMeetings);
   const groupByCategoryFn = useMeetingStore((state) => state.groupByCategory);
   const toggleLikeByGroupId = useMeetingStore((state) => state.toggleLikeByGroupId);
-  const initializeMockData = useMeetingStore((state) => state.initializeMockData);
-  const isInitialized = useMeetingStore((state) => state.isInitialized);
 
   // API 호출
   const { data, isLoading, error, refetch } = useQuery({
@@ -72,15 +70,14 @@ export const useMeetings = (params: MeetingListParams = {}) => {
     retry: 1,
   });
 
-  // API 성공 시 store 업데이트, 실패 시 Mock 데이터 사용
+  // API 성공 시 store 업데이트
   useEffect(() => {
     if (data) {
       setMeetings(data);
-    } else if (error && !isInitialized) {
-      console.warn('API 호출 실패, Mock 데이터 사용:', error);
-      initializeMockData();
+    } else if (error) {
+      console.warn('모임 목록 API 호출 실패:', error);
     }
-  }, [data, error, isInitialized, setMeetings, initializeMockData]);
+  }, [data, error, setMeetings]);
 
   return {
     meetings,

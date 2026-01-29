@@ -12,14 +12,12 @@ import Modal from '@/shared/components/ui/Modal';
 import logo from '@/assets/images/logo.png';
 import { useMyPage } from '../hooks/useMyPage';
 import { useMyPageStore } from '../store/myPageStore';
-import { useMeetingStore } from '@/features/meeting/store/meetingStore';
 import type { MeetingUI } from '@/shared/types/Meeting.types';
 
 const MyPageView: React.FC<{ onUnlike?: (id: number) => void }> = ({ onUnlike }) => {
   const navigate = useNavigate();
   const { user, myMeetings, likedMeetings, isLoading, unlikeMeeting, refetchLikedMeetings } = useMyPage();
   const clearUser = useMyPageStore((state) => state.clearUser);
-  const initializeMeetingMockData = useMeetingStore((state) => state.initializeMockData);
   const logoutAuth = useAuthStore((state) => state.logout);
 
   // 로그아웃/회원탈퇴 모달 상태
@@ -30,11 +28,6 @@ const MyPageView: React.FC<{ onUnlike?: (id: number) => void }> = ({ onUnlike })
   const [displayedLikedMeetings, setDisplayedLikedMeetings] = useState<MeetingUI[]>([]);
   const timeoutRef = useRef<number | null>(null);
   const isInitializedRef = useRef(false);
-
-  // Meeting Mock 데이터 초기화
-  useEffect(() => {
-    initializeMeetingMockData();
-  }, [initializeMeetingMockData]);
 
   // 페이지 진입 시 찜 목록 새로고침
   useEffect(() => {
