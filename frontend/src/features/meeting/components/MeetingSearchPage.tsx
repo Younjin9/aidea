@@ -11,7 +11,7 @@ import type { PaginatedResponse } from '@/shared/types/common.types';
 
 const MeetingSearchPage: React.FC = () => {
   const navigate = useNavigate();
-  const { meetings, toggleLike } = useMeetings();
+  const { meetings, toggleLikeMeeting } = useMeetings();
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
 
@@ -98,7 +98,7 @@ const MeetingSearchPage: React.FC = () => {
                 key={meeting.id}
                 meeting={meeting}
                 onClick={() => navigate(`/meetings/${meeting.groupId}`)}
-                onLike={() => toggleLike(meeting.groupId)}
+                onLike={() => toggleLikeMeeting(meeting.groupId, meeting.isLiked || false)}
                 showLikeButton={true}
               />
             ))}
