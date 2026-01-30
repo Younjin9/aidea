@@ -38,6 +38,9 @@ public class MeetingResponse {
     // 사용자 권한 정보 (조회 시점 기준)
     private String myRole; // HOST, MEMBER, NONE
     private String myStatus; // APPROVED, PENDING, REJECTED, NONE
+    
+    // 승인 필요 여부
+    private Boolean isApprovalRequired;
 
     // ✅ 추가: 프론트엔드 호환을 위한 memberCount (currentMembers와 동일한 값)
     private Integer memberCount;
