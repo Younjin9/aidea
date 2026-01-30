@@ -20,7 +20,12 @@ public interface MeetingMemberRepository extends JpaRepository<MeetingMember, Lo
     boolean existsByMeetingIdAndUser_UserIdAndStatusNot(Long meetingId, Long userId, MemberStatus status);
 
     /**
-     * 특정 상태의 참가자 목록 조회
+     * 특정 모임의 특정 상태가 아닌 멤버 조회 (LEFT 제외)
+     */
+    List<MeetingMember> findByMeetingIdAndStatusNot(Long meetingId, MemberStatus status);
+
+    /**
+     * 특정 모임의 특정 상태인 멤버 조회 (PENDING 조회용)
      */
     List<MeetingMember> findByMeetingIdAndStatus(Long meetingId, MemberStatus status);
 

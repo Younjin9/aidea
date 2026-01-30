@@ -1,6 +1,7 @@
 package com.aidea.backend.domain.meeting.service;
 
 import com.aidea.backend.domain.meeting.dto.request.CreateMeetingRequest;
+import java.util.Optional;
 import com.aidea.backend.domain.meeting.dto.response.MeetingResponse;
 import com.aidea.backend.domain.meeting.dto.response.MeetingSummaryResponse;
 import com.aidea.backend.domain.meeting.dto.response.MeetingLikeResponse;
@@ -77,30 +78,130 @@ public class MeetingService {
 
     /**
      * 모임 상세 조회
+     * ✅ members, events 배열 포함 (N+1 최소화)
      */
     public MeetingResponse getMeetingById(Long meetingId, Long userId) {
+        // 1. Meeting 조회
         Meeting meeting = meetingRepository.findById(meetingId)
                 .orElseThrow(() -> new RuntimeException("모임을 찾을 수 없습니다."));
 
+        // ✅ 1. myRole, myStatus 설정 및 members 배열 생성 (단일 쿼리로 최적화)
         String myRole = "NONE";
         String myStatus = "NONE";
 
+        // userId 검증
+        if (userId == null) {
+            log.warn("getUserId returned null for meeting {}, treating as guest user", meetingId);
+        }
+
+        // 모든 활성 멤버 조회 (LEFT 제외) - 단일 쿼리
+        List<MeetingMember> allActiveMembers = meetingMemberRepository
+                .findByMeetingIdAndStatusNot(meetingId, MemberStatus.LEFT);
+
+        // 현재 사용자의 멤버십 찾기 (스트림 필터링)
         if (userId != null) {
-            // 1. 호스트 여부 확인
+            // 호스트 여부 확인
             if (meeting.getCreator().getUserId().equals(userId)) {
                 myRole = "HOST";
                 myStatus = "APPROVED";
+                log.debug("User {} is HOST of meeting {}", userId, meetingId);
             } else {
-                // 2. 멤버 여부 확인
-                var member = meetingMemberRepository.findByMeetingIdAndUser_UserId(meetingId, userId);
-                if (member.isPresent()) {
-                    myRole = "MEMBER";
-                    myStatus = member.get().getStatus().name();
+                // 멤버 여부 확인 (메모리에서 필터링)
+                Optional<MeetingMember> myMembership = allActiveMembers.stream()
+                        .filter(m -> m.getUser().getUserId().equals(userId))
+                        .findFirst();
+
+                if (myMembership.isPresent()) {
+                    myRole = myMembership.get().getRole().name();
+                    myStatus = myMembership.get().getStatus().name();
+                    log.debug("User {} has role {} and status {} in meeting {}",
+                            userId, myRole, myStatus, meetingId);
+                } else {
+                    log.debug("User {} is not a member of meeting {}", userId, meetingId);
                 }
             }
         }
 
-        return meeting.toResponse(myRole, myStatus);
+        // ✅ 2. members 배열 생성 (APPROVED 멤버만 필터링)
+        List<com.aidea.backend.domain.meeting.dto.response.MemberResponse> members = allActiveMembers
+                .stream()
+                .filter(m -> m.getStatus() == MemberStatus.APPROVED)
+                .map(com.aidea.backend.domain.meeting.entity.MeetingMember::toMemberResponse)
+                .collect(Collectors.toList());
+
+        // ✅ 3. events 배열 생성
+        List<com.aidea.backend.domain.event.dto.response.EventSummaryDto> events = eventRepository
+                .findByMeetingIdOrderByDateAsc(meetingId).stream()
+                .map(event -> com.aidea.backend.domain.event.dto.response.EventSummaryDto.builder()
+                        .eventId(event.getId())
+                        .title(event.getTitle())
+                        .scheduledAt(event.getDate())
+                        .date(event.getDate() != null ? event.getDate().toLocalDate().toString() : null)
+                        .placeName(event.getLocationName())
+                        .cost(parseCostToInteger(event.getCost()))
+                        .maxParticipants(event.getMaxParticipants())
+                        .participantCount(event.getParticipants().size())
+                        .participants(event.getParticipants().stream()
+                                .map(p -> new com.aidea.backend.domain.event.dto.response.EventSummaryDto.ParticipantDto(
+                                        p.getUser().getUserId(),
+                                        p.getUser().getNickname(),
+                                        p.getUser().getProfileImage(),
+                                        p.getUser().getUserId().equals(meeting.getCreator().getUserId()) ? "HOST"
+                                                : "MEMBER",
+                                        "APPROVED", // 참가자는 기본 APPROVED
+                                        p.getJoinedAt()))
+                                .collect(Collectors.toList()))
+                        .build())
+                .collect(Collectors.toList());
+
+        // ✅ 4. MeetingResponse 생성 (members, events, memberCount 포함)
+        MeetingResponse response = meeting.toResponse(myRole, myStatus);
+
+        // Builder 패턴으로 새 필드 추가
+        return MeetingResponse.builder()
+                .groupId(response.getGroupId())
+                .title(response.getTitle())
+                .description(response.getDescription())
+                .imageUrl(response.getImageUrl())
+                .interestCategoryId(response.getInterestCategoryId())
+                .interestCategoryName(response.getInterestCategoryName())
+                .region(response.getRegion())
+                .regionFullName(response.getRegionFullName())
+                .location(response.getLocation())
+                .latitude(response.getLatitude())
+                .longitude(response.getLongitude())
+                .locationDetail(response.getLocationDetail())
+                .maxMembers(response.getMaxMembers())
+                .currentMembers(response.getCurrentMembers())
+                .meetingDate(response.getMeetingDate())
+                .status(response.getStatus())
+                .isPublic(response.getIsPublic())
+                .creator(response.getCreator())
+                .createdAt(response.getCreatedAt())
+                .updatedAt(response.getUpdatedAt())
+                .myRole(myRole)
+                .myStatus(myStatus)
+                .isApprovalRequired(meeting.getIsApprovalRequired()) // 승인 필요 여부 추가
+                .memberCount(members.size()) // ✅ 추가
+                .members(members) // ✅ 추가
+                .events(events) // ✅ 추가
+                .build();
+    }
+
+    /**
+     * ✅ Helper: cost String을 Integer로 변환
+     */
+    private Integer parseCostToInteger(String cost) {
+        if (cost == null || cost.trim().isEmpty()) {
+            return 0;
+        }
+        try {
+            // 숫자만 추출
+            String numericOnly = cost.replaceAll("[^0-9]", "");
+            return numericOnly.isEmpty() ? 0 : Integer.parseInt(numericOnly);
+        } catch (NumberFormatException e) {
+            return 0;
+        }
     }
 
     /**
@@ -266,10 +367,30 @@ public class MeetingService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
 
-        // 3. 중복 참가 확인 (LEFT 상태 제외)
-        if (meetingMemberRepository.existsByMeetingIdAndUser_UserIdAndStatusNot(
-                meetingId, userId, MemberStatus.LEFT)) {
-            throw new RuntimeException("이미 참가 신청한 모임입니다.");
+        // 3. 기존 멤버십 확인 (재가입 처리 포함)
+        Optional<MeetingMember> existingMember = meetingMemberRepository
+                .findByMeetingIdAndUser_UserId(meetingId, userId);
+
+        if (existingMember.isPresent()) {
+            MeetingMember member = existingMember.get();
+            MemberStatus currentStatus = member.getStatus();
+
+            // LEFT 상태인 경우 재활성화 (UPDATE)
+            if (currentStatus == MemberStatus.LEFT) {
+                log.info("재가입 처리: userId={}, meetingId={}", userId, meetingId);
+                member.reactivate(meeting.getIsApprovalRequired());
+                MeetingMember savedMember = meetingMemberRepository.save(member);
+
+                // 자동 승인인 경우 currentMembers 증가
+                if (!meeting.getIsApprovalRequired()) {
+                    meeting.incrementMembers();
+                }
+
+                return savedMember.toMemberResponse();
+            } else {
+                // PENDING, APPROVED, REJECTED 상태인 경우 에러
+                throw new RuntimeException("이미 참가 신청한 모임입니다. 현재 상태: " + currentStatus);
+            }
         }
 
         // 4. 정원 확인 (승인된 멤버 수 기준)

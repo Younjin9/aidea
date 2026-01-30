@@ -1,7 +1,7 @@
 // 모임 상세 페이지 - 코드 정리 버전i// React 및 필요한 훅/라이브러리 import
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 
 import Button from '@/shared/components/ui/Button';
 import Modal from '@/shared/components/ui/Modal';
@@ -14,11 +14,9 @@ import { reportUser } from '@/shared/api/safety/safetyApi';
 import ChatRoomPage from '@/features/chat/components/ChatRoomPage';
 import meetingApi from '@/shared/api/meeting/meetingApi';
 import { useMeetingStore } from '../../store/meetingStore';
-import { useAuthStore } from '@/features/auth/store/authStore';
-import { meetingKeys, useLeaveMeeting, useToggleLikeMeeting } from '../../hooks/useMeetings';
+import { useMyPageStore } from '@/features/mypage/store/myPageStore';
+import { useLeaveMeeting, useToggleLikeMeeting, useJoinMeeting } from '../../hooks/useMeetings';
 import { useJoinEvent, useCancelEventParticipation } from '../../hooks/useEvents';
-import { useMembers } from '../../hooks/useMembers';
-import { myPageKeys } from '@/features/mypage/hooks/useMyPage';
 import type { MeetingDetail, MeetingEvent } from '@/shared/types/Meeting.types';
 
 
@@ -130,17 +128,17 @@ const MeetingDetailPage: React.FC = () => {
   const locationState = location.state as { newEvent?: MeetingEvent; updatedEvent?: MeetingEvent; deletedEventId?: string; updatedMembers?: MeetingDetail['members'] } | null;
 
   // 상태 관리 및 커스텀 훅 사용 (store, mutation 등)
-  const { getMeetingByGroupId, toggleLikeByGroupId, leaveMeeting, removeMeeting, getEventsByGroupId, addEvent, updateEvent: updateEventInStore, deleteEvent: deleteEventInStore } = useMeetingStore();
-  const user = useAuthStore((state) => state.user);
+  const { getMeetingByGroupId, toggleLikeByGroupId, leaveMeeting, getEventsByGroupId, addEvent, updateEvent: updateEventInStore, deleteEvent: deleteEventInStore, initializeMockData: initializeMeetingMockData, isInitialized: isMeetingInitialized } = useMeetingStore();
+  const { user, initializeMockData: initializeUserMockData, isInitialized: isUserInitialized } = useMyPageStore();
   // 이벤트 참여/취소 등 API 호출을 위한 커스텀 훅
   const { mutate: leaveMeetingApi } = useLeaveMeeting();
   const { mutate: toggleLikeApi } = useToggleLikeMeeting();
+  const joinMeetingMutation = useJoinMeeting(); // 모임 참여 신청 훅
   const { mutate: joinEventApi } = useJoinEvent(meetingId || '');
   const { mutate: cancelEventApi } = useCancelEventParticipation(meetingId || '');
-  const queryClient = useQueryClient();
 
   // 모임 상세 정보 API 호출 (react-query 사용)
-  const { data: apiMeetingDetail, isLoading } = useQuery({
+  const { data: apiMeetingDetail, isLoading, error } = useQuery({
     queryKey: ['meeting', 'detail', meetingId],
     queryFn: async () => { const response = await meetingApi.getDetail(meetingId || ''); return response.data; },
     enabled: !!meetingId, // meetingId가 있을 때만 호출
@@ -148,15 +146,11 @@ const MeetingDetailPage: React.FC = () => {
     retry: 1, // 실패 시 1회 재시도
   });
 
-  // 멤버 목록 조회 (별도 API 호출)
-  const { data: apiMembers = [], isLoading: isMembersLoading, error: membersError } = useMembers(meetingId || '');
-
-  // DEBUG: members 상태 확인
+  // mock 데이터 초기화 (스토어가 초기화 안됐을 때)
   useEffect(() => {
-    if (meetingId) {
-      console.log(`[MemberSection] groupId: ${meetingId}, members:`, apiMembers, 'isLoading:', isMembersLoading, 'error:', membersError);
-    }
-  }, [apiMembers, meetingId, isMembersLoading, membersError]);
+    if (!isMeetingInitialized) initializeMeetingMockData();
+    if (!isUserInitialized) initializeUserMockData();
+  }, [isMeetingInitialized, isUserInitialized, initializeMeetingMockData, initializeUserMockData]);
 
   // 스토어에서 모임 정보 조회 및 소유자 여부 판단
   const storedMeeting = getMeetingByGroupId(meetingId || '');
@@ -168,13 +162,6 @@ const MeetingDetailPage: React.FC = () => {
   const [activeModal, setActiveModal] = useState<ModalType>(null); // 현재 활성화된 모달
   const [selectedEvent, setSelectedEvent] = useState<{ id: string; title: string } | null>(null); // 선택된 이벤트
   const [greeting, setGreeting] = useState(''); // 가입 인사 메시지
-
-  // storedMeeting.isLiked 변경 시 로컬 상태 동기화
-  useEffect(() => {
-    if (storedMeeting) {
-      setIsLiked(storedMeeting.isLiked || false);
-    }
-  }, [storedMeeting?.isLiked, storedMeeting]);
 
   // 이벤트 및 모임 정보 상태
   const storedEvents = getEventsByGroupId(meetingId || '');
@@ -190,7 +177,7 @@ const MeetingDetailPage: React.FC = () => {
     return baseMeeting;
   });
 
-  // location state(페이지 이동 시 전달된 값) 기반으로 스토어 업데이트
+  // location state(페이지 이동 시 전달된 값) 기반으로 모임/이벤트/멤버 정보 동기화
   useEffect(() => {
     if (!locationState || !meetingId) return;
     window.history.replaceState({}, document.title); // 새로고침 시 중복 반영 방지
@@ -198,73 +185,59 @@ const MeetingDetailPage: React.FC = () => {
       // 새 이벤트 추가
       const exists = getEventsByGroupId(meetingId).some(e => e.eventId === locationState.newEvent!.eventId);
       if (!exists) addEvent(meetingId, locationState.newEvent);
+      setMeeting(prev => {
+        const localExists = prev.events?.some(e => e.eventId === locationState.newEvent!.eventId);
+        if (localExists) return prev;
+        return { ...prev, events: [...(prev.events || []), locationState.newEvent!] };
+      });
+    }
+    if (locationState.updatedMembers) {
+      // 멤버 정보 업데이트
+      setMeeting(prev => ({
+        ...prev,
+        members: locationState.updatedMembers!,
+        memberCount: locationState.updatedMembers!.filter(m => m.status === 'APPROVED').length,
+      }));
     }
     if (locationState.updatedEvent) {
       // 이벤트 정보 업데이트
       updateEventInStore(String(meetingId), String(locationState.updatedEvent.eventId), locationState.updatedEvent);
+      setMeeting(prev => ({
+        ...prev,
+        events: prev.events.map(e => e.eventId === locationState.updatedEvent!.eventId ? locationState.updatedEvent! : e),
+      }));
     }
     if (locationState.deletedEventId) {
       // 이벤트 삭제
       deleteEventInStore(meetingId, locationState.deletedEventId);
+      setMeeting(prev => ({
+        ...prev,
+        events: prev.events.filter(e => e.eventId !== locationState.deletedEventId),
+      }));
     }
   }, [locationState, meetingId, getEventsByGroupId, addEvent, updateEventInStore, deleteEventInStore]);
 
-  // 화면 표시용 모임 데이터 (API > 스토어 > 로컬 state 순)
-  const displayMeeting = useMemo(() => {
-    const base = apiMeetingDetail || meeting;
-    const nextEvents = storedEvents.length > 0 ? storedEvents : base.events;
-    let next = base;
-
-    if (nextEvents !== base.events) {
-      next = { ...next, events: nextEvents };
+  // 스토어의 이벤트 정보가 바뀌면 meeting 상태도 동기화
+  useEffect(() => {
+    if (storedEvents.length > 0) {
+      setMeeting(prev => ({ ...prev, events: storedEvents }));
     }
+  }, [storedEvents]);
 
-    // API에서 조회한 멤버 목록 적용
-    if (apiMembers.length > 0) {
-      next = {
-        ...next,
-        members: apiMembers,
-        memberCount: apiMembers.filter((m) => m.status === 'APPROVED').length,
-      };
+  // API에서 모임 상세 데이터가 오면 meeting 상태 갱신, 실패 시 mock 데이터 사용
+  useEffect(() => {
+    if (apiMeetingDetail) {
+      setMeeting(apiMeetingDetail);
+    } else if (error) {
+      console.warn('모임 상세 API 호출 실패, Mock 데이터 사용:', error);
     }
-
-    if (locationState?.newEvent) {
-      const exists = (next.events || []).some(e => e.eventId === locationState.newEvent!.eventId);
-      if (!exists) {
-        next = { ...next, events: [...(next.events || []), locationState.newEvent!] };
-      }
-    }
-
-    if (locationState?.updatedMembers) {
-      next = {
-        ...next,
-        members: locationState.updatedMembers,
-        memberCount: locationState.updatedMembers.filter(m => m.status === 'APPROVED').length,
-      };
-    }
-
-    if (locationState?.updatedEvent) {
-      next = {
-        ...next,
-        events: (next.events || []).map(e =>
-          e.eventId === locationState.updatedEvent!.eventId ? locationState.updatedEvent! : e
-        ),
-      };
-    }
-
-    if (locationState?.deletedEventId) {
-      next = {
-        ...next,
-        events: (next.events || []).filter(e => e.eventId !== locationState.deletedEventId),
-      };
-    }
-
-    return next;
-  }, [apiMeetingDetail, meeting, storedEvents, locationState, apiMembers]);
+  }, [apiMeetingDetail, error]);
 
   // 내 역할/상태 및 모달 오픈 함수
-  const isHost = displayMeeting.myRole === 'HOST';
-  const isMember = displayMeeting.myStatus === 'APPROVED';
+  const isHost = meeting.myRole === 'HOST';
+  const isPending = meeting.myStatus === 'PENDING';
+  const isApproved = meeting.myStatus === 'APPROVED';
+  const isMember = isPending || isApproved; // PENDING 또는 APPROVED면 멤버로 간주
   const openModal = (type: ModalType) => setActiveModal(type);
   // 모달 닫기 함수 (이벤트 선택 초기화 포함)
   const closeModal = () => {
@@ -273,11 +246,10 @@ const MeetingDetailPage: React.FC = () => {
   };
 
   // 참석하기 버튼 클릭 시 (프로필 등록 여부에 따라 모달 분기)
-  const handleJoinClick = () => openModal(user?.profileImage ? 'greeting' : 'profile');
+  const handleJoinClick = () => openModal('greeting'); // 임시: 프로필 사진 체크 비활성화
 
   // 좋아요 토글 핸들러 (API 연동 및 스토어/상태 동기화)
   const handleLikeToggle = () => {
-    console.log(`[DetailPage] Like toggle - meetingId: ${meetingId}, current isLiked: ${isLiked}`);
     const newLikeState = !isLiked;
     setIsLiked(newLikeState);
     if (meetingId) {
@@ -285,12 +257,7 @@ const MeetingDetailPage: React.FC = () => {
       toggleLikeApi(
         { groupId: meetingId, isLiked: newLikeState },
         {
-          onSuccess: () => {
-            console.log(`[DetailPage] Like toggle success for ${meetingId}`);
-          },
-          onError: (error) => {
-            console.error(`[DetailPage] Like toggle failed for ${meetingId}:`, error);
-            // Rollback
+          onError: () => {
             setIsLiked(!newLikeState);
             toggleLikeByGroupId(meetingId);
           },
@@ -347,7 +314,7 @@ const MeetingDetailPage: React.FC = () => {
   const handleConfirmReport = async (content: string) => {
     try {
       await reportUser({
-        targetUserId: String(displayMeeting.ownerUserId),
+        targetUserId: String(meeting.ownerUserId),
         reason: 'ABUSE',
         detail: content,
       });
@@ -370,7 +337,7 @@ const MeetingDetailPage: React.FC = () => {
           members: prev.members.filter(m => m.userId !== user.userId),
           myStatus: undefined,
         }));
-        leaveMeeting(String(displayMeeting.groupId));
+        leaveMeeting(String(meeting.groupId));
         closeModal();
         navigate('/meetings');
       },
@@ -385,14 +352,8 @@ const MeetingDetailPage: React.FC = () => {
       // API 호출 - 모임 삭제
       await meetingApi.remove(meetingId);
 
-      // 삭제 성공 시 store에서 제거 및 캐시 갱신 후 페이지 이동
-      removeMeeting(String(meetingId));
-      queryClient.invalidateQueries({ queryKey: meetingKeys.all });
-      queryClient.invalidateQueries({ queryKey: ['meetings', 'search'] });
-      queryClient.invalidateQueries({ queryKey: ['meetings', 'liked'] });
-      queryClient.invalidateQueries({ queryKey: myPageKeys.myMeetings() });
-      queryClient.invalidateQueries({ queryKey: myPageKeys.likedMeetings() });
-      queryClient.refetchQueries({ queryKey: meetingKeys.all });
+      // 삭제 성공 시 store에서 제거 및 페이지 이동
+      leaveMeeting(String(meetingId));
       closeModal();
       navigate('/meetings');
       alert('모임이 삭제되었습니다.');
@@ -416,7 +377,7 @@ const MeetingDetailPage: React.FC = () => {
 
 
   // API 로딩 중일 때 로딩 UI 표시
-  if (isLoading && !storedMeeting) {
+  if (isLoading) {
     return (
       <div className="min-h-screen bg-white flex flex-col items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
@@ -430,7 +391,7 @@ const MeetingDetailPage: React.FC = () => {
     <div className="min-h-screen bg-white flex flex-col relative">
       {/* 상단 헤더: 제목, 좋아요, 탭, 신고/탈퇴/삭제 등 */}
       <DetailHeader
-        title={displayMeeting.title}
+        title={meeting.title}
         isLiked={isLiked}
         activeTab={activeTab}
         onLikeToggle={handleLikeToggle}
@@ -447,11 +408,11 @@ const MeetingDetailPage: React.FC = () => {
         {activeTab === 'home' ? (
           <>
             {/* 모임 정보 섹션 */}
-            <MeetingInfoSection meeting={displayMeeting} />
+            <MeetingInfoSection meeting={meeting} />
             {/* 이벤트 섹션 (참여/취소 등 핸들러 전달) */}
             <EventSection
-              events={displayMeeting.events}
-              meeting={displayMeeting}
+              events={meeting.events}
+              meeting={meeting}
               isHost={isHost}
               isMember={isMember}
               userId={user?.userId}
@@ -471,10 +432,9 @@ const MeetingDetailPage: React.FC = () => {
             />
             {/* 멤버 섹션 */}
             <MemberSection
-              members={displayMeeting.members}
+              members={meeting.members}
               isHost={isHost}
-              isLoading={isMembersLoading}
-              onManage={() => navigate(`/meetings/${meetingId}/members`, { state: { members: displayMeeting.members } })}
+              onManage={() => navigate(`/meetings/${meetingId}/members`, { state: { members: meeting.members } })}
             />
           </>
         ) : (
@@ -482,11 +442,18 @@ const MeetingDetailPage: React.FC = () => {
         )}
       </main>
 
-      {/* 참석하기 버튼 (비회원/비호스트만 노출) */}
-      {!isHost && !isMember && (
+      {/* 참석하기/상태 버튼 (비호스트만 노출) */}
+      {!isHost && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 w-full max-w-[398px] px-4">
-          <Button variant="primary" size="md" fullWidth onClick={handleJoinClick}>
-            참석하기
+          <Button
+            variant={isPending ? "secondary" : isApproved ? "primary" : "primary"}
+            size="md"
+            fullWidth
+            onClick={isPending || isApproved ? undefined : handleJoinClick}
+            disabled={isPending || isApproved}
+            className={isPending ? 'bg-orange-500 hover:bg-orange-600' : isApproved ? 'bg-blue-500 hover:bg-blue-600' : ''}
+          >
+            {isPending ? '참여 대기중' : isApproved ? '참여 완료' : '참석하기'}
           </Button>
         </div>
       )}
@@ -518,11 +485,24 @@ const MeetingDetailPage: React.FC = () => {
         confirmText="확인"
         cancelText="취소"
         onConfirm={() => {
-          if (meetingId) {
-            // TODO: API 연동 시 greeting 메시지를 함께 전송
-            closeModal();
-            setGreeting('');
-            alert('참석 신청이 완료되었습니다!');
+          if (meetingId && greeting.trim()) {
+            // 실제 API 호출
+            joinMeetingMutation.mutate(
+              { groupId: meetingId, requestMessage: greeting },
+              {
+                onSuccess: () => {
+                  closeModal();
+                  setGreeting('');
+                  alert('참석 신청이 완료되었습니다!');
+                },
+                onError: (error: Error) => {
+                  console.error('참여 신청 실패:', error);
+                  alert('참여 신청에 실패했습니다. 다시 시도해주세요.');
+                }
+              }
+            );
+          } else {
+            alert('가입 인사를 입력해주세요.');
           }
         }}
       />
