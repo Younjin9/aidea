@@ -209,15 +209,19 @@ export const useLeaveMeeting = () => {
   const leaveMeeting = useMeetingStore((state) => state.leaveMeeting);
 
   return useMutation({
-    mutationFn: async (groupId: string) => {
+    mutationFn: async ({ groupId, shouldNavigate = true }: { groupId: string; shouldNavigate?: boolean }) => {
       await meetingApi.leave(groupId);
-      return groupId;
+      return { groupId, shouldNavigate };
     },
-    onSuccess: (groupId) => {
+    onSuccess: ({ groupId, shouldNavigate }) => {
       leaveMeeting(groupId);
       queryClient.invalidateQueries({ queryKey: meetingKeys.all });
       queryClient.invalidateQueries({ queryKey: myPageKeys.myMeetings() });
-      navigate('/meetings');
+      queryClient.invalidateQueries({ queryKey: meetingKeys.detail(groupId) }); // 상세 정보 갱신
+
+      if (shouldNavigate) {
+        navigate('/meetings');
+      }
     },
     onError: (error) => {
       console.warn('모임 탈퇴 API 실패 (fallback 처리됨):', error);

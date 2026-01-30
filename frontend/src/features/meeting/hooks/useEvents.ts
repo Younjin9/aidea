@@ -92,8 +92,9 @@ export const useJoinEvent = (groupId: string) => {
       queryClient.invalidateQueries({ queryKey: ['meeting', 'detail', groupId] });
       queryClient.invalidateQueries({ queryKey: ['events', groupId] });
     },
-    onError: (error) => {
-      console.warn('정모 참석 API 실패 (fallback 처리됨):', error);
+    onError: (error: any) => {
+      console.warn('정모 참석 API 실패:', error);
+      alert(error?.response?.data?.message || '정모 참석에 실패했습니다.');
     },
   });
 };
@@ -113,8 +114,9 @@ export const useCancelEventParticipation = (groupId: string) => {
       queryClient.invalidateQueries({ queryKey: ['meeting', 'detail', groupId] });
       queryClient.invalidateQueries({ queryKey: ['events', groupId] });
     },
-    onError: (error) => {
-      console.warn('정모 참석 취소 API 실패 (fallback 처리됨):', error);
+    onError: (error: any) => {
+      console.warn('정모 참석 취소 API 실패:', error);
+      alert(error?.response?.data?.message || '정모 참석 취소에 실패했습니다.');
     },
   });
 };
