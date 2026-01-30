@@ -58,16 +58,8 @@ export const useMeetings = (params: MeetingListParams = {}) => {
   const groupByCategoryFn = useMeetingStore((state) => state.groupByCategory);
   const toggleLikeByGroupId = useMeetingStore((state) => state.toggleLikeByGroupId);
 
-  // 찜 목록 조회 (백엔드가 isLiked를 반환하지 않으므로 별도 조회)
-  const { data: likedMeetings } = useQuery({
-    queryKey: ['meetings', 'liked'],
-    queryFn: async () => {
-      const response = await meetingApi.getLiked();
-      return response.data || [];
-    },
-    staleTime: 1000 * 60 * 3,
-    retry: 1,
-  });
+  // API 기반 좋아요 토글
+  const { mutate: toggleLikeMeetingMutation } = useToggleLikeMeeting();
 
   // API 호출
   const { data, isLoading, error, refetch } = useQuery({
@@ -81,7 +73,7 @@ export const useMeetings = (params: MeetingListParams = {}) => {
     retry: 1,
   });
 
-  // API 성공 시 store 업데이트 + isLiked 동기화
+  // API 성공 시 store 업데이트 (Mock 데이터 사용 안 함)
   useEffect(() => {
     if (data && likedMeetings) {
       const likedGroupIds = new Set(likedMeetings.map(m => m.groupId));
@@ -94,34 +86,12 @@ export const useMeetings = (params: MeetingListParams = {}) => {
     } else if (data) {
       console.log('[useMeetings] Setting meetings from API:', data);
       setMeetings(data);
-    } else if (error) {
-      console.warn('모임 목록 API 호출 실패:', error);
     }
-  }, [data, likedMeetings, error, setMeetings]);
+  }, [data, setMeetings]);
 
-  // Like/Unlike API 호출 (useToggleLikeMeeting 활용)
-  const { mutate: toggleLikeApi } = useToggleLikeMeeting();
-
-  const toggleLikeMeeting = (groupId: string | number, isCurrentlyLiked: boolean) => {
-    console.log(`[useMeetings] Toggle like for ${groupId}, currently liked: ${isCurrentlyLiked}`);
-    // 로컬 스토어 먼저 업데이트 (낙관적 업데이트)
-    toggleLikeByGroupId(String(groupId));
-    // API 호출
-    toggleLikeApi(
-      { groupId: String(groupId), isLiked: isCurrentlyLiked },
-      {
-        onSuccess: () => {
-          console.log(`[useMeetings] Like toggle success for ${groupId}, refetching meetings`);
-          // API 성공 후 모임 목록 재조회 (isLiked 값 동기화)
-          refetch();
-        },
-        onError: (error) => {
-          console.error(`[useMeetings] Like toggle failed for ${groupId}:`, error);
-          // 실패 시 롤백
-          toggleLikeByGroupId(String(groupId));
-        },
-      }
-    );
+  // toggleLikeMeeting wrapper - 두 개의 인자를 객체로 변환
+  const toggleLikeMeeting = (groupId: string, isLiked: boolean) => {
+    toggleLikeMeetingMutation({ groupId, isLiked });
   };
 
   return {
@@ -130,6 +100,7 @@ export const useMeetings = (params: MeetingListParams = {}) => {
     isLoading,
     error,
     groupByCategory: groupByCategoryFn,
+    toggleLike: toggleLikeByGroupId,
     toggleLikeMeeting,
     refetch,
   };
@@ -237,20 +208,23 @@ export const useCreateMeeting = () => {
  */
 export const useJoinMeeting = () => {
   const queryClient = useQueryClient();
-  const joinMeeting = useMeetingStore((state) => state.joinMeeting);
 
   return useMutation({
     mutationFn: async ({ groupId, requestMessage }: { groupId: string; requestMessage?: string }) => {
       const response = await meetingApi.join(groupId, { requestMessage });
-      return { groupId, ...response.data };
+      return { groupId, data: response.data };
     },
-    onSuccess: (_, { groupId }) => {
-      joinMeeting(groupId, 'MEMBER');
+    onSuccess: ({ groupId, data }) => {
+      // API 응답에서 실제 status 확인 (PENDING | APPROVED)
+      console.log('모임 참여 성공:', data);
+
+      // React Query 캐시 무효화 (API 재호출하여 최신 myRole, myStatus 반영)
       queryClient.invalidateQueries({ queryKey: meetingKeys.detail(groupId) });
+      queryClient.invalidateQueries({ queryKey: meetingKeys.list() });
       queryClient.invalidateQueries({ queryKey: myPageKeys.myMeetings() });
     },
     onError: (error) => {
-      console.warn('모임 참여 API 실패 (fallback 처리됨):', error);
+      console.error('모임 참여 API 실패:', error);
     },
   });
 };

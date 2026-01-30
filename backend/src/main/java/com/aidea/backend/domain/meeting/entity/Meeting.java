@@ -218,6 +218,7 @@ public class Meeting {
                         .nickname(this.creator.getNickname())
                         .profileImage(this.creator.getProfileImage())
                         .build())
+                .ownerUserId(this.creator.getUserId())  // ✅ 추가: Frontend 권한 체크용
                 .createdAt(this.createdAt)
                 .updatedAt(this.updatedAt)
                 .build();
@@ -250,10 +251,13 @@ public class Meeting {
                         .nickname(this.creator.getNickname())
                         .profileImage(this.creator.getProfileImage())
                         .build())
+                .ownerUserId(this.creator.getUserId())
                 .createdAt(this.createdAt)
                 .updatedAt(this.updatedAt)
                 .myRole(myRole)
                 .myStatus(myStatus)
+                .isApprovalRequired(this.isApprovalRequired)
+                .memberCount(this.currentMembers)
                 .build();
     }
 

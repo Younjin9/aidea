@@ -177,6 +177,7 @@ public class MeetingService {
                 .status(response.getStatus())
                 .isPublic(response.getIsPublic())
                 .creator(response.getCreator())
+                .ownerUserId(response.getOwnerUserId())  // ✅ 추가: Frontend 권한 체크용
                 .createdAt(response.getCreatedAt())
                 .updatedAt(response.getUpdatedAt())
                 .myRole(myRole)
