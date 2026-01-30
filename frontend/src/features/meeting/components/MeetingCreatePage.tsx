@@ -119,8 +119,9 @@ const MeetingCreatePage: React.FC = () => {
       // 1. 이미지가 있으면 먼저 S3에 업로드
       if (imageFile) {
         const uploadRes = await meetingApi.uploadImage(imageFile);
-        if (uploadRes.success) {
-          finalImageUrl = uploadRes.data.imageUrl;
+        const uploadedUrl = uploadRes.profileImage || (uploadRes as { imageUrl?: string }).imageUrl;
+        if (uploadedUrl) {
+          finalImageUrl = uploadedUrl;
         }
       }
 

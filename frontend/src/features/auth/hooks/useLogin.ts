@@ -16,7 +16,11 @@ export const useLogin = () => {
         const { user, accessToken, refreshToken } = response.data;
         localStorage.setItem('refreshToken', refreshToken);
         setAuth(user, accessToken);
-        navigate('/shorts');
+        if (!user?.interests || user.interests.length === 0) {
+          navigate('/onboarding/interest', { replace: true });
+          return;
+        }
+        navigate('/shorts', { replace: true });
       }
     },
     onError: (error) => {
