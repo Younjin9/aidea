@@ -379,7 +379,13 @@ public class MeetingService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
 
-        // 3. 기존 멤버십 확인 (재가입 처리 포함)
+        // 🆕 3. 프로필 사진 필수 검증 (임시 비활성화 - 추후 활성화 예정)
+        // if (user.getProfileImage() == null || user.getProfileImage().isBlank()) {
+        //     log.warn("프로필 사진 없는 사용자 참여 시도 차단: userId={}, meetingId={}", userId, meetingId);
+        //     throw new IllegalStateException("프로필 사진 등록 후 모임에 참여할 수 있습니다.");
+        // }
+
+        // 4. 기존 멤버십 확인 (재가입 처리 포함)
         Optional<MeetingMember> existingMember = meetingMemberRepository
                 .findByMeetingIdAndUser_UserId(meetingId, userId);
 

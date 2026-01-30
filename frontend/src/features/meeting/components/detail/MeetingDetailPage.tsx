@@ -25,7 +25,7 @@ import type { MeetingDetail, MeetingEvent } from '@/shared/types/Meeting.types';
 // ============================================
 
 // 모달 타입 정의 (모달의 종류를 관리)
-type ModalType = 'greeting' | 'profile' | 'report' | 'leave' | 'actionSheet' | 'joinEvent' | 'cancelParticipation' | 'joinMeetingFirst' | null;
+type ModalType = 'greeting' | 'profile' | 'report' | 'leave' | 'actionSheet' | 'joinEvent' | 'cancelParticipation' | 'joinMeetingFirst' | 'profileRequired' | null;
 
 // API 실패 시 사용할 Mock 데이터 (개발/테스트용)
 const MOCK_MEETING_DETAIL: MeetingDetail = {
@@ -177,6 +177,33 @@ const MeetingDetailPage: React.FC = () => {
     return baseMeeting;
   });
 
+  // 채팅 접근 권한 확인 (APPROVED 상태이거나 방장인 경우만 가능)
+  // myRole이 HOST이거나, myStatus가 APPROVED인 경우
+  const canAccessChat = (meeting.myRole === 'HOST' || meeting.myRole === 'MEMBER') && meeting.myStatus === 'APPROVED';
+
+  const handleTabChange = (tab: 'home' | 'chat') => {
+    if (tab === 'chat') {
+      if (!user) {
+        alert('로그인이 필요한 서비스입니다.');
+        navigate('/login');
+        return;
+      }
+
+      // 승인된 멤버만 채팅 접근 가능
+      if (!canAccessChat) {
+        // 방장은 항상 접근 가능해야 하므로 로직 재확인:
+        // isOwner가 true이면 접근 가능. meeting.myRole이 HOST이면 접근 가능.
+        const isHost = meeting.myRole === 'HOST' || (user && String(meeting.ownerUserId) === String(user.userId));
+
+        if (!isHost) {
+          alert('모임 승인 후 채팅에 참여할 수 있습니다.');
+          return;
+        }
+      }
+    }
+    setActiveTab(tab);
+  };
+
   // location state(페이지 이동 시 전달된 값) 기반으로 모임/이벤트/멤버 정보 동기화
   useEffect(() => {
     if (!locationState || !meetingId) return;
@@ -247,6 +274,14 @@ const MeetingDetailPage: React.FC = () => {
 
   // 참석하기 버튼 클릭 시 (프로필 등록 여부에 따라 모달 분기)
   const handleJoinClick = () => openModal('greeting'); // 임시: 프로필 사진 체크 비활성화
+  // TODO: 프로필 사진 필수 기능 활성화 시 아래 코드 사용
+  // const handleJoinClick = () => {
+  //   if (!user?.profileImage) {
+  //     openModal('profileRequired');
+  //     return;
+  //   }
+  //   openModal('greeting');
+  // };
 
   // 좋아요 토글 핸들러 (API 연동 및 스토어/상태 동기화)
   const handleLikeToggle = () => {
@@ -409,7 +444,7 @@ const MeetingDetailPage: React.FC = () => {
         isLiked={isLiked}
         activeTab={activeTab}
         onLikeToggle={handleLikeToggle}
-        onTabChange={setActiveTab}
+        onTabChange={handleTabChange}
         isHost={isHost}
         isMember={!!isMember}
         onConfirmReport={handleConfirmReport}
@@ -530,6 +565,20 @@ const MeetingDetailPage: React.FC = () => {
             alert('가입 인사를 입력해주세요.');
           }
         }}
+      />
+
+      {/* 프로필 사진 필수 모달 */}
+      <Modal
+        isOpen={activeModal === 'profileRequired'}
+        onClose={closeModal}
+        message="프로필 사진이 필요해요! 📸 더 안전한 모임을 위해 프로필 사진 등록 후 참여해주세요."
+        confirmText="프로필 등록하러 가기"
+        cancelText="나중에 하기"
+        onConfirm={() => {
+          closeModal();
+          navigate('/profile/edit');
+        }}
+        onCancel={closeModal}
       />
 
       {/* 참가 신청 취소 모달 */}
