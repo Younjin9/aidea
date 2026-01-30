@@ -58,6 +58,9 @@ export const useMeetings = (params: MeetingListParams = {}) => {
   const groupByCategoryFn = useMeetingStore((state) => state.groupByCategory);
   const toggleLikeByGroupId = useMeetingStore((state) => state.toggleLikeByGroupId);
 
+  // API 기반 좋아요 토글
+  const { mutate: toggleLikeMeetingMutation } = useToggleLikeMeeting();
+
   // API 호출
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: meetingKeys.list(),
@@ -84,6 +87,7 @@ export const useMeetings = (params: MeetingListParams = {}) => {
     error,
     groupByCategory: groupByCategoryFn,
     toggleLike: toggleLikeByGroupId,
+    toggleLikeMeeting: toggleLikeMeetingMutation,
     refetch,
   };
 };
