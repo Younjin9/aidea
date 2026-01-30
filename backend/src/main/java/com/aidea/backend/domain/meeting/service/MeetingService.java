@@ -148,7 +148,7 @@ public class MeetingService {
                                         p.getUser().getProfileImage(),
                                         p.getUser().getUserId().equals(meeting.getCreator().getUserId()) ? "HOST"
                                                 : "MEMBER",
-                                        "APPROVED", // 참가자는 기본 APPROVED
+                                        "APPROVED", // 정모 참여는 현재 별도 승인 없음
                                         p.getJoinedAt()))
                                 .collect(Collectors.toList()))
                         .build())
@@ -177,7 +177,7 @@ public class MeetingService {
                 .status(response.getStatus())
                 .isPublic(response.getIsPublic())
                 .creator(response.getCreator())
-                .ownerUserId(response.getOwnerUserId())  // ✅ 추가: Frontend 권한 체크용
+                .ownerUserId(response.getOwnerUserId()) // ✅ 추가: Frontend 권한 체크용
                 .createdAt(response.getCreatedAt())
                 .updatedAt(response.getUpdatedAt())
                 .myRole(myRole)
@@ -400,16 +400,17 @@ public class MeetingService {
         }
 
         // 5. MeetingMember 생성
-        MeetingMember member = MeetingMember.createMember(
-                meeting, user, meeting.getIsApprovalRequired());
+        boolean approvalRequired = (meeting.getIsApprovalRequired() != null) ? meeting.getIsApprovalRequired() : true;
+        MeetingMember member = MeetingMember.createMember(meeting, user, approvalRequired);
 
         MeetingMember savedMember = meetingMemberRepository.save(member);
 
         // 6. 자동 승인인 경우 currentMembers 증가
-        if (!meeting.getIsApprovalRequired()) {
+        if (!approvalRequired) {
             meeting.incrementMembers();
         }
 
+        log.info("참가 신청 완료: userId={}, meetingId={}, status={}", userId, meetingId, savedMember.getStatus());
         return savedMember.toMemberResponse();
     }
 
@@ -450,6 +451,7 @@ public class MeetingService {
     @Transactional
     public com.aidea.backend.domain.meeting.dto.response.MemberResponse approveJoinRequest(
             Long meetingId, Long memberId, Long userId) {
+        log.info("참가 신청 승인 시도: meetingId={}, memberId={}, hostUserId={}", meetingId, memberId, userId);
         // 1. Meeting 조회
         Meeting meeting = meetingRepository.findById(meetingId)
                 .orElseThrow(() -> new RuntimeException("모임을 찾을 수 없습니다."));
@@ -480,6 +482,7 @@ public class MeetingService {
      */
     @Transactional
     public void rejectJoinRequest(Long meetingId, Long memberId, Long userId) {
+        log.info("참가 신청 거절 시도: meetingId={}, memberId={}, hostUserId={}", meetingId, memberId, userId);
         // 1. Meeting 조회
         Meeting meeting = meetingRepository.findById(meetingId)
                 .orElseThrow(() -> new RuntimeException("모임을 찾을 수 없습니다."));
@@ -516,21 +519,29 @@ public class MeetingService {
                 .orElseThrow(() -> new RuntimeException("모임을 찾을 수 없습니다."));
 
         // 4. 탈퇴 처리
+        MemberStatus prevStatus = member.getStatus();
         member.leave();
-        meeting.decrementMembers();
+        log.info("모임 탈퇴/참가 취소 처리: userId={}, meetingId={}, prevStatus={}", userId, meetingId, prevStatus);
+
+        // 5. APPROVED 상태였을 때만 멤버 수 감소
+        if (prevStatus == MemberStatus.APPROVED) {
+            meeting.decrementMembers();
+            log.info("모임 인원 감소 처리: meetingId={}", meetingId);
+        }
     }
 
     /**
      * 참가자 강제 퇴출 (HOST 전용)
      */
     @Transactional
-    public void removeMember(Long meetingId, Long memberId, Long userId) {
+    public void removeMember(Long meetingId, Long memberId, Long hostUserId) {
+        log.info("멤버 강퇴 시도: meetingId={}, memberId={}, hostUserId={}", meetingId, memberId, hostUserId);
         // 1. Meeting 조회
         Meeting meeting = meetingRepository.findById(meetingId)
                 .orElseThrow(() -> new RuntimeException("모임을 찾을 수 없습니다."));
 
         // 2. HOST 권한 확인
-        if (!meeting.getCreator().getUserId().equals(userId)) {
+        if (!meeting.getCreator().getUserId().equals(hostUserId)) {
             throw new RuntimeException("권한이 없습니다.");
         }
 

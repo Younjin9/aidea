@@ -201,8 +201,9 @@ public class EventService {
      */
     @Transactional
     public void cancelParticipation(Long meetingId, Long eventId, Long userId) {
-        Event event = eventRepository.findById(eventId)
-                .orElseThrow(() -> new RuntimeException("정모를 찾을 수 없습니다."));
+        if (!eventRepository.existsById(eventId)) {
+            throw new RuntimeException("정모를 찾을 수 없습니다.");
+        }
 
         // ... comments ...
 
