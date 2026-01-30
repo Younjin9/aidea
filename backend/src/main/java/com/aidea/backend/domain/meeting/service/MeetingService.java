@@ -23,7 +23,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
-import com.aidea.backend.domain.chat.repository.ChatRoomRepository; // Added import
+import com.aidea.backend.domain.chat.repository.ChatRoomRepository;
+import com.aidea.backend.domain.chat.service.ChatService; // Added import
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -48,6 +49,7 @@ public class MeetingService {
     private final com.aidea.backend.domain.event.repository.EventRepository eventRepository; // Inject EventRepository
     private final com.aidea.backend.domain.event.repository.EventParticipantRepository eventParticipantRepository; // Inject
     private final S3Service s3Service;
+    private final ChatService chatService; // Inject ChatService
 
     /**
      * 모임 생성
@@ -72,6 +74,15 @@ public class MeetingService {
         // 3. HOST 등록
         MeetingMember hostMember = MeetingMember.createHost(meeting, user);
         meetingMemberRepository.save(hostMember);
+
+        // 4. 채팅방 생성 (자동)
+        try {
+            chatService.createChatRoomForMeeting(meeting.getId());
+            log.info("채팅방 생성 완료: meetingId={}", meeting.getId());
+        } catch (Exception e) {
+            log.error("채팅방 자동 생성 실패: {}", e.getMessage());
+            // 성공 실패와 상관없이 모임 생성을 계속 진행하거나 처리 결정
+        }
 
         return meeting.toResponse("HOST", "APPROVED");
     }
