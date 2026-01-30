@@ -14,8 +14,13 @@ import { reportUser } from '@/shared/api/safety/safetyApi';
 import ChatRoomPage from '@/features/chat/components/ChatRoomPage';
 import meetingApi from '@/shared/api/meeting/meetingApi';
 import { useMeetingStore } from '../../store/meetingStore';
+<<<<<<< HEAD
 import { useAuthStore } from '@/features/auth/store/authStore';
 import { useLeaveMeeting, useToggleLikeMeeting } from '../../hooks/useMeetings';
+=======
+import { useMyPageStore } from '@/features/mypage/store/myPageStore';
+import { useLeaveMeeting, useToggleLikeMeeting, useJoinMeeting } from '../../hooks/useMeetings';
+>>>>>>> backend-integration
 import { useJoinEvent, useCancelEventParticipation } from '../../hooks/useEvents';
 import { useMembers } from '../../hooks/useMembers';
 import type { MeetingDetail, MeetingEvent } from '@/shared/types/Meeting.types';
@@ -134,6 +139,7 @@ const MeetingDetailPage: React.FC = () => {
   // 이벤트 참여/취소 등 API 호출을 위한 커스텀 훅
   const { mutate: leaveMeetingApi } = useLeaveMeeting();
   const { mutate: toggleLikeApi } = useToggleLikeMeeting();
+  const joinMeetingMutation = useJoinMeeting(); // 모임 참여 신청 훅
   const { mutate: joinEventApi } = useJoinEvent(meetingId || '');
   const { mutate: cancelEventApi } = useCancelEventParticipation(meetingId || '');
 
@@ -254,8 +260,15 @@ const MeetingDetailPage: React.FC = () => {
   }, [apiMeetingDetail, meeting, storedEvents, locationState, apiMembers]);
 
   // 내 역할/상태 및 모달 오픈 함수
+<<<<<<< HEAD
   const isHost = displayMeeting.myRole === 'HOST';
   const isMember = displayMeeting.myStatus === 'APPROVED';
+=======
+  const isHost = meeting.myRole === 'HOST';
+  const isPending = meeting.myStatus === 'PENDING';
+  const isApproved = meeting.myStatus === 'APPROVED';
+  const isMember = isPending || isApproved; // PENDING 또는 APPROVED면 멤버로 간주
+>>>>>>> backend-integration
   const openModal = (type: ModalType) => setActiveModal(type);
   // 모달 닫기 함수 (이벤트 선택 초기화 포함)
   const closeModal = () => {
@@ -264,7 +277,7 @@ const MeetingDetailPage: React.FC = () => {
   };
 
   // 참석하기 버튼 클릭 시 (프로필 등록 여부에 따라 모달 분기)
-  const handleJoinClick = () => openModal(user?.profileImage ? 'greeting' : 'profile');
+  const handleJoinClick = () => openModal('greeting'); // 임시: 프로필 사진 체크 비활성화
 
   // 좋아요 토글 핸들러 (API 연동 및 스토어/상태 동기화)
   const handleLikeToggle = () => {
@@ -467,11 +480,18 @@ const MeetingDetailPage: React.FC = () => {
         )}
       </main>
 
-      {/* 참석하기 버튼 (비회원/비호스트만 노출) */}
-      {!isHost && !isMember && (
+      {/* 참석하기/상태 버튼 (비호스트만 노출) */}
+      {!isHost && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 w-full max-w-[398px] px-4">
-          <Button variant="primary" size="md" fullWidth onClick={handleJoinClick}>
-            참석하기
+          <Button
+            variant={isPending ? "secondary" : isApproved ? "primary" : "primary"}
+            size="md"
+            fullWidth
+            onClick={isPending || isApproved ? undefined : handleJoinClick}
+            disabled={isPending || isApproved}
+            className={isPending ? 'bg-orange-500 hover:bg-orange-600' : isApproved ? 'bg-blue-500 hover:bg-blue-600' : ''}
+          >
+            {isPending ? '참여 대기중' : isApproved ? '참여 완료' : '참석하기'}
           </Button>
         </div>
       )}
@@ -503,11 +523,24 @@ const MeetingDetailPage: React.FC = () => {
         confirmText="확인"
         cancelText="취소"
         onConfirm={() => {
-          if (meetingId) {
-            // TODO: API 연동 시 greeting 메시지를 함께 전송
-            closeModal();
-            setGreeting('');
-            alert('참석 신청이 완료되었습니다!');
+          if (meetingId && greeting.trim()) {
+            // 실제 API 호출
+            joinMeetingMutation.mutate(
+              { groupId: meetingId, requestMessage: greeting },
+              {
+                onSuccess: () => {
+                  closeModal();
+                  setGreeting('');
+                  alert('참석 신청이 완료되었습니다!');
+                },
+                onError: (error: Error) => {
+                  console.error('참여 신청 실패:', error);
+                  alert('참여 신청에 실패했습니다. 다시 시도해주세요.');
+                }
+              }
+            );
+          } else {
+            alert('가입 인사를 입력해주세요.');
           }
         }}
       />

@@ -107,6 +107,14 @@ public class MeetingMember {
     this.status = MemberStatus.LEFT;
   }
 
+  /**
+   * 재가입 처리 (LEFT 상태에서 재활성화)
+   */
+  public void reactivate(boolean isApprovalRequired) {
+    this.status = isApprovalRequired ? MemberStatus.PENDING : MemberStatus.APPROVED;
+    this.joinedAt = LocalDateTime.now();
+  }
+
   // ========== DTO 변환 메서드 ==========
 
   /**

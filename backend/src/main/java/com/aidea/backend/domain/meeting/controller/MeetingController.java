@@ -149,11 +149,12 @@ public class MeetingController {
      */
     @Operation(summary = "모임 참가 신청", description = "모임에 참가 신청을 합니다")
     @PostMapping("/{id}/join")
-    public ResponseEntity<com.aidea.backend.domain.meeting.dto.response.MemberResponse> joinMeeting(
+    public ResponseEntity<com.aidea.backend.global.common.dto.ApiResponse<com.aidea.backend.domain.meeting.dto.response.MemberResponse>> joinMeeting(
             @PathVariable Long id) {
         com.aidea.backend.domain.meeting.dto.response.MemberResponse response = meetingService.joinMeeting(id,
                 getAuthenticatedUser().getUserId());
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(com.aidea.backend.global.common.dto.ApiResponse.success(response));
     }
 
     /**
@@ -161,11 +162,11 @@ public class MeetingController {
      */
     @Operation(summary = "참가자 목록 조회", description = "승인된 참가자 목록을 조회합니다")
     @GetMapping("/{id}/members")
-    public ResponseEntity<java.util.List<com.aidea.backend.domain.meeting.dto.response.MemberResponse>> getMembers(
+    public ResponseEntity<com.aidea.backend.global.common.dto.ApiResponse<java.util.List<com.aidea.backend.domain.meeting.dto.response.MemberResponse>>> getMembers(
             @PathVariable Long id) {
         java.util.List<com.aidea.backend.domain.meeting.dto.response.MemberResponse> response = meetingService
                 .getMembers(id);
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(com.aidea.backend.global.common.dto.ApiResponse.success(response));
     }
 
     /**
@@ -173,11 +174,11 @@ public class MeetingController {
      */
     @Operation(summary = "참가 신청 목록 조회", description = "대기 중인 참가 신청 목록을 조회합니다 (HOST 전용)")
     @GetMapping("/{id}/join-requests")
-    public ResponseEntity<java.util.List<com.aidea.backend.domain.meeting.dto.response.JoinRequestResponse>> getPendingRequests(
+    public ResponseEntity<ApiResponse<java.util.List<com.aidea.backend.domain.meeting.dto.response.JoinRequestResponse>>> getPendingRequests(
             @PathVariable Long id) {
         java.util.List<com.aidea.backend.domain.meeting.dto.response.JoinRequestResponse> response = meetingService
                 .getPendingRequests(id, getAuthenticatedUser().getUserId());
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(ApiResponse.success(response));
     }
 
     /**
