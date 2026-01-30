@@ -116,3 +116,4 @@ temp/
 # Vite
 frontend/.vite/backend/src/main/resources/application-local.yml
 backend/src/main/resources/application-local.yml
+frontend/.vite/
