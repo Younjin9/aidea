@@ -37,14 +37,8 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
      */
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
-        registry.addEndpoint("/ws") // WebSocket 연결 엔드포인트
-                .setAllowedOrigins(
-                        "http://localhost:5173", // Vite 개발 서버
-                        "http://localhost:3000", // 다른 로컬 포트 가능성
-                        "https://aimo.ai.kr", // 메인 도메인
-                        "https://www.aimo.ai.kr", // www 서브도메인
-                        "https://d125n74xsjeyc3.cloudfront.net" // CloudFront CDN
-                )
+        registry.addEndpoint("/api/ws") // WebSocket 연결 엔드포인트를 /api 하위로 변경 (프록시 접근성 허용)
+                .setAllowedOriginPatterns("*") // CORS 허용 패턴 (패턴 기반 허용으로 유연성 확보)
                 .withSockJS(); // SockJS fallback 지원
     }
 
