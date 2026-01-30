@@ -403,17 +403,50 @@ public class UserService {
 
         @Transactional
         public void deleteAccount(String email, String reason) {
-                log.info("회원 탈퇴: email={}, reason={}", email, reason);
+                log.info("회원 탈퇴 시작: email={}, reason={}", email, reason);
 
                 User user = userRepository.findByEmail(email)
                                 .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
 
-                // TODO: 관련 데이터 처리 (모임 탈퇴, 채팅방 등)
-                refreshTokenRepository.deleteByEmail(email);
+                Long userId = user.getUserId();
 
+                // 1. Refresh Token 삭제
+                refreshTokenRepository.deleteByEmail(email);
+                log.info("Refresh Token 삭제 완료: userId={}", userId);
+
+                // 2. 사용자 관심사 삭제 (user_interest)
+                userInterestRepository.deleteByUser_UserId(userId);
+                userInterestRepository.flush();
+                log.info("사용자 관심사 삭제 완료: userId={}", userId);
+
+                // 3. 사용자가 생성한 모임 처리 (모임장 탈퇴 = 모임 해산)
+                var createdMeetings = meetingRepository.findByCreator_UserId(userId);
+                if (!createdMeetings.isEmpty()) {
+                        // 3-1. 각 모임의 모든 멤버 먼저 삭제
+                        for (var meeting : createdMeetings) {
+                                meetingMemberRepository.deleteAllByMeetingId(meeting.getId());
+                                log.info("모임 {}의 모든 멤버 삭제 완료", meeting.getId());
+                        }
+                        meetingMemberRepository.flush();
+
+                        // 3-2. 모임 삭제
+                        meetingRepository.deleteAll(createdMeetings);
+                        meetingRepository.flush();
+                        log.info("생성한 모임 삭제 완료: {} 건 (모임장 탈퇴)", createdMeetings.size());
+                }
+
+                // 4. 사용자의 모임 참여 기록 삭제 (나머지 meeting_member)
+                List<MeetingMember> memberRecords = meetingMemberRepository.findByUser_UserId(userId);
+                if (!memberRecords.isEmpty()) {
+                        meetingMemberRepository.deleteAll(memberRecords);
+                        meetingMemberRepository.flush();
+                        log.info("모임 참여 기록 삭제 완료: {} 건", memberRecords.size());
+                }
+
+                // 5. 최종 사용자 삭제
                 userRepository.delete(user);
 
-                log.info("회원 탈퇴 완료: email={}", email);
+                log.info("회원 탈퇴 완료: userId={}, email={}", userId, email);
         }
 
         @Transactional

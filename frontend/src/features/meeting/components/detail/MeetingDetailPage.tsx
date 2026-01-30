@@ -442,18 +442,17 @@ const MeetingDetailPage: React.FC = () => {
         )}
       </main>
 
-      {/* 참석하기/상태 버튼 (비호스트만 노출) */}
-      {!isHost && (
+      {/* 참석하기/참가 신청 취소 버튼 */}
+      {!isHost && !isApproved && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 w-full max-w-[398px] px-4">
           <Button
-            variant={isPending ? "secondary" : isApproved ? "primary" : "primary"}
+            variant={isPending ? "secondary" : "primary"}
             size="md"
             fullWidth
-            onClick={isPending || isApproved ? undefined : handleJoinClick}
-            disabled={isPending || isApproved}
-            className={isPending ? 'bg-orange-500 hover:bg-orange-600' : isApproved ? 'bg-blue-500 hover:bg-blue-600' : ''}
+            onClick={isPending ? () => openModal('leave') : handleJoinClick}
+            className={isPending ? 'bg-orange-500 hover:bg-orange-600' : ''}
           >
-            {isPending ? '참여 대기중' : isApproved ? '참여 완료' : '참석하기'}
+            {isPending ? '참가 신청 취소' : '참석하기'}
           </Button>
         </div>
       )}
