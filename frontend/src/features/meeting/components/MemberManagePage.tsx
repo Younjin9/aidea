@@ -238,9 +238,6 @@ const MemberManagePage: React.FC = () => {
         </section>
 
         {/* 참가 신청 멤버 */}
-        {/* 🔍 DEBUG: 렌더링 조건 확인 */}
-        {console.log('📊 [Render] pendingMembers:', pendingMembers)}
-        {console.log('📊 [Render] pendingMembers.length:', pendingMembers.length)}
         {pendingMembers.length > 0 && (
           <section className="py-4 border-t border-gray-100">
             <h2 className="text-sm font-semibold text-gray-900 mb-4">참가 신청 멤버</h2>

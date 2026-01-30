@@ -37,12 +37,31 @@ const ScrollToTop: React.FC = () => {
 
 const PrivateRoute = () => {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
-  return isAuthenticated ? <Outlet /> : <Navigate to="/login" replace />;
+  const user = useAuthStore((state) => state.user);
+  const location = useLocation();
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
+  const hasInterests = !!user?.interests && user.interests.length > 0;
+  if (!hasInterests && location.pathname !== '/onboarding/interest') {
+    return <Navigate to="/onboarding/interest" replace />;
+  }
+
+  return <Outlet />;
 };
 
 const PublicRoute = () => {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
-  return !isAuthenticated ? <Outlet /> : <Navigate to="/shorts" replace />;
+  const user = useAuthStore((state) => state.user);
+
+  if (!isAuthenticated) {
+    return <Outlet />;
+  }
+
+  const hasInterests = !!user?.interests && user.interests.length > 0;
+  return hasInterests ? <Navigate to="/shorts" replace /> : <Navigate to="/onboarding/interest" replace />;
 };
 
 const AppRoutes: React.FC = () => {
@@ -62,8 +81,6 @@ const AppRoutes: React.FC = () => {
             <Route path="/find-pw" element={<FindPwPage />} />
           </Route>
           
-          {/* Onboarding Routes */}
-          <Route path="/onboarding/interest" element={<InterestPage />} />
           <Route path="/chat" element={<ChatRoomPage />} />
         </Route>
 
@@ -81,6 +98,7 @@ const AppRoutes: React.FC = () => {
         {/* Meeting & MyPage Routes (No Bottom Navigation) */}
         <Route element={<PrivateRoute />}>
           <Route element={<MobileLayout />}>
+            <Route path="/onboarding/interest" element={<InterestPage />} />
             <Route path="/search" element={<MeetingSearchPage />} />
             <Route path="/meetings/create" element={<MeetingCreatePage />} />
             <Route path="/meetings/:meetingId" element={<MeetingDetailPage />} />
