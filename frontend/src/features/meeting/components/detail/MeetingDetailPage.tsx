@@ -169,6 +169,13 @@ const MeetingDetailPage: React.FC = () => {
   const [selectedEvent, setSelectedEvent] = useState<{ id: string; title: string } | null>(null); // 선택된 이벤트
   const [greeting, setGreeting] = useState(''); // 가입 인사 메시지
 
+  // storedMeeting.isLiked 변경 시 로컬 상태 동기화
+  useEffect(() => {
+    if (storedMeeting) {
+      setIsLiked(storedMeeting.isLiked || false);
+    }
+  }, [storedMeeting?.isLiked, storedMeeting]);
+
   // 이벤트 및 모임 정보 상태
   const storedEvents = getEventsByGroupId(meetingId || '');
   const [meeting, setMeeting] = useState<MeetingDetail>(() => {

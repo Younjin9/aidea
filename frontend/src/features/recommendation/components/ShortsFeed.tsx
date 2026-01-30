@@ -1,9 +1,9 @@
 import React from 'react';
 import RecommendedMeetingCard from './RecommendedMeetingCard';
-import { useMeetingStore } from '@/features/meeting/store/meetingStore';
+import { useMeetings } from '@/features/meeting/hooks/useMeetings';
 
 const ShortsFeed: React.FC = () => {
-  const { meetings } = useMeetingStore();
+  const { meetings } = useMeetings();
 
   if (!meetings || meetings.length === 0) {
     return (
