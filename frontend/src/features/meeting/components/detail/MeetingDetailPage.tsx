@@ -1,7 +1,7 @@
 // 모임 상세 페이지 - 코드 정리 버전i// React 및 필요한 훅/라이브러리 import
 import React, { useMemo, useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 import Button from '@/shared/components/ui/Button';
 import Modal from '@/shared/components/ui/Modal';
@@ -15,9 +15,10 @@ import ChatRoomPage from '@/features/chat/components/ChatRoomPage';
 import meetingApi from '@/shared/api/meeting/meetingApi';
 import { useMeetingStore } from '../../store/meetingStore';
 import { useAuthStore } from '@/features/auth/store/authStore';
-import { useLeaveMeeting, useToggleLikeMeeting } from '../../hooks/useMeetings';
+import { meetingKeys, useLeaveMeeting, useToggleLikeMeeting } from '../../hooks/useMeetings';
 import { useJoinEvent, useCancelEventParticipation } from '../../hooks/useEvents';
 import { useMembers } from '../../hooks/useMembers';
+import { myPageKeys } from '@/features/mypage/hooks/useMyPage';
 import type { MeetingDetail, MeetingEvent } from '@/shared/types/Meeting.types';
 
 
@@ -129,13 +130,14 @@ const MeetingDetailPage: React.FC = () => {
   const locationState = location.state as { newEvent?: MeetingEvent; updatedEvent?: MeetingEvent; deletedEventId?: string; updatedMembers?: MeetingDetail['members'] } | null;
 
   // 상태 관리 및 커스텀 훅 사용 (store, mutation 등)
-  const { getMeetingByGroupId, toggleLikeByGroupId, leaveMeeting, getEventsByGroupId, addEvent, updateEvent: updateEventInStore, deleteEvent: deleteEventInStore } = useMeetingStore();
+  const { getMeetingByGroupId, toggleLikeByGroupId, leaveMeeting, removeMeeting, getEventsByGroupId, addEvent, updateEvent: updateEventInStore, deleteEvent: deleteEventInStore } = useMeetingStore();
   const user = useAuthStore((state) => state.user);
   // 이벤트 참여/취소 등 API 호출을 위한 커스텀 훅
   const { mutate: leaveMeetingApi } = useLeaveMeeting();
   const { mutate: toggleLikeApi } = useToggleLikeMeeting();
   const { mutate: joinEventApi } = useJoinEvent(meetingId || '');
   const { mutate: cancelEventApi } = useCancelEventParticipation(meetingId || '');
+  const queryClient = useQueryClient();
 
   // 모임 상세 정보 API 호출 (react-query 사용)
   const { data: apiMeetingDetail, isLoading } = useQuery({
@@ -376,8 +378,14 @@ const MeetingDetailPage: React.FC = () => {
       // API 호출 - 모임 삭제
       await meetingApi.remove(meetingId);
 
-      // 삭제 성공 시 store에서 제거 및 페이지 이동
-      leaveMeeting(String(meetingId));
+      // 삭제 성공 시 store에서 제거 및 캐시 갱신 후 페이지 이동
+      removeMeeting(String(meetingId));
+      queryClient.invalidateQueries({ queryKey: meetingKeys.all });
+      queryClient.invalidateQueries({ queryKey: ['meetings', 'search'] });
+      queryClient.invalidateQueries({ queryKey: ['meetings', 'liked'] });
+      queryClient.invalidateQueries({ queryKey: myPageKeys.myMeetings() });
+      queryClient.invalidateQueries({ queryKey: myPageKeys.likedMeetings() });
+      queryClient.refetchQueries({ queryKey: meetingKeys.all });
       closeModal();
       navigate('/meetings');
       alert('모임이 삭제되었습니다.');
