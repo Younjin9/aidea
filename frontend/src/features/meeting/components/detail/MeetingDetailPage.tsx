@@ -274,8 +274,8 @@ const MeetingDetailPage: React.FC = () => {
       setMeeting(prev => ({
         ...prev,
         events: prev.events.map(e =>
-          e.eventId === selectedEvent.id
-            ? { ...e, participantCount: Math.max(0, (e.participantCount || 0) - 1), participants: (e.participants || []).filter(p => p.userId !== user.userId) }
+          String(e.eventId) === String(selectedEvent.id)
+            ? { ...e, participantCount: Math.max(0, (e.participantCount || 0) - 1), participants: (e.participants || []).filter(p => String(p.userId) !== String(user.userId)) }
             : e
         ),
       }));
@@ -284,7 +284,6 @@ const MeetingDetailPage: React.FC = () => {
 
     cancelEventApi(selectedEvent.id, {
       onSuccess: updateState,
-      onError: updateState,
     });
   };
 
@@ -296,8 +295,8 @@ const MeetingDetailPage: React.FC = () => {
       setMeeting(prev => ({
         ...prev,
         events: prev.events.map(e =>
-          e.eventId === selectedEvent.id
-            ? { ...e, participantCount: (e.participantCount || 0) + 1, participants: [...(e.participants || []), { memberId: Date.now(), userId: user.userId, nickname: user.nickname, profileImage: user.profileImage, role: 'MEMBER', status: 'APPROVED' }] }
+          String(e.eventId) === String(selectedEvent.id)
+            ? { ...e, participantCount: (e.participantCount || 0) + 1, participants: [...(e.participants || []), { memberId: Date.now(), userId: user.userId, nickname: user.nickname, profileImage: user.profileImage, role: 'MEMBER', status: 'APPROVED' } as any] }
             : e
         ),
       }));
@@ -306,7 +305,6 @@ const MeetingDetailPage: React.FC = () => {
 
     joinEventApi(selectedEvent.id, {
       onSuccess: updateState,
-      onError: updateState,
     });
   };
 
