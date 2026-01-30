@@ -15,6 +15,7 @@ import {
 } from '../hooks/useMembers';
 
 interface Member {
+  memberId: string | number;
   userId: string;
   nickname: string;
   profileImage?: string;
@@ -34,11 +35,7 @@ const MemberManagePage: React.FC = () => {
   const { data: apiMembers, isLoading: isLoadingMembers, error: membersError } = useMembers(meetingId || '');
   const { data: apiPendingMembers, isLoading: isLoadingPending, error: pendingError } = usePendingMembers(meetingId || '');
 
-  // 🔍 DEBUG: API 응답 확인
-  console.log('🔍 [MemberManagePage] meetingId:', meetingId);
-  console.log('🔍 [MemberManagePage] apiPendingMembers:', apiPendingMembers);
-  console.log('🔍 [MemberManagePage] isLoadingPending:', isLoadingPending);
-  console.log('🔍 [MemberManagePage] pendingError:', pendingError);
+
 
   // API Mutations
   const { mutate: approveMember, isPending: isApproving } = useApproveMember(meetingId || '');
@@ -60,13 +57,10 @@ const MemberManagePage: React.FC = () => {
   }, [apiMembers, membersError]);
 
   useEffect(() => {
-    console.log('🔍 [useEffect] apiPendingMembers updated:', apiPendingMembers);
     if (apiPendingMembers) {
-      const converted = apiPendingMembers as Member[] || [];
-      console.log('✅ [useEffect] Setting pendingMembers:', converted);
-      setPendingMembers(converted);
+      setPendingMembers(apiPendingMembers as Member[] || []);
     } else if (pendingError) {
-      console.error('❌ [useEffect] 대기 멤버 목록 API 호출 실패:', pendingError);
+      console.warn('대기 멤버 목록 API 호출 실패:', pendingError);
     }
   }, [apiPendingMembers, pendingError]);
 
@@ -113,15 +107,15 @@ const MemberManagePage: React.FC = () => {
     if (!selectedMember) return;
 
     // API 호출 시도
-    removeMember(selectedMember.userId, {
+    removeMember(String(selectedMember.memberId), {
       onSuccess: () => {
-        setMembers(prev => prev.filter(m => m.userId !== selectedMember.userId));
+        setMembers(prev => prev.filter(m => m.memberId !== selectedMember.memberId));
         setShowKickModal(false);
         setSelectedMember(null);
       },
       onError: () => {
         // API 실패 시 로컬에서 처리 (fallback)
-        setMembers(prev => prev.filter(m => m.userId !== selectedMember.userId));
+        setMembers(prev => prev.filter(m => m.memberId !== selectedMember.memberId));
         setShowKickModal(false);
         setSelectedMember(null);
       },
@@ -130,18 +124,15 @@ const MemberManagePage: React.FC = () => {
 
   // 참가 승인
   const handleApprove = (member: Member) => {
-    // API 호출 시도
     approveMember(
-      { memberId: member.userId },
+      { memberId: String(member.memberId) },
       {
         onSuccess: () => {
-          setPendingMembers(prev => prev.filter(m => m.userId !== member.userId));
+          setPendingMembers(prev => prev.filter(m => m.memberId !== member.memberId));
           setMembers(prev => [...prev, { ...member, status: 'APPROVED' }]);
         },
         onError: () => {
-          // API 실패 시 로컬에서 처리 (fallback)
-          setPendingMembers(prev => prev.filter(m => m.userId !== member.userId));
-          setMembers(prev => [...prev, { ...member, status: 'APPROVED' }]);
+          alert('승인 처리에 실패했습니다. 다시 시도해 주세요.');
         },
       }
     );
@@ -149,16 +140,14 @@ const MemberManagePage: React.FC = () => {
 
   // 참가 거절
   const handleReject = (member: Member) => {
-    // API 호출 시도
     rejectMember(
-      { memberId: member.userId },
+      { memberId: String(member.memberId) },
       {
         onSuccess: () => {
-          setPendingMembers(prev => prev.filter(m => m.userId !== member.userId));
+          setPendingMembers(prev => prev.filter(m => m.memberId !== member.memberId));
         },
         onError: () => {
-          // API 실패 시 로컬에서 처리 (fallback)
-          setPendingMembers(prev => prev.filter(m => m.userId !== member.userId));
+          alert('거절 처리에 실패했습니다. 다시 시도해 주세요.');
         },
       }
     );

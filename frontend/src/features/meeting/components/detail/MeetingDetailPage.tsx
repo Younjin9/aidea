@@ -47,8 +47,8 @@ const MOCK_MEETING_DETAIL: MeetingDetail = {
   createdAt: '2024-01-20',
   updatedAt: '2024-01-20',
   members: [
-    { userId: 1, nickname: '김구름', profileImage: undefined, role: 'HOST', status: 'APPROVED', joinedAt: '2024-01-20' },
-    { userId: 2, nickname: '김구름2', profileImage: undefined, role: 'MEMBER', status: 'APPROVED', joinedAt: '2024-01-20' },
+    { memberId: 1, userId: 1, nickname: '김구름', profileImage: undefined, role: 'HOST', status: 'APPROVED', joinedAt: '2024-01-20' },
+    { memberId: 2, userId: 2, nickname: '김구름2', profileImage: undefined, role: 'MEMBER', status: 'APPROVED', joinedAt: '2024-01-20' },
   ],
   events: [{
     eventId: 1,
@@ -60,8 +60,8 @@ const MOCK_MEETING_DETAIL: MeetingDetail = {
     maxParticipants: 10,
     participantCount: 2,
     participants: [
-      { userId: 1, nickname: '김구름', profileImage: undefined, role: 'HOST', status: 'APPROVED', joinedAt: '2024-01-20' },
-      { userId: 2, nickname: '김구름2', profileImage: undefined, role: 'MEMBER', status: 'APPROVED', joinedAt: '2024-01-20' },
+      { memberId: 1, userId: 1, nickname: '김구름', profileImage: undefined, role: 'HOST', status: 'APPROVED', joinedAt: '2024-01-20' },
+      { memberId: 2, userId: 2, nickname: '김구름2', profileImage: undefined, role: 'MEMBER', status: 'APPROVED', joinedAt: '2024-01-20' },
     ],
   }],
   myRole: 'HOST',
@@ -98,7 +98,7 @@ const createMeetingDetailFromStore = (
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
     members: [
-      { userId: Number(hostUserId), nickname: hostNickname, profileImage: hostProfileImage, role: 'HOST', status: 'APPROVED', joinedAt: new Date().toISOString() },
+      { memberId: 0, userId: Number(hostUserId), nickname: hostNickname, profileImage: hostProfileImage, role: 'HOST', status: 'APPROVED', joinedAt: new Date().toISOString() },
     ],
     events: existingEvents,
     myRole: storedMeeting.myRole === 'MEMBER' ? 'MEMBER' : storedMeeting.myRole || (isOwner ? 'HOST' : undefined),
@@ -274,8 +274,8 @@ const MeetingDetailPage: React.FC = () => {
       setMeeting(prev => ({
         ...prev,
         events: prev.events.map(e =>
-          e.eventId === selectedEvent.id
-            ? { ...e, participantCount: Math.max(0, (e.participantCount || 0) - 1), participants: (e.participants || []).filter(p => p.userId !== user.userId) }
+          String(e.eventId) === String(selectedEvent.id)
+            ? { ...e, participantCount: Math.max(0, (e.participantCount || 0) - 1), participants: (e.participants || []).filter(p => String(p.userId) !== String(user.userId)) }
             : e
         ),
       }));
@@ -284,7 +284,6 @@ const MeetingDetailPage: React.FC = () => {
 
     cancelEventApi(selectedEvent.id, {
       onSuccess: updateState,
-      onError: updateState,
     });
   };
 
@@ -296,8 +295,8 @@ const MeetingDetailPage: React.FC = () => {
       setMeeting(prev => ({
         ...prev,
         events: prev.events.map(e =>
-          e.eventId === selectedEvent.id
-            ? { ...e, participantCount: (e.participantCount || 0) + 1, participants: [...(e.participants || []), { userId: user.userId, nickname: user.nickname, profileImage: user.profileImage, role: 'MEMBER', status: 'APPROVED' }] }
+          String(e.eventId) === String(selectedEvent.id)
+            ? { ...e, participantCount: (e.participantCount || 0) + 1, participants: [...(e.participants || []), { memberId: Date.now(), userId: user.userId, nickname: user.nickname, profileImage: user.profileImage, role: 'MEMBER', status: 'APPROVED' } as any] }
             : e
         ),
       }));
@@ -306,7 +305,6 @@ const MeetingDetailPage: React.FC = () => {
 
     joinEventApi(selectedEvent.id, {
       onSuccess: updateState,
-      onError: updateState,
     });
   };
 
@@ -328,18 +326,34 @@ const MeetingDetailPage: React.FC = () => {
   // 모임 탈퇴 API 호출 및 상태 동기화
   const handleLeaveMeeting = () => {
     if (!user || !meetingId) return;
-    leaveMeetingApi(meetingId, {
-      onSuccess: () => closeModal(),
-      onError: () => {
+
+    console.log('handleLeaveMeeting 실행, isPending:', isPending);
+
+    // PENDING 신청 취소 시에는 현재 페이지에 머묾, APPROVED 탈퇴 시에만 목록으로 이동
+    const shouldNavigate = !isPending;
+
+    leaveMeetingApi({ groupId: meetingId, shouldNavigate }, {
+      onSuccess: () => {
+        console.log('탈퇴/취소 성공, 상태 업데이트');
+        // 상태 업데이트: myStatus를 undefined로 변경하여 버튼이 "참석하기"로 바뀌도록
         setMeeting(prev => ({
           ...prev,
-          memberCount: prev.memberCount - 1,
-          members: prev.members.filter(m => m.userId !== user.userId),
           myStatus: undefined,
+          memberCount: isPending ? prev.memberCount : prev.memberCount - 1,
         }));
+
+        // 스토어 업데이트
         leaveMeeting(String(meeting.groupId));
         closeModal();
-        navigate('/meetings');
+
+        if (!shouldNavigate) {
+          alert('참가 신청이 취소되었습니다.');
+        }
+      },
+      onError: (error) => {
+        console.error('탈퇴/취소 실패:', error);
+        alert('처리에 실패했습니다. 다시 시도해주세요.');
+        closeModal();
       },
     });
   };
@@ -442,18 +456,29 @@ const MeetingDetailPage: React.FC = () => {
         )}
       </main>
 
-      {/* 참석하기/상태 버튼 (비호스트만 노출) */}
-      {!isHost && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 w-full max-w-[398px] px-4">
+      {/* 참석하기/참가 신청 취소 버튼 */}
+      {!isHost && !isApproved && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 w-full max-w-[398px] px-4" style={{ zIndex: 50 }}>
           <Button
-            variant={isPending ? "secondary" : isApproved ? "primary" : "primary"}
+            variant={isPending ? "secondary" : "primary"}
             size="md"
             fullWidth
-            onClick={isPending || isApproved ? undefined : handleJoinClick}
-            disabled={isPending || isApproved}
-            className={isPending ? 'bg-orange-500 hover:bg-orange-600' : isApproved ? 'bg-blue-500 hover:bg-blue-600' : ''}
+            onClick={() => {
+              console.log('=== 버튼 클릭됨 ===');
+              console.log('isPending:', isPending);
+              console.log('isApproved:', isApproved);
+              console.log('myStatus:', meeting.myStatus);
+              if (isPending) {
+                console.log('openModal(leave) 호출');
+                openModal('leave');
+              } else {
+                console.log('handleJoinClick 호출');
+                handleJoinClick();
+              }
+            }}
+            className={isPending ? 'bg-orange-500 hover:bg-orange-600' : ''}
           >
-            {isPending ? '참여 대기중' : isApproved ? '참여 완료' : '참석하기'}
+            {isPending ? '참가 신청 취소' : '참석하기'}
           </Button>
         </div>
       )}
@@ -505,6 +530,17 @@ const MeetingDetailPage: React.FC = () => {
             alert('가입 인사를 입력해주세요.');
           }
         }}
+      />
+
+      {/* 참가 신청 취소 모달 */}
+      <Modal
+        isOpen={activeModal === 'leave'}
+        onClose={closeModal}
+        message={`${meeting.title}의 참가 신청을 취소하시겠어요?`}
+        confirmText="취소하기"
+        cancelText="돌아가기"
+        onConfirm={handleLeaveMeeting}
+        onCancel={closeModal}
       />
     </div>
   );

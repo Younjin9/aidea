@@ -19,6 +19,7 @@ import com.aidea.backend.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -26,6 +27,7 @@ import java.util.stream.Collectors;
 /**
  * 채팅 서비스
  */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -61,9 +63,16 @@ public class ChatService {
          */
         @Transactional
         public ChatMessageResponse saveMessage(ChatMessageRequest request, Long userId) {
-                // 1. ChatRoom 조회
+                // 1. ChatRoom 조회 (없으면 생성 시도)
                 ChatRoom chatRoom = chatRoomRepository.findByMeetingId(request.getMeetingId())
-                                .orElseThrow(() -> new ChatRoomNotFoundException(request.getMeetingId()));
+                                .orElseGet(() -> {
+                                        // ChatRoom이 없으면 Meeting 존재 여부 확인 후 생성
+                                        Meeting meeting = meetingRepository.findById(request.getMeetingId())
+                                                        .orElseThrow(() -> new ChatRoomNotFoundException(
+                                                                        request.getMeetingId()));
+                                        log.info("채팅방이 없어 신규 생성합니다. meetingId: {}", request.getMeetingId());
+                                        return chatRoomRepository.save(ChatRoom.createForMeeting(meeting));
+                                });
 
                 // 2. User 조회
                 User user = userRepository.findById(userId)
@@ -77,10 +86,13 @@ public class ChatService {
                                 .messageType(request.getMessageType())
                                 .build();
 
-                ChatMessage saved = chatMessageRepository.save(chatMessage);
+                log.info("채팅 메시지 저장 시도: meetingId={}, sender={}, message={}", request.getMeetingId(), user.getEmail(),
+                                request.getMessage());
+                ChatMessage savedMessage = chatMessageRepository.save(chatMessage);
+                log.info("채팅 메시지 저장 완료: messageId={}", savedMessage.getId());
 
                 // 4. Response 반환
-                return saved.toResponse();
+                return savedMessage.toResponse();
         }
 
         /**
