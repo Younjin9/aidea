@@ -38,11 +38,15 @@ export interface Meeting {
   updatedAt: string;
   myRole?: 'HOST' | 'MEMBER' | 'NONE'; // Backend driven permission
   myStatus?: 'APPROVED' | 'PENDING' | 'REJECTED' | 'NONE';
+
+  // ✅ 추가: 백엔드에서 이제 기본으로 포함됨
+  members?: Member[];
+  events?: MeetingEvent[];
 }
 
 export interface MeetingDetail extends Meeting {
-  members: Member[];
-  events: MeetingEvent[];
+  members: Member[]; // Required in detail view
+  events: MeetingEvent[]; // Required in detail view
 }
 
 // Map에서 사용하는 간단한 모임 타입
