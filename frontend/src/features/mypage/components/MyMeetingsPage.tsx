@@ -46,13 +46,13 @@ const MyMeetingsPage: React.FC = () => {
     );
 
     // 1초 후에 목록에서 제거 및 API 호출
-    timeoutRef.current = window.setTimeout(() => {
+    timeoutRef.current = window.setTimeout(async () => {
       const originalMeeting = likedMeetings.find(m => m.id === id);
       if (originalMeeting) {
         // useMeetings의 toggleLikeMeeting 사용 (자동으로 모든 캐시 무효화)
         toggleLikeMeeting(originalMeeting.groupId, true);
-        // 찜 목록 다시 조회
-        refetchLikedMeetings();
+        // 찜 목록 강제 재조회 (캐시 무효화와 함께)
+        await refetchLikedMeetings();
       }
       setDisplayedLikedMeetings((prev) => prev.filter((meeting) => meeting.id !== id));
     }, 1000);
