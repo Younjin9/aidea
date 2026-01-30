@@ -3,7 +3,6 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Edit2 } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
-import meetingApi from '@/shared/api/meeting/meetingApi';
 import userApi from '@/shared/api/user/userApi';
 import { authApi } from '@/shared/api/authApi';
 import { useAuthStore } from '@/features/auth/store/authStore';
@@ -12,6 +11,7 @@ import MeetingCard from '@/shared/components/ui/MeetingCard';
 import Modal from '@/shared/components/ui/Modal';
 import logo from '@/assets/images/logo.png';
 import { useMyPage } from '../hooks/useMyPage';
+import { useMeetings } from '@/features/meeting/hooks/useMeetings';
 import type { MeetingUI } from '@/shared/types/Meeting.types';
 
 const MyPageView: React.FC<{ onUnlike?: (id: number) => void }> = ({ onUnlike }) => {
@@ -19,6 +19,7 @@ const MyPageView: React.FC<{ onUnlike?: (id: number) => void }> = ({ onUnlike })
   const queryClient = useQueryClient();
   const authUser = useAuthStore((state) => state.user); // ← authStore에서 직접 가져오기
   const { myMeetings, likedMeetings, isLoading, refetchLikedMeetings } = useMyPage();
+  const { toggleLikeMeeting } = useMeetings();
   const logoutAuth = useAuthStore((state) => state.logout);
 
   // 로그아웃/회원탈퇴 모달 상태
@@ -54,12 +55,10 @@ const MyPageView: React.FC<{ onUnlike?: (id: number) => void }> = ({ onUnlike })
     timeoutRef.current = window.setTimeout(async () => {
       const originalMeeting = likedMeetings.find(m => parseInt(m.groupId, 10) === id);
       if (originalMeeting) {
-        try {
-          // 실제 API 호출
-          await meetingApi.unlike(originalMeeting.groupId);
-        } catch (error) {
-          console.error('찜 취소 실패:', error);
-        }
+        // useMeetings의 toggleLikeMeeting 사용 (자동으로 모든 캐시 무효화)
+        toggleLikeMeeting(originalMeeting.groupId, true);
+        // 찜 목록 강제 재조회
+        await refetchLikedMeetings?.();
       }
       setDisplayedLikedMeetings(prev => prev.filter(m => m.id !== id));
       onUnlike?.(id);
