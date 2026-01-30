@@ -36,13 +36,14 @@ export interface Meeting {
   };
   createdAt: string;
   updatedAt: string;
+  myRole?: 'HOST' | 'MEMBER' | 'NONE'; // Backend driven permission
+  myStatus?: 'APPROVED' | 'PENDING' | 'REJECTED' | 'NONE';
+  isLiked?: boolean; // 사용자가 찜한 모임 여부
 }
 
 export interface MeetingDetail extends Meeting {
   members: Member[];
   events: MeetingEvent[];
-  myRole?: 'HOST' | 'USER';
-  myStatus?: 'PENDING' | 'APPROVED';
 }
 
 // Map에서 사용하는 간단한 모임 타입
@@ -138,7 +139,8 @@ export interface MeetingEvent {
   title: string;
   date: string;
   scheduledAt?: string;
-  location?: string;
+  placeName?: string;
+  location?: string | { lat: number; lng: number };
   description?: string;
   attendees?: number;
   participantCount?: number;

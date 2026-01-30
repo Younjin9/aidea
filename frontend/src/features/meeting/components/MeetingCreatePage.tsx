@@ -10,9 +10,11 @@ import LocationSearchModal from './LocationSearchModal';
 import { INTEREST_CATEGORIES } from '@/shared/config/constants';
 import defaultLogo from '@/assets/images/logo.png';
 import { useMeetingStore } from '../store/meetingStore';
-import { useMyPageStore } from '@/features/mypage/store/myPageStore';
+import { useAuthStore } from '@/features/auth/store/authStore';
 import { useCreateMeeting } from '../hooks/useMeetings';
 import * as meetingApi from '@/shared/api/meeting/meetingApi';
+
+const getFutureMeetingDate = () => new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('.')[0];
 
 const MeetingCreatePage: React.FC = () => {
   const navigate = useNavigate();
@@ -20,7 +22,7 @@ const MeetingCreatePage: React.FC = () => {
   const addMeeting = useMeetingStore((state) => state.addMeeting);
 
   // 유저 프로필 이미지 가져오기
-  const user = useMyPageStore((state) => state.user);
+  const user = useAuthStore((state) => state.user);
   const currentUserProfileImage = user?.profileImage;
 
   // API Mutation
@@ -136,7 +138,7 @@ const MeetingCreatePage: React.FC = () => {
           longitude: coords.lng,
           isPublic: true,
           // 400 Error 대응: 서버(KST) 기준 미래 시간 전송
-          meetingDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('.')[0], // 7일 후 (초 단위까지 포함)
+          meetingDate: getFutureMeetingDate(), // 7일 후 (초 단위까지 포함)
           imageUrl: finalImageUrl,
         },
         {

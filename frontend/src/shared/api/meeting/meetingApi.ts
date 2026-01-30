@@ -126,7 +126,7 @@ export const leave = async (groupId: string): Promise<ApiResponse<void>> => {
 
 /**
  * 모임 좋아요
- * POST /api/groups/{groupId}/like
+ * POST /api/groups/{groupId}/like (토글: 찜하기/취소)
  */
 export const like = async (groupId: string): Promise<ApiResponse<void>> => {
   return apiClient.post(`/api/groups/${groupId}/like`);
@@ -134,10 +134,10 @@ export const like = async (groupId: string): Promise<ApiResponse<void>> => {
 
 /**
  * 모임 좋아요 취소
- * DELETE /api/groups/{groupId}/like
+ * POST /api/groups/{groupId}/like (토글: unlike도 같은 POST 엔드포인트)
  */
 export const unlike = async (groupId: string): Promise<ApiResponse<void>> => {
-  return apiClient.delete(`/api/groups/${groupId}/like`);
+  return apiClient.post(`/api/groups/${groupId}/like`);
 };
 
 /**

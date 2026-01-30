@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import BackButton from '@/shared/components/ui/BackButton';
 import MeetingCard from '@/shared/components/ui/MeetingCard';
 import { useMyPage } from '../hooks/useMyPage';
+import { useMeetings } from '@/features/meeting/hooks/useMeetings';
 import type { MeetingUI } from '@/shared/types/Meeting.types';
 
 type TabType = 'my' | 'liked';
@@ -19,20 +20,15 @@ const MyMeetingsPage: React.FC = () => {
     setSearchParams({ tab }, { replace: true });
   };
 
-  const { myMeetings, likedMeetings, isLoading, unlikeMeeting } = useMyPage();
+  const { myMeetings, likedMeetings, isLoading, refetchLikedMeetings } = useMyPage();
+  const { toggleLikeMeeting } = useMeetings();
 
   // 찜 목록 로컬 state (1초 딜레이용)
   const [displayedLikedMeetings, setDisplayedLikedMeetings] = useState<MeetingUI[]>([]);
   const timeoutRef = useRef<number | null>(null);
-  const isInitializedRef = useRef(false);
 
   useEffect(() => {
-    if (!isInitializedRef.current && likedMeetings.length > 0) {
-      setDisplayedLikedMeetings(likedMeetings);
-      isInitializedRef.current = true;
-    } else if (isInitializedRef.current) {
-      setDisplayedLikedMeetings(likedMeetings);
-    }
+    setDisplayedLikedMeetings(likedMeetings);
   }, [likedMeetings]);
 
   useEffect(() => {
@@ -50,10 +46,13 @@ const MyMeetingsPage: React.FC = () => {
     );
 
     // 1초 후에 목록에서 제거 및 API 호출
-    timeoutRef.current = window.setTimeout(() => {
+    timeoutRef.current = window.setTimeout(async () => {
       const originalMeeting = likedMeetings.find(m => m.id === id);
       if (originalMeeting) {
-        unlikeMeeting(originalMeeting.groupId);
+        // useMeetings의 toggleLikeMeeting 사용 (자동으로 모든 캐시 무효화)
+        toggleLikeMeeting(originalMeeting.groupId, true);
+        // 찜 목록 강제 재조회 (캐시 무효화와 함께)
+        await refetchLikedMeetings();
       }
       setDisplayedLikedMeetings((prev) => prev.filter((meeting) => meeting.id !== id));
     }, 1000);

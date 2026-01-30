@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Edit2 } from 'lucide-react';
+import { useQueryClient } from '@tanstack/react-query';
 import meetingApi from '@/shared/api/meeting/meetingApi';
 import userApi from '@/shared/api/user/userApi';
 import { authApi } from '@/shared/api/authApi';
@@ -11,15 +12,13 @@ import MeetingCard from '@/shared/components/ui/MeetingCard';
 import Modal from '@/shared/components/ui/Modal';
 import logo from '@/assets/images/logo.png';
 import { useMyPage } from '../hooks/useMyPage';
-import { useMyPageStore } from '../store/myPageStore';
-import { useMeetingStore } from '@/features/meeting/store/meetingStore';
 import type { MeetingUI } from '@/shared/types/Meeting.types';
 
 const MyPageView: React.FC<{ onUnlike?: (id: number) => void }> = ({ onUnlike }) => {
   const navigate = useNavigate();
-  const { user, myMeetings, likedMeetings, isLoading, unlikeMeeting, refetchLikedMeetings } = useMyPage();
-  const clearUser = useMyPageStore((state) => state.clearUser);
-  const initializeMeetingMockData = useMeetingStore((state) => state.initializeMockData);
+  const queryClient = useQueryClient();
+  const authUser = useAuthStore((state) => state.user); // ← authStore에서 직접 가져오기
+  const { myMeetings, likedMeetings, isLoading, refetchLikedMeetings } = useMyPage();
   const logoutAuth = useAuthStore((state) => state.logout);
 
   // 로그아웃/회원탈퇴 모달 상태
@@ -30,11 +29,6 @@ const MyPageView: React.FC<{ onUnlike?: (id: number) => void }> = ({ onUnlike })
   const [displayedLikedMeetings, setDisplayedLikedMeetings] = useState<MeetingUI[]>([]);
   const timeoutRef = useRef<number | null>(null);
   const isInitializedRef = useRef(false);
-
-  // Meeting Mock 데이터 초기화
-  useEffect(() => {
-    initializeMeetingMockData();
-  }, [initializeMeetingMockData]);
 
   // 페이지 진입 시 찜 목록 새로고침
   useEffect(() => {
@@ -66,7 +60,6 @@ const MyPageView: React.FC<{ onUnlike?: (id: number) => void }> = ({ onUnlike })
         } catch (error) {
           console.error('찜 취소 실패:', error);
         }
-        unlikeMeeting(originalMeeting.groupId);
       }
       setDisplayedLikedMeetings(prev => prev.filter(m => m.id !== id));
       onUnlike?.(id);
@@ -80,8 +73,10 @@ const MyPageView: React.FC<{ onUnlike?: (id: number) => void }> = ({ onUnlike })
     } catch (error) {
       console.warn('로그아웃 API 실패, 로컬만 정리:', error);
     }
+    queryClient.removeQueries({ queryKey: ['mypage'] });
+    queryClient.removeQueries({ queryKey: ['meetings'] });
+    queryClient.removeQueries({ queryKey: ['meeting'] });
     logoutAuth();
-    clearUser();
     setShowLogoutModal(false);
     navigate('/');
   };
@@ -93,8 +88,10 @@ const MyPageView: React.FC<{ onUnlike?: (id: number) => void }> = ({ onUnlike })
     } catch (error) {
       console.warn('회원탈퇴 API 실패, 로컬만 정리:', error);
     }
+    queryClient.removeQueries({ queryKey: ['mypage'] });
+    queryClient.removeQueries({ queryKey: ['meetings'] });
+    queryClient.removeQueries({ queryKey: ['meeting'] });
     logoutAuth();
-    clearUser();
     setShowWithdrawModal(false);
     navigate('/');
   };
@@ -120,14 +117,14 @@ const MyPageView: React.FC<{ onUnlike?: (id: number) => void }> = ({ onUnlike })
         {/* Profile */}
         <section className="px-6 py-6 border-b border-gray-100">
           <div className="flex items-start gap-4 relative">
-            <ProfileImage src={user?.profileImage || ''} alt={user?.nickname || '사용자'} fallback={user?.nickname || '사용자'} size="lg" />
+            <ProfileImage src={authUser?.profileImage || ''} alt={authUser?.nickname || '사용자'} fallback={authUser?.nickname || '사용자'} size="lg" />
             <div className="flex-1 pt-1">
-              <h2 className="text-base font-bold text-gray-900 mb-0.5">{user?.nickname || '이름 없음'}</h2>
-              <p className="text-xs text-gray-500 mb-0.5">{user?.location?.region || '위치 없음'}</p>
-              <p className="text-xs text-gray-600 mb-2">{user?.bio || '소개가 없습니다'}</p>
+              <h2 className="text-base font-bold text-gray-900 mb-0.5">{authUser?.nickname || '이름 없음'}</h2>
+              <p className="text-xs text-gray-500 mb-0.5">{authUser?.location?.region || '위치 없음'}</p>
+              <p className="text-xs text-gray-600 mb-2">{authUser?.bio || '소개가 없습니다'}</p>
               <div className="flex flex-wrap gap-2">
-                {user?.interests?.length ? (
-                  user.interests.map((interest, i) => (
+                {authUser?.interests?.length ? (
+                  authUser.interests.map((interest, i) => (
                     <span key={i} className="px-3 py-1 bg-mint text-white text-xs rounded-full">{interest}</span>
                   ))
                 ) : (

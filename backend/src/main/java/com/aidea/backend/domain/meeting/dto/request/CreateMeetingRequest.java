@@ -50,4 +50,25 @@ public class CreateMeetingRequest {
 
     // Spec mentions rules
     private java.util.List<String> rules;
+
+    /**
+     * DTO -> Entity 변환
+     */
+    public com.aidea.backend.domain.meeting.entity.Meeting toEntity(com.aidea.backend.domain.user.entity.User creator) {
+        return com.aidea.backend.domain.meeting.entity.Meeting.builder()
+                .title(this.title)
+                .description(this.description)
+                .imageUrl(this.imageUrl)
+                .category(com.aidea.backend.domain.meeting.entity.enums.MeetingCategory.findByCode(this.interestCategoryId))
+                .region(com.aidea.backend.domain.meeting.entity.enums.Region.findByFullName(this.region))
+                .location(this.location)
+                .latitude(this.latitude)
+                .longitude(this.longitude)
+                .locationDetail(this.locationDetail)
+                .maxMembers(this.maxMembers)
+                .meetingDate(this.meetingDate)
+                .isApprovalRequired(this.isPublic != null ? !this.isPublic : false)
+                .creator(creator)
+                .build();
+    }
 }

@@ -42,13 +42,12 @@ const ChatRoomPage: React.FC = () => {
         queryFn: async () => {
             try {
                 const response = await chatApi.getMessages(parsedMeetingId);
-                // @ts-expect-error
-                return response.result || response.data || [];
+                return response.data ?? [];
             } catch {
                 // Fallback Dummy Data for UI Dev
                 return [
-                    { messageId: '1', senderId: '101', senderName: '김철수', content: '같이 가요!', createdAt: '2023-10-25T10:00:00', senderProfileImage: undefined, type: 'TALK' },
-                    { messageId: '2', senderId: '202', senderName: '김쩌고', content: '다른 사람이 말하는 버전 1줄 버전!', createdAt: '2023-10-25T10:05:00', senderProfileImage: undefined, type: 'TALK' },
+                    { messageId: '1', senderId: '101', senderName: '김철수', message: '같이 가요!', createdAt: '2023-10-25T10:00:00', senderProfileImage: undefined, type: 'TALK' },
+                    { messageId: '2', senderId: '202', senderName: '김쩌고', message: '다른 사람이 말하는 버전 1줄 버전!', createdAt: '2023-10-25T10:05:00', senderProfileImage: undefined, type: 'TALK' },
                 ] as ChatMessage[];
             }
         },
@@ -121,8 +120,8 @@ const ChatRoomPage: React.FC = () => {
         const messagePayload = {
             meetingId: parsedMeetingId,
             senderId: String(myId), // 로그인 안했으면 게스트 ID
-            content: inputMessage,
-            type: 'TALK'
+            message: inputMessage,
+            messageType: 'TALK'
         };
 
         // STOMP 전송
@@ -199,7 +198,7 @@ const ChatRoomPage: React.FC = () => {
                                             ? 'bg-[#FF206E] text-white rounded-[20px] rounded-tr-none'
                                             : 'bg-[#BDBDBD] text-white rounded-[20px] rounded-tl-none'
                                             }`}>
-                                            {msg.content}
+                                            {msg.message}
                                         </div>
                                         {!isMe && <span className="text-[10px] text-gray-400 min-w-fit mb-1">{formatTime(msg.createdAt)}</span>}
                                     </div>

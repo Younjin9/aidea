@@ -6,7 +6,7 @@ import BackButton from '@/shared/components/ui/BackButton';
 import Button from '@/shared/components/ui/Button';
 import Input from '@/shared/components/ui/Input';
 import KakaoMapModal, { type SelectedPlace } from './KakaoMapModal';
-import { useMyPageStore } from '@/features/mypage/store/myPageStore';
+import { useAuthStore } from '@/features/auth/store/authStore';
 import { useCreateEvent } from '../hooks/useEvents';
 import LocationSearchModal from '../../meeting/components/LocationSearchModal';
 
@@ -14,7 +14,7 @@ const EventCreatePage: React.FC = () => {
   const navigate = useNavigate();
   const { meetingId } = useParams();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const user = useMyPageStore((state) => state.user);
+  const user = useAuthStore((state) => state.user);
 
   // API Mutation
   const { mutate: createEvent, isPending } = useCreateEvent(meetingId || '');
@@ -175,6 +175,7 @@ const EventCreatePage: React.FC = () => {
             <input
               type="date"
               value={date}
+              min={new Date().toISOString().split('T')[0]} // Prevent past dates
               onChange={(e) => setDate(e.target.value)}
               className="w-full bg-gray-50 border border-gray-100 rounded-lg px-4 py-3 text-gray-dark placeholder-gray-light focus:outline-none text-sm"
             />

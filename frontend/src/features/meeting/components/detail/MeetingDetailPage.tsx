@@ -1,5 +1,5 @@
 // 모임 상세 페이지 - 코드 정리 버전i// React 및 필요한 훅/라이브러리 import
-import React, { useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 
@@ -14,9 +14,10 @@ import { reportUser } from '@/shared/api/safety/safetyApi';
 import ChatRoomPage from '@/features/chat/components/ChatRoomPage';
 import meetingApi from '@/shared/api/meeting/meetingApi';
 import { useMeetingStore } from '../../store/meetingStore';
-import { useMyPageStore } from '@/features/mypage/store/myPageStore';
+import { useAuthStore } from '@/features/auth/store/authStore';
 import { useLeaveMeeting, useToggleLikeMeeting } from '../../hooks/useMeetings';
 import { useJoinEvent, useCancelEventParticipation } from '../../hooks/useEvents';
+import { useMembers } from '../../hooks/useMembers';
 import type { MeetingDetail, MeetingEvent } from '@/shared/types/Meeting.types';
 
 
@@ -101,7 +102,7 @@ const createMeetingDetailFromStore = (
       { userId: Number(hostUserId), nickname: hostNickname, profileImage: hostProfileImage, role: 'HOST', status: 'APPROVED', joinedAt: new Date().toISOString() },
     ],
     events: existingEvents,
-    myRole: storedMeeting.myRole === 'MEMBER' ? 'USER' : storedMeeting.myRole || (isOwner ? 'HOST' : undefined),
+    myRole: storedMeeting.myRole === 'MEMBER' ? 'MEMBER' : storedMeeting.myRole || (isOwner ? 'HOST' : undefined),
     myStatus: storedMeeting.myStatus,
   };
 };
@@ -128,8 +129,8 @@ const MeetingDetailPage: React.FC = () => {
   const locationState = location.state as { newEvent?: MeetingEvent; updatedEvent?: MeetingEvent; deletedEventId?: string; updatedMembers?: MeetingDetail['members'] } | null;
 
   // 상태 관리 및 커스텀 훅 사용 (store, mutation 등)
-  const { getMeetingByGroupId, toggleLikeByGroupId, leaveMeeting, getEventsByGroupId, addEvent, updateEvent: updateEventInStore, deleteEvent: deleteEventInStore, initializeMockData: initializeMeetingMockData, isInitialized: isMeetingInitialized } = useMeetingStore();
-  const { user, initializeMockData: initializeUserMockData, isInitialized: isUserInitialized } = useMyPageStore();
+  const { getMeetingByGroupId, toggleLikeByGroupId, leaveMeeting, getEventsByGroupId, addEvent, updateEvent: updateEventInStore, deleteEvent: deleteEventInStore } = useMeetingStore();
+  const user = useAuthStore((state) => state.user);
   // 이벤트 참여/취소 등 API 호출을 위한 커스텀 훅
   const { mutate: leaveMeetingApi } = useLeaveMeeting();
   const { mutate: toggleLikeApi } = useToggleLikeMeeting();
@@ -137,7 +138,7 @@ const MeetingDetailPage: React.FC = () => {
   const { mutate: cancelEventApi } = useCancelEventParticipation(meetingId || '');
 
   // 모임 상세 정보 API 호출 (react-query 사용)
-  const { data: apiMeetingDetail, isLoading, error } = useQuery({
+  const { data: apiMeetingDetail, isLoading } = useQuery({
     queryKey: ['meeting', 'detail', meetingId],
     queryFn: async () => { const response = await meetingApi.getDetail(meetingId || ''); return response.data; },
     enabled: !!meetingId, // meetingId가 있을 때만 호출
@@ -145,9 +146,15 @@ const MeetingDetailPage: React.FC = () => {
     retry: 1, // 실패 시 1회 재시도
   });
 
-  // mock 데이터 초기화 (스토어가 초기화 안됐을 때)
-  if (!isMeetingInitialized) initializeMeetingMockData();
-  if (!isUserInitialized) initializeUserMockData();
+  // 멤버 목록 조회 (별도 API 호출)
+  const { data: apiMembers = [], isLoading: isMembersLoading, error: membersError } = useMembers(meetingId || '');
+
+  // DEBUG: members 상태 확인
+  useEffect(() => {
+    if (meetingId) {
+      console.log(`[MemberSection] groupId: ${meetingId}, members:`, apiMembers, 'isLoading:', isMembersLoading, 'error:', membersError);
+    }
+  }, [apiMembers, meetingId, isMembersLoading, membersError]);
 
   // 스토어에서 모임 정보 조회 및 소유자 여부 판단
   const storedMeeting = getMeetingByGroupId(meetingId || '');
@@ -174,7 +181,7 @@ const MeetingDetailPage: React.FC = () => {
     return baseMeeting;
   });
 
-  // location state(페이지 이동 시 전달된 값) 기반으로 모임/이벤트/멤버 정보 동기화
+  // location state(페이지 이동 시 전달된 값) 기반으로 스토어 업데이트
   useEffect(() => {
     if (!locationState || !meetingId) return;
     window.history.replaceState({}, document.title); // 새로고침 시 중복 반영 방지
@@ -182,57 +189,73 @@ const MeetingDetailPage: React.FC = () => {
       // 새 이벤트 추가
       const exists = getEventsByGroupId(meetingId).some(e => e.eventId === locationState.newEvent!.eventId);
       if (!exists) addEvent(meetingId, locationState.newEvent);
-      setMeeting(prev => {
-        const localExists = prev.events.some(e => e.eventId === locationState.newEvent!.eventId);
-        if (localExists) return prev;
-        return { ...prev, events: [...prev.events, locationState.newEvent!] };
-      });
-    }
-    if (locationState.updatedMembers) {
-      // 멤버 정보 업데이트
-      setMeeting(prev => ({
-        ...prev,
-        members: locationState.updatedMembers!,
-        memberCount: locationState.updatedMembers!.filter(m => m.status === 'APPROVED').length,
-      }));
     }
     if (locationState.updatedEvent) {
       // 이벤트 정보 업데이트
       updateEventInStore(String(meetingId), String(locationState.updatedEvent.eventId), locationState.updatedEvent);
-      setMeeting(prev => ({
-        ...prev,
-        events: prev.events.map(e => e.eventId === locationState.updatedEvent!.eventId ? locationState.updatedEvent! : e),
-      }));
     }
     if (locationState.deletedEventId) {
       // 이벤트 삭제
       deleteEventInStore(meetingId, locationState.deletedEventId);
-      setMeeting(prev => ({
-        ...prev,
-        events: prev.events.filter(e => e.eventId !== locationState.deletedEventId),
-      }));
     }
   }, [locationState, meetingId, getEventsByGroupId, addEvent, updateEventInStore, deleteEventInStore]);
 
-  // 스토어의 이벤트 정보가 바뀌면 meeting 상태도 동기화
-  useEffect(() => {
-    if (storedEvents.length > 0) {
-      setMeeting(prev => ({ ...prev, events: storedEvents }));
-    }
-  }, [storedEvents]);
+  // 화면 표시용 모임 데이터 (API > 스토어 > 로컬 state 순)
+  const displayMeeting = useMemo(() => {
+    const base = apiMeetingDetail || meeting;
+    const nextEvents = storedEvents.length > 0 ? storedEvents : base.events;
+    let next = base;
 
-  // API에서 모임 상세 데이터가 오면 meeting 상태 갱신, 실패 시 mock 데이터 사용
-  useEffect(() => {
-    if (apiMeetingDetail) {
-      setMeeting(apiMeetingDetail);
-    } else if (error) {
-      console.warn('모임 상세 API 호출 실패, Mock 데이터 사용:', error);
+    if (nextEvents !== base.events) {
+      next = { ...next, events: nextEvents };
     }
-  }, [apiMeetingDetail, error]);
+
+    // API에서 조회한 멤버 목록 적용
+    if (apiMembers.length > 0) {
+      next = {
+        ...next,
+        members: apiMembers,
+        memberCount: apiMembers.filter((m) => m.status === 'APPROVED').length,
+      };
+    }
+
+    if (locationState?.newEvent) {
+      const exists = (next.events || []).some(e => e.eventId === locationState.newEvent!.eventId);
+      if (!exists) {
+        next = { ...next, events: [...(next.events || []), locationState.newEvent!] };
+      }
+    }
+
+    if (locationState?.updatedMembers) {
+      next = {
+        ...next,
+        members: locationState.updatedMembers,
+        memberCount: locationState.updatedMembers.filter(m => m.status === 'APPROVED').length,
+      };
+    }
+
+    if (locationState?.updatedEvent) {
+      next = {
+        ...next,
+        events: (next.events || []).map(e =>
+          e.eventId === locationState.updatedEvent!.eventId ? locationState.updatedEvent! : e
+        ),
+      };
+    }
+
+    if (locationState?.deletedEventId) {
+      next = {
+        ...next,
+        events: (next.events || []).filter(e => e.eventId !== locationState.deletedEventId),
+      };
+    }
+
+    return next;
+  }, [apiMeetingDetail, meeting, storedEvents, locationState, apiMembers]);
 
   // 내 역할/상태 및 모달 오픈 함수
-  const isHost = meeting.myRole === 'HOST';
-  const isMember = meeting.myStatus === 'APPROVED';
+  const isHost = displayMeeting.myRole === 'HOST';
+  const isMember = displayMeeting.myStatus === 'APPROVED';
   const openModal = (type: ModalType) => setActiveModal(type);
   // 모달 닫기 함수 (이벤트 선택 초기화 포함)
   const closeModal = () => {
@@ -245,6 +268,7 @@ const MeetingDetailPage: React.FC = () => {
 
   // 좋아요 토글 핸들러 (API 연동 및 스토어/상태 동기화)
   const handleLikeToggle = () => {
+    console.log(`[DetailPage] Like toggle - meetingId: ${meetingId}, current isLiked: ${isLiked}`);
     const newLikeState = !isLiked;
     setIsLiked(newLikeState);
     if (meetingId) {
@@ -252,7 +276,12 @@ const MeetingDetailPage: React.FC = () => {
       toggleLikeApi(
         { groupId: meetingId, isLiked: newLikeState },
         {
-          onError: () => {
+          onSuccess: () => {
+            console.log(`[DetailPage] Like toggle success for ${meetingId}`);
+          },
+          onError: (error) => {
+            console.error(`[DetailPage] Like toggle failed for ${meetingId}:`, error);
+            // Rollback
             setIsLiked(!newLikeState);
             toggleLikeByGroupId(meetingId);
           },
@@ -264,7 +293,7 @@ const MeetingDetailPage: React.FC = () => {
   // 이벤트 참여 취소 핸들러 (API 호출 및 상태 동기화)
   const handleCancelParticipation = () => {
     if (!selectedEvent || !user) return;
-    
+
     const updateState = () => {
       setMeeting(prev => ({
         ...prev,
@@ -286,7 +315,7 @@ const MeetingDetailPage: React.FC = () => {
   // 이벤트 참여 핸들러 (API 호출 및 상태 동기화)
   const handleJoinEvent = () => {
     if (!selectedEvent || !user) return;
-    
+
     const updateState = () => {
       setMeeting(prev => ({
         ...prev,
@@ -309,7 +338,7 @@ const MeetingDetailPage: React.FC = () => {
   const handleConfirmReport = async (content: string) => {
     try {
       await reportUser({
-        targetUserId: String(meeting.ownerUserId),
+        targetUserId: String(displayMeeting.ownerUserId),
         reason: 'ABUSE',
         detail: content,
       });
@@ -332,7 +361,7 @@ const MeetingDetailPage: React.FC = () => {
           members: prev.members.filter(m => m.userId !== user.userId),
           myStatus: undefined,
         }));
-        leaveMeeting(String(meeting.groupId));
+        leaveMeeting(String(displayMeeting.groupId));
         closeModal();
         navigate('/meetings');
       },
@@ -346,7 +375,7 @@ const MeetingDetailPage: React.FC = () => {
     try {
       // API 호출 - 모임 삭제
       await meetingApi.remove(meetingId);
-      
+
       // 삭제 성공 시 store에서 제거 및 페이지 이동
       leaveMeeting(String(meetingId));
       closeModal();
@@ -369,10 +398,10 @@ const MeetingDetailPage: React.FC = () => {
     openModal(action === 'cancelParticipation' ? 'cancelParticipation' : 'joinEvent');
   };
 
-  
+
 
   // API 로딩 중일 때 로딩 UI 표시
-  if (isLoading) {
+  if (isLoading && !storedMeeting) {
     return (
       <div className="min-h-screen bg-white flex flex-col items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
@@ -386,7 +415,7 @@ const MeetingDetailPage: React.FC = () => {
     <div className="min-h-screen bg-white flex flex-col relative">
       {/* 상단 헤더: 제목, 좋아요, 탭, 신고/탈퇴/삭제 등 */}
       <DetailHeader
-        title={meeting.title}
+        title={displayMeeting.title}
         isLiked={isLiked}
         activeTab={activeTab}
         onLikeToggle={handleLikeToggle}
@@ -403,11 +432,11 @@ const MeetingDetailPage: React.FC = () => {
         {activeTab === 'home' ? (
           <>
             {/* 모임 정보 섹션 */}
-            <MeetingInfoSection meeting={meeting} />
+            <MeetingInfoSection meeting={displayMeeting} />
             {/* 이벤트 섹션 (참여/취소 등 핸들러 전달) */}
             <EventSection
-              events={meeting.events}
-              meeting={meeting}
+              events={displayMeeting.events}
+              meeting={displayMeeting}
               isHost={isHost}
               isMember={isMember}
               userId={user?.userId}
@@ -427,9 +456,10 @@ const MeetingDetailPage: React.FC = () => {
             />
             {/* 멤버 섹션 */}
             <MemberSection
-              members={meeting.members}
+              members={displayMeeting.members}
               isHost={isHost}
-              onManage={() => navigate(`/meetings/${meetingId}/members`, { state: { members: meeting.members } })}
+              isLoading={isMembersLoading}
+              onManage={() => navigate(`/meetings/${meetingId}/members`, { state: { members: displayMeeting.members } })}
             />
           </>
         ) : (
