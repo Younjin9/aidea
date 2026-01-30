@@ -80,6 +80,11 @@ export const useMeetings = (params: MeetingListParams = {}) => {
     }
   }, [data, setMeetings]);
 
+  // toggleLikeMeeting wrapper - 두 개의 인자를 객체로 변환
+  const toggleLikeMeeting = (groupId: string, isLiked: boolean) => {
+    toggleLikeMeetingMutation({ groupId, isLiked });
+  };
+
   return {
     meetings,
     total: meetings.length,
@@ -87,7 +92,7 @@ export const useMeetings = (params: MeetingListParams = {}) => {
     error,
     groupByCategory: groupByCategoryFn,
     toggleLike: toggleLikeByGroupId,
-    toggleLikeMeeting: toggleLikeMeetingMutation,
+    toggleLikeMeeting,
     refetch,
   };
 };
