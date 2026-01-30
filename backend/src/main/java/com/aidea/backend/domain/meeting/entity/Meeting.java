@@ -250,10 +250,13 @@ public class Meeting {
                         .nickname(this.creator.getNickname())
                         .profileImage(this.creator.getProfileImage())
                         .build())
+                .ownerUserId(this.creator.getUserId())
                 .createdAt(this.createdAt)
                 .updatedAt(this.updatedAt)
                 .myRole(myRole)
                 .myStatus(myStatus)
+                .isApprovalRequired(this.isApprovalRequired)
+                .memberCount(this.currentMembers)
                 .build();
     }
 
