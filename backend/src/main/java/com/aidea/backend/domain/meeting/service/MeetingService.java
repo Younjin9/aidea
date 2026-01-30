@@ -77,8 +77,10 @@ public class MeetingService {
 
     /**
      * 모임 상세 조회
+     * ✅ members, events 배열 포함 (N+1 최소화)
      */
     public MeetingResponse getMeetingById(Long meetingId, Long userId) {
+        // 1. Meeting 조회
         Meeting meeting = meetingRepository.findById(meetingId)
                 .orElseThrow(() -> new RuntimeException("모임을 찾을 수 없습니다."));
 
@@ -86,12 +88,12 @@ public class MeetingService {
         String myStatus = "NONE";
 
         if (userId != null) {
-            // 1. 호스트 여부 확인
+            // 호스트 여부 확인
             if (meeting.getCreator().getUserId().equals(userId)) {
                 myRole = "HOST";
                 myStatus = "APPROVED";
             } else {
-                // 2. 멤버 여부 확인
+                // 멤버 여부 확인
                 var member = meetingMemberRepository.findByMeetingIdAndUser_UserId(meetingId, userId);
                 if (member.isPresent()) {
                     myRole = "MEMBER";
@@ -100,7 +102,85 @@ public class MeetingService {
             }
         }
 
-        return meeting.toResponse(myRole, myStatus);
+        // ✅ 2. members 배열 생성 (승인된 멤버만)
+        List<com.aidea.backend.domain.meeting.dto.response.MemberResponse> members = meetingMemberRepository
+                .findByMeetingIdAndStatus(meetingId, MemberStatus.APPROVED)
+                .stream()
+                .map(com.aidea.backend.domain.meeting.entity.MeetingMember::toMemberResponse)
+                .collect(Collectors.toList());
+
+        // ✅ 3. events 배열 생성
+        List<com.aidea.backend.domain.event.dto.response.EventSummaryDto> events = eventRepository
+                .findByMeetingIdOrderByDateAsc(meetingId).stream()
+                .map(event -> com.aidea.backend.domain.event.dto.response.EventSummaryDto.builder()
+                        .eventId(event.getId())
+                        .title(event.getTitle())
+                        .scheduledAt(event.getDate())
+                        .date(event.getDate() != null ? event.getDate().toLocalDate().toString() : null)
+                        .placeName(event.getLocationName())
+                        .cost(parseCostToInteger(event.getCost()))
+                        .maxParticipants(event.getMaxParticipants())
+                        .participantCount(event.getParticipants().size())
+                        .participants(event.getParticipants().stream()
+                                .map(p -> new com.aidea.backend.domain.event.dto.response.EventSummaryDto.ParticipantDto(
+                                        p.getUser().getUserId(),
+                                        p.getUser().getNickname(),
+                                        p.getUser().getProfileImage(),
+                                        p.getUser().getUserId().equals(meeting.getCreator().getUserId()) ? "HOST"
+                                                : "MEMBER",
+                                        "APPROVED", // 참가자는 기본 APPROVED
+                                        p.getJoinedAt()))
+                                .collect(Collectors.toList()))
+                        .build())
+                .collect(Collectors.toList());
+
+        // ✅ 4. MeetingResponse 생성 (members, events, memberCount 포함)
+        MeetingResponse response = meeting.toResponse(myRole, myStatus);
+
+        // Builder 패턴으로 새 필드 추가
+        return MeetingResponse.builder()
+                .groupId(response.getGroupId())
+                .title(response.getTitle())
+                .description(response.getDescription())
+                .imageUrl(response.getImageUrl())
+                .interestCategoryId(response.getInterestCategoryId())
+                .interestCategoryName(response.getInterestCategoryName())
+                .region(response.getRegion())
+                .regionFullName(response.getRegionFullName())
+                .location(response.getLocation())
+                .latitude(response.getLatitude())
+                .longitude(response.getLongitude())
+                .locationDetail(response.getLocationDetail())
+                .maxMembers(response.getMaxMembers())
+                .currentMembers(response.getCurrentMembers())
+                .meetingDate(response.getMeetingDate())
+                .status(response.getStatus())
+                .isPublic(response.getIsPublic())
+                .creator(response.getCreator())
+                .createdAt(response.getCreatedAt())
+                .updatedAt(response.getUpdatedAt())
+                .myRole(myRole)
+                .myStatus(myStatus)
+                .memberCount(members.size()) // ✅ 추가
+                .members(members) // ✅ 추가
+                .events(events) // ✅ 추가
+                .build();
+    }
+
+    /**
+     * ✅ Helper: cost String을 Integer로 변환
+     */
+    private Integer parseCostToInteger(String cost) {
+        if (cost == null || cost.trim().isEmpty()) {
+            return 0;
+        }
+        try {
+            // 숫자만 추출
+            String numericOnly = cost.replaceAll("[^0-9]", "");
+            return numericOnly.isEmpty() ? 0 : Integer.parseInt(numericOnly);
+        } catch (NumberFormatException e) {
+            return 0;
+        }
     }
 
     /**
