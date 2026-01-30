@@ -170,9 +170,11 @@ export const useToggleLikeMeeting = () => {
       queryClient.invalidateQueries({ queryKey: myPageKeys.myMeetings() });
       queryClient.invalidateQueries({ queryKey: myPageKeys.likedMeetings() });
       queryClient.invalidateQueries({ queryKey: ['members', groupId] });
-      // 캐시 강제 재쿼리 (staleTime 무시)
+      // 캐시 강제 재쿼리 (staleTime 무시) - 즉시 반영
+      queryClient.refetchQueries({ queryKey: meetingKeys.list() });
+      queryClient.refetchQueries({ queryKey: ['meetings', 'liked'] });
       queryClient.refetchQueries({ queryKey: myPageKeys.likedMeetings() });
-      console.log(`[Like] All caches invalidated for group ${groupId}`);
+      console.log(`[Like] All caches invalidated and refetched for group ${groupId}`);
     },
     onError: (error, { groupId, isLiked }) => {
       console.error(`[Like] Error for group ${groupId} (isLiked: ${isLiked}):`, error);
