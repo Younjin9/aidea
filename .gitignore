@@ -114,4 +114,4 @@ uploads/temp/
 temp/
 
 # Vite
-frontend/.vite/
+frontend/.vite/backend/src/main/resources/application-local.yml
