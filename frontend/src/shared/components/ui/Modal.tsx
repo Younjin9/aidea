@@ -68,7 +68,7 @@ const Modal: React.FC<ModalProps> = ({
   // 바텀 시트 스타일
   if (type === 'bottom') {
     return (
-      <div className="fixed inset-0 z-50 flex items-end justify-center px-4 pb-4">
+      <div className="fixed inset-0 z-60 flex items-end justify-center px-4 pb-4">
         {/* Backdrop */}
         <div className="absolute inset-0 bg-black/50" onClick={onClose} />
 
@@ -117,7 +117,7 @@ const Modal: React.FC<ModalProps> = ({
 
   // 센터 모달 스타일 (기존)
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
+    <div className="fixed inset-0 z-60 flex items-center justify-center">
       {/* Backdrop */}
       <div className="absolute inset-0 bg-black/50" onClick={singleButton ? onClose : undefined} />
 
