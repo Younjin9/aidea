@@ -1,5 +1,6 @@
 import apiClient, { buildQueryString } from '../client';
 import type { ApiResponse, PaginatedResponse } from '@/shared/types/common.types';
+import type { UpdateProfileImageResponse } from '@/shared/types/User.types';
 import type {
   Meeting,
   MeetingDetail,
@@ -88,7 +89,7 @@ export const update = async (
  * 모임 이미지 업로드 (S3 전용)
  * POST /api/groups/image
  */
-export const uploadImage = async (image: File): Promise<ApiResponse<{ imageUrl: string }>> => {
+export const uploadImage = async (image: File): Promise<UpdateProfileImageResponse> => {
   const formData = new FormData();
   formData.append('image', image);
 
