@@ -38,8 +38,14 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
         registry.addEndpoint("/ws") // WebSocket 연결 엔드포인트
-                .setAllowedOriginPatterns("*") // CORS 허용 (개발 환경)
-                .withSockJS(); // SockJS fallback 지원 (WebSocket 미지원 브라우저 대응)
+                .setAllowedOrigins(
+                        "http://localhost:5173", // Vite 개발 서버
+                        "http://localhost:3000", // 다른 로컬 포트 가능성
+                        "https://aimo.ai.kr", // 메인 도메인
+                        "https://www.aimo.ai.kr", // www 서브도메인
+                        "https://d125n74xsjeyc3.cloudfront.net" // CloudFront CDN
+                )
+                .withSockJS(); // SockJS fallback 지원
     }
 
     /**

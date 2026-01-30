@@ -5,6 +5,7 @@ import { Send, ChevronLeft } from 'lucide-react';
 import { Client } from '@stomp/stompjs';
 import { chatApi } from '@/shared/api/chatAPI';
 import { useAuthStore } from '@/features/auth/store/authStore';
+import { getWebSocketUrl } from '@/shared/utils/websocket';
 import type { ChatMessage } from '@/shared/types/Chat.types';
 
 const ChatRoomPage: React.FC = () => {
@@ -75,8 +76,11 @@ const ChatRoomPage: React.FC = () => {
 
     // 2. STOMP 연결
     useEffect(() => {
+        const wsUrl = getWebSocketUrl();
+        console.log('Connecting to WebSocket:', wsUrl);
+
         const client = new Client({
-            brokerURL: `ws://${window.location.hostname}:8080/ws/websocket`, // URL 최적화
+            brokerURL: wsUrl,
             connectHeaders: {
                 Authorization: token ? `Bearer ${token}` : '',
             },
