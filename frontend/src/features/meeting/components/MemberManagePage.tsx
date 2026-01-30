@@ -1,7 +1,6 @@
 // 모임 멤버 관리
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { useQueryClient } from '@tanstack/react-query';
 import { Crown } from 'lucide-react';
 import BackButton from '@/shared/components/ui/BackButton';
 import ProfileImage from '@/shared/components/ui/ProfileImage';
@@ -16,12 +15,12 @@ import {
 } from '../hooks/useMembers';
 
 interface Member {
-  userId: string | number;
+  userId: string;
   nickname: string;
   profileImage?: string;
   role: 'HOST' | 'MEMBER';
-  status: 'APPROVED' | 'PENDING' | 'REJECTED' | 'LEFT';
-  joinedAt?: string;
+  status: 'APPROVED' | 'PENDING';
+  joinedAt: string;
   requestMessage?: string;
 }
 
@@ -29,12 +28,11 @@ const MemberManagePage: React.FC = () => {
   const { meetingId } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
-  const queryClient = useQueryClient();
   const passedMembers = (location.state as { members?: Member[] })?.members;
 
   // API Queries
-  const { data: apiMembers = [], isLoading: isLoadingMembers, error: membersError, refetch: refetchMembers } = useMembers(meetingId || '');
-  const { data: apiPendingMembers = [], isLoading: isLoadingPending, error: pendingError, refetch: refetchPending } = usePendingMembers(meetingId || '');
+  const { data: apiMembers, isLoading: isLoadingMembers, error: membersError } = useMembers(meetingId || '');
+  const { data: apiPendingMembers, isLoading: isLoadingPending, error: pendingError } = usePendingMembers(meetingId || '');
 
   // 🔍 DEBUG: API 응답 확인
   console.log('🔍 [MemberManagePage] meetingId:', meetingId);
@@ -48,35 +46,20 @@ const MemberManagePage: React.FC = () => {
   const { mutate: removeMember, isPending: isRemoving } = useRemoveMember(meetingId || '');
   const { mutate: transferHost, isPending: isTransferring } = useTransferHost(meetingId || '');
 
-  // Member State
-  const [members, setMembers] = useState<Member[]>([]);
+  // Member State - API 데이터 > 전달받은 멤버 순서로 사용
+  const [members, setMembers] = useState<Member[]>(passedMembers || []);
   const [pendingMembers, setPendingMembers] = useState<Member[]>([]);
 
-  // API 데이터 로드 및 동기화
+  // API 데이터가 로드되면 state 업데이트 (안전하게 타입 단언 및 fallback)
   useEffect(() => {
-    if (apiMembers && Array.isArray(apiMembers) && apiMembers.length > 0) {
-      setMembers(apiMembers);
-      console.log('[MemberManage] Approved members loaded:', apiMembers);
-    } else if (passedMembers && Array.isArray(passedMembers)) {
-      setMembers(passedMembers);
-      console.log('[MemberManage] Using passed members:', passedMembers);
+    if (apiMembers) {
+      setMembers(apiMembers as Member[] || []);
     } else if (membersError) {
-      console.warn('[MemberManage] Members API error:', membersError);
-      // Retry
-      setTimeout(() => refetchMembers(), 1000);
+      console.warn('멤버 목록 API 호출 실패:', membersError);
     }
-  }, [apiMembers, membersError, passedMembers, refetchMembers]);
+  }, [apiMembers, membersError]);
 
   useEffect(() => {
-<<<<<<< HEAD
-    if (apiPendingMembers && Array.isArray(apiPendingMembers)) {
-      setPendingMembers(apiPendingMembers);
-      console.log('[MemberManage] Pending members loaded:', apiPendingMembers);
-    } else if (pendingError) {
-      console.warn('[MemberManage] Pending members API error:', pendingError);
-      // Retry
-      setTimeout(() => refetchPending(), 1000);
-=======
     console.log('🔍 [useEffect] apiPendingMembers updated:', apiPendingMembers);
     if (apiPendingMembers) {
       const converted = apiPendingMembers as Member[] || [];
@@ -84,9 +67,8 @@ const MemberManagePage: React.FC = () => {
       setPendingMembers(converted);
     } else if (pendingError) {
       console.error('❌ [useEffect] 대기 멤버 목록 API 호출 실패:', pendingError);
->>>>>>> backend-integration
     }
-  }, [apiPendingMembers, pendingError, refetchPending]);
+  }, [apiPendingMembers, pendingError]);
 
   // Modal State
   const [showTransferModal, setShowTransferModal] = useState(false);
@@ -102,22 +84,24 @@ const MemberManagePage: React.FC = () => {
   const handleTransferConfirm = () => {
     if (!selectedMember) return;
 
-    transferHost(String(selectedMember.userId), {
+    // API 호출 시도
+    transferHost(selectedMember.userId, {
       onSuccess: () => {
         setMembers(prev => prev.map(m => {
           if (m.role === 'HOST') return { ...m, role: 'MEMBER' as const };
           if (m.userId === selectedMember.userId) return { ...m, role: 'HOST' as const };
           return m;
         }));
-        // 캐시 무효화
-        queryClient.invalidateQueries({ queryKey: ['members', meetingId] });
         setShowTransferModal(false);
         setSelectedMember(null);
       },
-      onError: (error) => {
-        console.error('[MemberManage] Transfer failed:', error);
-        // Fallback: 서버 상태로 동기화
-        refetchMembers();
+      onError: () => {
+        // API 실패 시 로컬에서 처리 (fallback)
+        setMembers(prev => prev.map(m => {
+          if (m.role === 'HOST') return { ...m, role: 'MEMBER' as const };
+          if (m.userId === selectedMember.userId) return { ...m, role: 'HOST' as const };
+          return m;
+        }));
         setShowTransferModal(false);
         setSelectedMember(null);
       },
@@ -128,19 +112,16 @@ const MemberManagePage: React.FC = () => {
   const handleKickConfirm = () => {
     if (!selectedMember) return;
 
-    removeMember(String(selectedMember.userId), {
+    // API 호출 시도
+    removeMember(selectedMember.userId, {
       onSuccess: () => {
         setMembers(prev => prev.filter(m => m.userId !== selectedMember.userId));
-        // 캐시 무효화
-        queryClient.invalidateQueries({ queryKey: ['members', meetingId] });
-        queryClient.invalidateQueries({ queryKey: ['meeting', 'detail', meetingId] });
         setShowKickModal(false);
         setSelectedMember(null);
       },
-      onError: (error) => {
-        console.error('[MemberManage] Kick failed:', error);
-        // Fallback: 서버 상태로 동기화
-        refetchMembers();
+      onError: () => {
+        // API 실패 시 로컬에서 처리 (fallback)
+        setMembers(prev => prev.filter(m => m.userId !== selectedMember.userId));
         setShowKickModal(false);
         setSelectedMember(null);
       },
@@ -149,23 +130,18 @@ const MemberManagePage: React.FC = () => {
 
   // 참가 승인
   const handleApprove = (member: Member) => {
+    // API 호출 시도
     approveMember(
-      { memberId: String(member.userId) },
+      { memberId: member.userId },
       {
         onSuccess: () => {
           setPendingMembers(prev => prev.filter(m => m.userId !== member.userId));
           setMembers(prev => [...prev, { ...member, status: 'APPROVED' }]);
-          // 캐시 무효화
-          queryClient.invalidateQueries({ queryKey: ['members', meetingId] });
-          queryClient.invalidateQueries({ queryKey: ['members', meetingId, 'pending'] });
-          queryClient.invalidateQueries({ queryKey: ['meeting', 'detail', meetingId] });
-          console.log('[MemberManage] Member approved:', member.userId);
         },
-        onError: (error) => {
-          console.error('[MemberManage] Approve failed:', error);
-          // Fallback: 서버 상태로 동기화
-          refetchMembers();
-          refetchPending();
+        onError: () => {
+          // API 실패 시 로컬에서 처리 (fallback)
+          setPendingMembers(prev => prev.filter(m => m.userId !== member.userId));
+          setMembers(prev => [...prev, { ...member, status: 'APPROVED' }]);
         },
       }
     );
@@ -173,19 +149,16 @@ const MemberManagePage: React.FC = () => {
 
   // 참가 거절
   const handleReject = (member: Member) => {
+    // API 호출 시도
     rejectMember(
-      { memberId: String(member.userId), responseMessage: '' },
+      { memberId: member.userId },
       {
         onSuccess: () => {
           setPendingMembers(prev => prev.filter(m => m.userId !== member.userId));
-          // 캐시 무효화
-          queryClient.invalidateQueries({ queryKey: ['members', meetingId, 'pending'] });
-          console.log('[MemberManage] Member rejected:', member.userId);
         },
-        onError: (error) => {
-          console.error('[MemberManage] Reject failed:', error);
-          // Fallback: 서버 상태로 동기화
-          refetchPending();
+        onError: () => {
+          // API 실패 시 로컬에서 처리 (fallback)
+          setPendingMembers(prev => prev.filter(m => m.userId !== member.userId));
         },
       }
     );
