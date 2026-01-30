@@ -14,8 +14,8 @@ export const MOCK_EVENTS: Record<string, MeetingEvent[]> = {
     maxParticipants: 10,
     participantCount: 2,
     participants: [
-      { userId: 1, nickname: '김구름', profileImage: undefined, role: 'HOST', status: 'APPROVED', joinedAt: '2024-01-20' },
-      { userId: 2, nickname: '김구름2', profileImage: undefined, role: 'MEMBER', status: 'APPROVED', joinedAt: '2024-01-20' },
+      { memberId: 1, userId: 1, nickname: '김구름', profileImage: undefined, role: 'HOST', status: 'APPROVED', joinedAt: '2024-01-20' },
+      { memberId: 2, userId: 2, nickname: '김구름2', profileImage: undefined, role: 'MEMBER', status: 'APPROVED', joinedAt: '2024-01-20' },
     ],
   }],
   2: [],
@@ -29,7 +29,7 @@ export const MOCK_EVENTS: Record<string, MeetingEvent[]> = {
     maxParticipants: 8,
     participantCount: 1,
     participants: [
-      { userId: 1, nickname: '김구름', profileImage: undefined, role: 'HOST', status: 'APPROVED', joinedAt: '2024-01-20' },
+      { memberId: 3, userId: 1, nickname: '김구름', profileImage: undefined, role: 'HOST', status: 'APPROVED', joinedAt: '2024-01-20' },
     ],
   }],
 };
