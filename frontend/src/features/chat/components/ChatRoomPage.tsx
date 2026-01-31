@@ -79,7 +79,8 @@ const ChatRoomPage: React.FC = () => {
     // 2. STOMP 연결
     useEffect(() => {
         const wsUrl = getWebSocketUrl();
-        console.log('Connecting to WebSocket:', wsUrl);
+        console.log('[DEBUG] Calculated WebSocket URL:', wsUrl);
+        console.log('[DEBUG] Current Base URL:', import.meta.env.VITE_API_BASE_URL);
 
         const client = new Client({
             brokerURL: wsUrl,
