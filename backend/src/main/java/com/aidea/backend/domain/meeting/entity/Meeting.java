@@ -4,6 +4,7 @@ import com.aidea.backend.domain.meeting.entity.enums.MeetingCategory;
 import com.aidea.backend.domain.meeting.entity.enums.MeetingStatus;
 import com.aidea.backend.domain.meeting.entity.enums.Region;
 import com.aidea.backend.domain.user.entity.User;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 import org.springframework.data.annotation.CreatedDate;
@@ -74,11 +75,12 @@ public class Meeting {
     private MeetingStatus status = MeetingStatus.RECRUITING; // 모임 상태
 
     @Column(nullable = false)
-    private Boolean isApprovalRequired = false; // 승인 필요 여부
+    private Boolean isApprovalRequired = true; // 승인 필요 여부 기본값 true
 
     // ========== 연관 관계 ==========
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "creator_id", nullable = false)
+    @JoinColumn(name = "creator_id")
+    @JsonIgnore
     private User creator; // 모임 생성자
 
     // ========== 시간 정보 (자동 관리) ==========
@@ -118,7 +120,7 @@ public class Meeting {
         this.maxMembers = maxMembers;
         this.currentMembers = 1; // 생성자 포함 1명으로 시작
         this.meetingDate = meetingDate;
-        this.isApprovalRequired = isApprovalRequired != null ? isApprovalRequired : false;
+        this.isApprovalRequired = isApprovalRequired != null ? isApprovalRequired : true;
         this.status = MeetingStatus.RECRUITING;
         this.creator = creator;
     }
@@ -195,6 +197,13 @@ public class Meeting {
      * MeetingResponse로 변환
      */
     public com.aidea.backend.domain.meeting.dto.response.MeetingResponse toResponse() {
+        return toResponse(null, null);
+    }
+
+    /**
+     * MeetingResponse로 변환 (권한 정보 포함)
+     */
+    public com.aidea.backend.domain.meeting.dto.response.MeetingResponse toResponse(String myRole, String myStatus) {
         return com.aidea.backend.domain.meeting.dto.response.MeetingResponse.builder()
                 .groupId(this.id) // meetingId -> groupId
                 .title(this.title)
@@ -212,52 +221,19 @@ public class Meeting {
                 .currentMembers(this.currentMembers)
                 .meetingDate(this.meetingDate)
                 .status(this.status)
-                .isPublic(!this.isApprovalRequired) // isApprovalRequired -> isPublic (inversed)
-                .creator(com.aidea.backend.domain.meeting.dto.response.CreatorDto.builder()
-                        .userId(this.creator.getUserId())
-                        .nickname(this.creator.getNickname())
-                        .profileImage(this.creator.getProfileImage())
-                        .build())
-                .ownerUserId(this.creator.getUserId())  // ✅ 추가: Frontend 권한 체크용
-                .createdAt(this.createdAt)
-                .updatedAt(this.updatedAt)
-                .build();
-    }
-
-    /**
-     * MeetingResponse로 변환 (권한 정보 포함)
-     */
-    public com.aidea.backend.domain.meeting.dto.response.MeetingResponse toResponse(String myRole, String myStatus) {
-        return com.aidea.backend.domain.meeting.dto.response.MeetingResponse.builder()
-                .groupId(this.id)
-                .title(this.title)
-                .description(this.description)
-                .imageUrl(this.imageUrl)
-                .interestCategoryId(this.category.name())
-                .interestCategoryName(this.category.getDisplayName())
-                .region(this.region)
-                .regionFullName(this.region.getFullName())
-                .location(this.location)
-                .latitude(this.latitude)
-                .longitude(this.longitude)
-                .locationDetail(this.locationDetail)
-                .maxMembers(this.maxMembers)
-                .currentMembers(this.currentMembers)
-                .meetingDate(this.meetingDate)
-                .status(this.status)
                 .isPublic(!this.isApprovalRequired)
                 .creator(com.aidea.backend.domain.meeting.dto.response.CreatorDto.builder()
-                        .userId(this.creator.getUserId())
-                        .nickname(this.creator.getNickname())
-                        .profileImage(this.creator.getProfileImage())
+                        .userId(this.creator != null ? this.creator.getUserId() : null)
+                        .nickname(this.creator != null ? this.creator.getNickname() : null)
+                        .profileImage(this.creator != null ? this.creator.getProfileImage() : null)
                         .build())
-                .ownerUserId(this.creator.getUserId())
+                .ownerUserId(this.creator != null ? this.creator.getUserId() : null) // ✅ 추가: Frontend 권한 체크용
                 .createdAt(this.createdAt)
                 .updatedAt(this.updatedAt)
                 .myRole(myRole)
                 .myStatus(myStatus)
                 .isApprovalRequired(this.isApprovalRequired)
-                .memberCount(this.currentMembers)
+                .memberCount(this.currentMembers) // ✅ 추가: Frontend 호환용
                 .build();
     }
 

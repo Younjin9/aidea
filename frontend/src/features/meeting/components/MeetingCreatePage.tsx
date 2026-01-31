@@ -137,7 +137,7 @@ const MeetingCreatePage: React.FC = () => {
           location: region, // 전체 주소
           latitude: coords.lat,
           longitude: coords.lng,
-          isPublic: true,
+          isPublic: false, // ✅ 기본값: 승인 필요 모임
           // 400 Error 대응: 서버(KST) 기준 미래 시간 전송
           meetingDate: getFutureMeetingDate(), // 7일 후 (초 단위까지 포함)
           imageUrl: finalImageUrl,

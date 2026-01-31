@@ -5,15 +5,31 @@ import org.springframework.messaging.simp.config.MessageBrokerRegistry;
 import org.springframework.web.socket.config.annotation.EnableWebSocketMessageBroker;
 import org.springframework.web.socket.config.annotation.StompEndpointRegistry;
 import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerConfigurer;
+import com.aidea.backend.global.secret.jwt.JwtTokenProvider;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.messaging.Message;
+import org.springframework.messaging.MessageChannel;
+import org.springframework.messaging.simp.config.ChannelRegistration;
+import org.springframework.messaging.simp.stomp.StompCommand;
+import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
+import org.springframework.messaging.support.ChannelInterceptor;
+import org.springframework.messaging.support.MessageHeaderAccessor;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.util.StringUtils;
 
 /**
  * WebSocket 설정
  * - STOMP over WebSocket 활성화
  * - 메시지 브로커 설정
  */
+@Slf4j
 @Configuration
+@RequiredArgsConstructor
 @EnableWebSocketMessageBroker
 public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
+
+    private final JwtTokenProvider jwtTokenProvider;
 
     /**
      * STOMP 엔드포인트 등록
@@ -21,9 +37,9 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
      */
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
-        registry.addEndpoint("/ws") // WebSocket 연결 엔드포인트
-                .setAllowedOriginPatterns("*") // CORS 허용 (개발 환경)
-                .withSockJS(); // SockJS fallback 지원 (WebSocket 미지원 브라우저 대응)
+        registry.addEndpoint("/api/ws") // WebSocket 연결 엔드포인트를 /api 하위로 변경 (프록시 접근성 허용)
+                .setAllowedOriginPatterns("*") // CORS 허용 패턴 (패턴 기반 허용으로 유연성 확보)
+                .withSockJS(); // SockJS fallback 지원
     }
 
     /**
@@ -40,5 +56,32 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
         // 3. 사용자별 메시지 prefix (선택)
         // config.setUserDestinationPrefix("/user");
+    }
+
+    @Override
+    public void configureClientInboundChannel(ChannelRegistration registration) {
+        registration.interceptors(new ChannelInterceptor() {
+            @Override
+            public Message<?> preSend(Message<?> message, MessageChannel channel) {
+                StompHeaderAccessor accessor = MessageHeaderAccessor.getAccessor(message, StompHeaderAccessor.class);
+
+                if (StompCommand.CONNECT.equals(accessor.getCommand())) {
+                    String authToken = accessor.getFirstNativeHeader("Authorization");
+                    log.debug("WebSocket CONNECT token: {}", authToken);
+
+                    if (StringUtils.hasText(authToken) && authToken.startsWith("Bearer ")) {
+                        String jwt = authToken.substring(7);
+                        if (jwtTokenProvider.validateToken(jwt)) {
+                            String email = jwtTokenProvider.getEmailFromToken(jwt);
+                            UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
+                                    email, null, null);
+                            accessor.setUser(authentication);
+                            log.debug("WebSocket authentication success for user: {}", email);
+                        }
+                    }
+                }
+                return message;
+            }
+        });
     }
 }
