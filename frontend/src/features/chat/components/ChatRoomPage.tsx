@@ -15,7 +15,7 @@ const ChatRoomPage: React.FC = () => {
     const user = useAuthStore((state) => state.user);
 
     // 테스트를 위한 임시 유저 (로그인 안 된 경우)
-    const [guestId] = useState(() => guest-);
+    const [guestId] = useState(() => 'guest-' + Math.floor(Math.random() * 10000));
     const myId = user?.userId ? String(user.userId) : guestId;
 
     const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -37,7 +37,8 @@ const ChatRoomPage: React.FC = () => {
         const ampm = hours >= 12 ? '오후' : '오전';
         hours = hours % 12;
         hours = hours ? hours : 12;
-        return ${ampm} :;
+        const minutesStr = minutes < 10 ? '0' + minutes : minutes;
+        return `${ampm} ${hours}:${minutesStr}`;
     };
 
     // 1. 기존 메시지 불러오기
@@ -50,8 +51,8 @@ const ChatRoomPage: React.FC = () => {
             } catch {
                 // Fallback Dummy Data for UI Dev
                 return [
-                    { messageId: '1', senderId: '101', senderName: '김철수', message: '같이 가요!', createdAt: '2023-10-25T10:00:00', senderProfileImage: undefined, type: 'TALK' },
-                    { messageId: '2', senderId: '202', senderName: '김쩌고', message: '다른 사람이 말하는 버전 1줄 버전!', createdAt: '2023-10-25T10:05:00', senderProfileImage: undefined, type: 'TALK' },
+                    { messageId: '1', senderId: '101', senderName: '김철수', message: '같이 가요!', createdAt: '2023-10-25T10:00:00', type: 'TALK' },
+                    { messageId: '2', senderId: '202', senderName: '김쩌고', message: '다른 사람이 말하는 버전 1줄 버전!', createdAt: '2023-10-25T10:05:00', type: 'TALK' },
                 ] as ChatMessage[];
             }
         },
@@ -96,7 +97,7 @@ const ChatRoomPage: React.FC = () => {
             console.log('Connected: ' + frame);
 
             // Subscribe to Meeting Topic
-            client.subscribe(/topic/meeting/, (message) => {
+            client.subscribe(`/topic/meeting/${parsedMeetingId}`, (message) => {
                 if (message.body) {
                     try {
                         const newMessage: ChatMessage = JSON.parse(message.body);
@@ -143,7 +144,6 @@ const ChatRoomPage: React.FC = () => {
                 body: JSON.stringify(messagePayload),
             });
             setInputMessage('');
-            // Optimistic Update는 하지 않음 (서버 응답(구독)으로 받아서 처리)
         } else {
             console.error('STOMP Client is not connected. Status:', stompClient.current?.state);
             alert('채팅 서버와 연결되지 않았습니다.');
@@ -179,7 +179,7 @@ const ChatRoomPage: React.FC = () => {
             {/* Message List */}
             <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-white scrollbar-hide">
                 <div className="text-center text-xs text-gray-400 my-2">
-                    {user ? '로그인 상태입니다.' : 게스트 모드 ()}
+                    {user ? '로그인 상태입니다.' : '게스트 모드 (' + guestId + ')'}
                 </div>
 
                 {messages.length === 0 ? (
@@ -199,7 +199,7 @@ const ChatRoomPage: React.FC = () => {
                                      (currentUserId && messageSenderId === currentUserId);
 
                         return (
-                            <div key={idx} className={lex w-full  items-end mb-4}>
+                            <div key={idx} className={`flex w-full ${isMe ? 'justify-end' : 'justify-start'} items-end mb-4`}>
                                 {!isMe && (
                                     <div className="flex flex-col items-center mr-3">
                                         <div className="w-10 h-10 rounded-full bg-gray-300 overflow-hidden mb-1">
@@ -208,11 +208,11 @@ const ChatRoomPage: React.FC = () => {
                                     </div>
                                 )}
 
-                                <div className={lex flex-col max-w-[70%] }>
+                                <div className={`flex flex-col max-w-[70%] ${isMe ? 'items-end' : 'items-start'}`}>
                                     {!isMe && <span className="text-xs text-gray-600 mb-1 ml-1">{msg.senderName}</span>}
                                     <div className="flex items-end gap-1">
                                         {isMe && <span className="text-[10px] text-gray-400 min-w-fit mb-1">{formatTime(msg.createdAt)}</span>}
-                                        <div className={p-3 text-sm whitespace-pre-wrap leading-relaxed }>
+                                        <div className={`p-3 text-sm whitespace-pre-wrap leading-relaxed ${isMe ? 'bg-primary text-white rounded-l-2xl rounded-tr-2xl' : 'bg-[#F3F4F6] text-black rounded-r-2xl rounded-tl-2xl'}`}>
                                             {msg.message || msg.content} 
                                         </div>
                                         {!isMe && <span className="text-[10px] text-gray-400 min-w-fit mb-1">{formatTime(msg.createdAt)}</span>}
