@@ -23,11 +23,17 @@ const OAuthCallbackPage: React.FC = () => {
           const meResponse = await authApi.getMe();
           
           if (meResponse.success) {
-            setAuth(meResponse.data, accessToken); // refreshToken은 store에서 관리 안하거나 따로 관리한다면 수정 필요
-            // 여기서는 useAuthStore가 (user, accessToken)만 받으므로 이렇게 처리.
-            // refreshToken 저장이 필요하다면 authStore 수정 필요.
+            const user = meResponse.data;
+            setAuth(user, accessToken); 
             
-            navigate('/shorts', { replace: true });
+            // 필수 정보 확인
+            if (!user.gender || !user.location) {
+                navigate('/onboarding/required-info', { replace: true });
+            } else if (!user.interests || user.interests.length === 0) {
+                navigate('/onboarding/interest', { replace: true });
+            } else {
+                navigate('/shorts', { replace: true });
+            }
           } else {
              console.error('Failed to fetch user info:', meResponse.message);
              navigate('/login', { replace: true });

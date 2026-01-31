@@ -44,9 +44,9 @@ const ChatRoomPage: React.FC = () => {
             } catch (e) {
                 // Fallback Dummy Data for UI Dev
                 return [
-                    { messageId: '1', senderId: 101, senderName: '김철수', content: '같이 가요!', createdAt: '2023-10-25T10:00:00', senderProfileImage: undefined },
-                    { messageId: '2', senderId: 202, senderName: '김쩌고', content: '다른 사람이 말하는 버전 1줄 버전!', createdAt: '2023-10-25T10:05:00', senderProfileImage: undefined },
-                    { messageId: '3', senderId: 202, senderName: '김쩌고', content: '다른 사람이 말하는 버전 2줄 버전!\n다른 사람이 말하는 버전 2줄 버전!', createdAt: '2023-10-25T10:06:00', senderProfileImage: undefined },
+                    { messageId: '1', senderId: '101', senderName: '김철수', content: '같이 가요!', createdAt: '2023-10-25T10:00:00', senderProfileImage: undefined },
+                    { messageId: '2', senderId: '202', senderName: '김쩌고', content: '다른 사람이 말하는 버전 1줄 버전!', createdAt: '2023-10-25T10:05:00', senderProfileImage: undefined },
+                    { messageId: '3', senderId: '202', senderName: '김쩌고', content: '다른 사람이 말하는 버전 2줄 버전!\n다른 사람이 말하는 버전 2줄 버전!', createdAt: '2023-10-25T10:06:00', senderProfileImage: undefined },
                     { messageId: '4', senderId: myId, senderName: '나', content: '자신이 말하는 버전 2줄 버전!\n자신이 말하는 버전 2줄 버전!', createdAt: '2023-10-25T10:07:00' },
                 ] as ChatMessage[];
             }
@@ -181,7 +181,13 @@ const ChatRoomPage: React.FC = () => {
                     </div>
                 ) : (
                     messages.map((msg, idx) => {
-                        const isMe = msg.senderName === '나' || msg.senderId === (user?.userId ? String(user.userId) : undefined) || msg.senderId === '999';
+                        // 안전한 ID 비교 (문자열 변환)
+                        const currentUserId = user?.userId ? String(user.userId) : null;
+                        const messageSenderId = String(msg.senderId);
+                        
+                        const isMe = msg.senderName === '나' || 
+                                     (currentUserId && messageSenderId === currentUserId) || 
+                                     messageSenderId === '999';
 
                         return (
                             <div key={idx} className={`flex w-full ${isMe ? 'justify-end' : 'justify-start'} items-end mb-4`}>

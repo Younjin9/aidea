@@ -1,20 +1,26 @@
 // 마이페이지
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import { Edit2 } from 'lucide-react';
 import meetingApi from '@/shared/api/meeting/meetingApi';
 import ProfileImage from '@/shared/components/ui/ProfileImage';
 import MeetingCard from '@/shared/components/ui/MeetingCard';
 import Modal from '@/shared/components/ui/Modal';
 import logo from '@/assets/images/logo.png';
-import { useMyPage } from '../hooks/useMyPage';
+import { useMyPage, myPageKeys } from '../hooks/useMyPage';
 import { useMyPageStore } from '../store/myPageStore';
 import { useMeetingStore } from '@/features/meeting/store/meetingStore';
+import { useAuth } from '@/features/auth/hooks/useAuth';
+import { authApi } from '@/shared/api/authApi';
+import userApi from '@/shared/api/user/userApi';
 import type { MeetingUI } from '@/shared/types/Meeting.types';
 
 const MyPageView: React.FC<{ onUnlike?: (id: number) => void }> = ({ onUnlike }) => {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { user, myMeetings, likedMeetings, isLoading, unlikeMeeting } = useMyPage();
+  const { logout: authLogout } = useAuth();
   const clearUser = useMyPageStore((state) => state.clearUser);
   const initializeMeetingMockData = useMeetingStore((state) => state.initializeMockData);
 
@@ -65,21 +71,40 @@ const MyPageView: React.FC<{ onUnlike?: (id: number) => void }> = ({ onUnlike })
   };
 
   // 로그아웃 핸들러
-  const handleLogout = () => {
-    clearUser();
+  const handleLogout = async () => {
+    try {
+      await authApi.logout();
+    } catch (error) {
+      console.error('Logout API failed:', error);
+    }
+    
+    authLogout(); // Auth 스토어 초기화
+    clearUser(); // MyPage 스토어 초기화
+    
+    // React Query 캐시 제거 (다음 로그인 시 이전 사용자 데이터 보임 방지)
+    queryClient.removeQueries({ queryKey: myPageKeys.all });
+    
     setShowLogoutModal(false);
-    // TODO: API 호출 (토큰 삭제 등)
     console.log('로그아웃 완료');
     navigate('/');
   };
 
   // 회원탈퇴 핸들러
-  const handleWithdraw = () => {
-    clearUser();
-    setShowWithdrawModal(false);
-    // TODO: API 호출 (회원탈퇴 요청)
-    console.log('회원탈퇴 완료');
-    navigate('/');
+  const handleWithdraw = async () => {
+    try {
+      await userApi.deleteAccount();
+      
+      authLogout();
+      clearUser();
+      queryClient.removeQueries({ queryKey: myPageKeys.all });
+      
+      setShowWithdrawModal(false);
+      console.log('회원탈퇴 완료');
+      navigate('/');
+    } catch (error) {
+      console.error('Withdraw failed:', error);
+      alert('회원탈퇴 처리에 실패했습니다. 다시 시도해주세요.');
+    }
   };
 
   if (isLoading) {
