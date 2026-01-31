@@ -17,7 +17,7 @@ import type {
  * 모임 멤버 목록 조회
  * GET /api/groups/{groupId}/members
  */
-export const getMembers = async (groupId: string): Promise<ApiResponse<Member[]>> => {
+export const getMembers = async (groupId: string): Promise<Member[]> => {
   return apiClient.get(`/api/groups/${groupId}/members`);
 };
 
@@ -25,32 +25,32 @@ export const getMembers = async (groupId: string): Promise<ApiResponse<Member[]>
  * 대기 중인 가입 요청 목록
  * GET /api/groups/{groupId}/members/pending
  */
-export const getPendingMembers = async (groupId: string): Promise<ApiResponse<Member[]>> => {
+export const getPendingMembers = async (groupId: string): Promise<Member[]> => {
   return apiClient.get(`/api/groups/${groupId}/join-requests`);
 };
 
 /**
  * 가입 요청 승인
- * POST /api/groups/{groupId}/members/{memberId}/approve
+ * POST /api/groups/{groupId}/join-requests/{memberId}/approve
  */
 export const approveMember = async (
   groupId: string,
   data: ApproveMemberRequest
 ): Promise<ApiResponse<void>> => {
-  return apiClient.post(`/api/groups/${groupId}/members/${data.memberId}/approve`, {
+  return apiClient.post(`/api/groups/${groupId}/join-requests/${data.memberId}/approve`, {
     responseMessage: data.responseMessage,
   });
 };
 
 /**
  * 가입 요청 거절
- * POST /api/groups/{groupId}/members/{memberId}/reject
+ * POST /api/groups/{groupId}/join-requests/{memberId}/reject
  */
 export const rejectMember = async (
   groupId: string,
   data: RejectMemberRequest
 ): Promise<ApiResponse<void>> => {
-  return apiClient.post(`/api/groups/${groupId}/members/${data.memberId}/reject`, {
+  return apiClient.post(`/api/groups/${groupId}/join-requests/${data.memberId}/reject`, {
     responseMessage: data.responseMessage,
   });
 };

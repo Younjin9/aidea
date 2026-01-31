@@ -78,31 +78,22 @@ const EventCard: React.FC<EventCardProps> = ({
       {/* Buttons */}
       <div className="flex gap-2 items-center">
         <Button variant="outline" size="md" className="flex-1">공유</Button>
-        {isHost ? (
-          <div className="flex-1 flex items-center justify-center gap-1 text-green-600 font-medium py-2 bg-green-50 rounded-md border border-green-200">
-            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-            </svg>
-            필참 (모임장)
-          </div>
-        ) : (
-          isMember ? (
-            isParticipating ? (
-              <Button variant="primary" size="md" className="flex-1 bg-gray-500 hover:bg-gray-600 border-gray-500" onClick={onCancelParticipation}>취소</Button>
-            ) : (
-              <Button
-                variant="primary"
-                size="md"
-                className="flex-1"
-                onClick={onJoin}
-                disabled={event.participantCount! >= (event.maxParticipants || meeting.maxMembers)}
-              >
-                {event.participantCount! >= (event.maxParticipants || meeting.maxMembers) ? '마감' : '참석'}
-              </Button>
-            )
+        {isMember || isHost ? (
+          isParticipating ? (
+            <Button variant="primary" size="md" className="flex-1 bg-gray-500 hover:bg-gray-600 border-gray-500" onClick={onCancelParticipation}>취소</Button>
           ) : (
-            <Button variant="primary" size="md" className="flex-1" onClick={onJoinMeetingFirst}>참석</Button>
+            <Button
+              variant="primary"
+              size="md"
+              className="flex-1"
+              onClick={onJoin}
+              disabled={event.participantCount! >= (event.maxParticipants || meeting.maxMembers)}
+            >
+              {event.participantCount! >= (event.maxParticipants || meeting.maxMembers) ? '마감' : '참가'}
+            </Button>
           )
+        ) : (
+          <Button variant="primary" size="md" className="flex-1" onClick={onJoinMeetingFirst}>참가</Button>
         )}
       </div>
     </div>
@@ -159,7 +150,7 @@ const EventSection: React.FC<EventSectionProps> = ({
     <section className="p-4 space-y-6">
       {events.length > 0 ? (
         events.map((event) => {
-          const isParticipating = (event.participants || []).some(p => p.userId === userId);
+          const isParticipating = (event.participants || []).some(p => String(p.userId) === String(userId));
           return (
             <EventCard
               key={event.eventId}
@@ -191,7 +182,7 @@ const EventSection: React.FC<EventSectionProps> = ({
     <Modal
       isOpen={showCancelModal}
       onClose={onCloseCancelModal}
-      message={`"${selectedEventTitle}" 정모 참석을 취소하시겠습니까?`}
+      message={`"${selectedEventTitle}" 정모 참여를 취소하시겠습니까?`}
       confirmText="취소"
       cancelText="닫기"
       onConfirm={onConfirmCancel}
@@ -200,8 +191,8 @@ const EventSection: React.FC<EventSectionProps> = ({
     <Modal
       isOpen={showJoinEventModal}
       onClose={onCloseJoinEventModal}
-      message={`"${selectedEventTitle}" 정모에 참여하시겠습니까?`}
-      confirmText="참여"
+      message={`"${selectedEventTitle}" 정모에 참가하시겠습니까?`}
+      confirmText="참가"
       cancelText="취소"
       onConfirm={onConfirmJoin}
     />
@@ -209,7 +200,7 @@ const EventSection: React.FC<EventSectionProps> = ({
     <Modal
       isOpen={showJoinMeetingFirstModal}
       onClose={onCloseJoinMeetingFirstModal}
-      message="모임에 먼저 가입 후 참석할 수 있습니다."
+      message="모임에 먼저 가입 후 참가할 수 있습니다."
       confirmText="확인"
       singleButton
       onConfirm={onCloseJoinMeetingFirstModal}

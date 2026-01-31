@@ -61,9 +61,11 @@ public class ChatMessage {
                 .messageId(this.id)
                 .senderId(this.sender.getUserId())
                 .senderNickname(this.sender.getNickname())
+                .senderName(this.sender.getNickname()) // Frontend 호환성
                 .senderProfileImage(this.sender.getProfileImage())
                 .message(this.message)
                 .messageType(this.messageType)
+                .type(this.messageType) // Frontend 호환성
                 .createdAt(this.createdAt)
                 .build();
     }

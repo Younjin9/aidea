@@ -87,7 +87,8 @@ public class SecurityConfig {
                                                 .permitAll()
 
                                                 // WebSocket
-                                                .requestMatchers("/ws/**", "/app/**", "/topic/**").permitAll()
+                                                .requestMatchers("/ws/**", "/api/ws/**", "/app/**", "/topic/**")
+                                                .permitAll()
 
                                                 // Health Check
                                                 .requestMatchers("/actuator/**", "/health").permitAll()

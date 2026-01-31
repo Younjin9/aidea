@@ -59,7 +59,8 @@ public class CreateMeetingRequest {
                 .title(this.title)
                 .description(this.description)
                 .imageUrl(this.imageUrl)
-                .category(com.aidea.backend.domain.meeting.entity.enums.MeetingCategory.findByCode(this.interestCategoryId))
+                .category(com.aidea.backend.domain.meeting.entity.enums.MeetingCategory
+                        .findByCode(this.interestCategoryId))
                 .region(com.aidea.backend.domain.meeting.entity.enums.Region.findByFullName(this.region))
                 .location(this.location)
                 .latitude(this.latitude)
@@ -67,7 +68,7 @@ public class CreateMeetingRequest {
                 .locationDetail(this.locationDetail)
                 .maxMembers(this.maxMembers)
                 .meetingDate(this.meetingDate)
-                .isApprovalRequired(this.isPublic != null ? !this.isPublic : false)
+                .isApprovalRequired(this.isPublic != null ? !this.isPublic : true)
                 .creator(creator)
                 .build();
     }

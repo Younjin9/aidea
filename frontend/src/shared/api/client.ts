@@ -23,7 +23,7 @@ export const apiClient: AxiosInstance = axios.create({
 
 apiClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
-    const token = useAuthStore.getState().accessToken || localStorage.getItem('accessToken');
+    const token = useAuthStore.getState().accessToken;
     if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -70,8 +70,8 @@ apiClient.interceptors.response.use(
           return apiClient(originalRequest);
         }
       } catch (refreshError) {
-        localStorage.removeItem('accessToken');
-        localStorage.removeItem('refreshToken');
+        // 토큰 갱신 실패 시 모든 인증 정보 제거
+        useAuthStore.getState().logout();
         window.location.href = '/login';
         return Promise.reject(refreshError);
       }
@@ -79,6 +79,7 @@ apiClient.interceptors.response.use(
 
     // 에러 응답 포맷팅
     // 에러 응답 포맷팅
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const responseData = error.response?.data as any;
     const apiError: ApiError = {
       code: responseData?.code || responseData?.error?.code || 'UNKNOWN_ERROR',

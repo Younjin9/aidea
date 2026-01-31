@@ -6,7 +6,7 @@ import BackButton from '@/shared/components/ui/BackButton';
 import Button from '@/shared/components/ui/Button';
 import Input from '@/shared/components/ui/Input';
 import KakaoMapModal, { type SelectedPlace } from './KakaoMapModal';
-import { useMyPageStore } from '@/features/mypage/store/myPageStore';
+import { useAuthStore } from '@/features/auth/store/authStore';
 import { useCreateEvent } from '../hooks/useEvents';
 import LocationSearchModal from '../../meeting/components/LocationSearchModal';
 
@@ -14,7 +14,7 @@ const EventCreatePage: React.FC = () => {
   const navigate = useNavigate();
   const { meetingId } = useParams();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const user = useMyPageStore((state) => state.user);
+  const user = useAuthStore((state) => state.user);
 
   // API Mutation
   const { mutate: createEvent, isPending } = useCreateEvent(meetingId || '');
