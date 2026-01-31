@@ -14,7 +14,7 @@ import { reportUser } from '@/shared/api/safety/safetyApi';
 import ChatRoomPage from '@/features/chat/components/ChatRoomPage';
 import meetingApi from '@/shared/api/meeting/meetingApi';
 import { useMeetingStore } from '../../store/meetingStore';
-import { useMyPageStore } from '@/features/mypage/store/myPageStore';
+import { useAuthStore } from '@/features/auth/store/authStore';
 import { useLeaveMeeting, useToggleLikeMeeting, useJoinMeeting } from '../../hooks/useMeetings';
 import { useJoinEvent, useCancelEventParticipation } from '../../hooks/useEvents';
 import type { MeetingDetail, MeetingEvent } from '@/shared/types/Meeting.types';
@@ -73,7 +73,7 @@ const MOCK_MEETING_DETAIL: MeetingDetail = {
 const createMeetingDetailFromStore = (
   storedMeeting: { id: number; title: string; description?: string; image: string; category: string; members: number; maxMembers?: number; location: string; ownerUserId?: string | number; myStatus?: 'PENDING' | 'APPROVED'; myRole?: 'HOST' | 'MEMBER'; isLiked?: boolean },
   isOwner: boolean,
-  user: { userId: string; nickname: string; profileImage?: string } | null,
+  user: { userId: string; nickname: string; profileImage?: string;[key: string]: any } | null,
   existingEvents: MeetingEvent[] = []
 ): MeetingDetail => {
   const hostUserId = String(storedMeeting.ownerUserId || 'user1');
@@ -131,13 +131,14 @@ const MeetingDetailPage: React.FC = () => {
 
   // 상태 관리 및 커스텀 훅 사용 (store, mutation 등)
   const { getMeetingByGroupId, toggleLikeByGroupId, leaveMeeting, getEventsByGroupId, addEvent, updateEvent: updateEventInStore, deleteEvent: deleteEventInStore, initializeMockData: initializeMeetingMockData, isInitialized: isMeetingInitialized } = useMeetingStore();
-  const { user, initializeMockData: initializeUserMockData, isInitialized: isUserInitialized } = useMyPageStore();
+  const { user } = useAuthStore();
   // 이벤트 참여/취소 등 API 호출을 위한 커스텀 훅
   const { mutate: leaveMeetingApi } = useLeaveMeeting();
   const { mutate: toggleLikeApi } = useToggleLikeMeeting();
   const joinMeetingMutation = useJoinMeeting(); // 모임 참여 신청 훅
   const { mutate: joinEventApi } = useJoinEvent(meetingId || '');
   const { mutate: cancelEventApi } = useCancelEventParticipation(meetingId || '');
+
 
   // 모임 상세 정보 API 호출 (react-query 사용)
   const { data: apiMeetingDetail, isLoading, error } = useQuery({
@@ -156,12 +157,13 @@ const MeetingDetailPage: React.FC = () => {
   // mock 데이터 초기화 (스토어가 초기화 안됐을 때)
   useEffect(() => {
     if (!isMeetingInitialized) initializeMeetingMockData();
-    if (!isUserInitialized) initializeUserMockData();
-  }, [isMeetingInitialized, isUserInitialized, initializeMeetingMockData, initializeUserMockData]);
+  }, [isMeetingInitialized, initializeMeetingMockData]);
+
 
   // 스토어에서 모임 정보 조회 및 소유자 여부 판단
   const storedMeeting = getMeetingByGroupId(meetingId || '');
-  const isOwner = storedMeeting?.myRole === 'HOST' || (storedMeeting?.myRole === undefined && storedMeeting?.ownerUserId === user?.userId);
+  const isOwner = !!(storedMeeting?.myRole === 'HOST' || (storedMeeting?.myRole === undefined && user?.userId && String(storedMeeting?.ownerUserId) === String(user.userId)));
+
 
   // 주요 상태값 정의
   const [activeTab, setActiveTab] = useState<'home' | 'chat'>('home'); // 탭 상태(홈/채팅)
