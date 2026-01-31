@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+﻿import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { Send, ChevronLeft } from 'lucide-react';
@@ -15,7 +15,7 @@ const ChatRoomPage: React.FC = () => {
     const user = useAuthStore((state) => state.user);
 
     // 테스트를 위한 임시 유저 (로그인 안 된 경우)
-    const [guestId] = useState(() => `guest-${Math.floor(Math.random() * 10000)}`);
+    const [guestId] = useState(() => 'guest-' + Math.floor(Math.random() * 10000));
     const myId = user?.userId ? String(user.userId) : guestId;
 
     const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -39,7 +39,46 @@ const ChatRoomPage: React.FC = () => {
         const ampm = hours >= 12 ? '오후' : '오전';
         hours = hours % 12;
         hours = hours ? hours : 12;
-        return `${ampm} ${hours}:${minutes < 10 ? '0' + minutes : minutes}`;
+        const minutesStr = minutes < 10 ? '0' + minutes : minutes;
+        return `${ampm} ${hours}:${minutesStr}`;
+    };
+
+    const scrollToBottom = () => {
+        setTimeout(() => {
+            messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        }, 100);
+    };
+
+    const handleSendMessage = () => {
+        if (!inputMessage.trim()) return;
+
+        // 전송할 메시지 객체 생성
+        const messagePayload = {
+            meetingId: parsedMeetingId,
+            senderId: String(myId), // 로그인 안했으면 게스트 ID
+            message: inputMessage,
+            messageType: 'TALK'
+        };
+
+        // STOMP 전송
+        if (stompClient.current && stompClient.current.connected) {
+            const destination = `/app/chat/send/${parsedMeetingId}`;
+            console.log(`Sending message to ${destination}`, messagePayload);
+            stompClient.current.publish({
+                destination: destination,
+                body: JSON.stringify(messagePayload),
+            });
+            setInputMessage('');
+        } else {
+            console.error('STOMP Client is not connected. Status:', stompClient.current?.state);
+            alert('채팅 서버와 연결되지 않았습니다.');
+        }
+    };
+
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === 'Enter' && !e.nativeEvent.isComposing) {
+            handleSendMessage();
+        }
     };
 
     // 1. 기존 메시지 불러오기
@@ -48,12 +87,12 @@ const ChatRoomPage: React.FC = () => {
         queryFn: async () => {
             try {
                 const response = await chatApi.getMessages(parsedMeetingId);
-                return Array.isArray(response) ? response : [];
+                return response.data ?? [];
             } catch {
                 // Fallback Dummy Data for UI Dev
                 return [
-                    { messageId: '1', senderId: '101', senderName: '김철수', message: '같이 가요!', createdAt: '2023-10-25T10:00:00', senderProfileImage: undefined, type: 'TALK' },
-                    { messageId: '2', senderId: '202', senderName: '김쩌고', message: '다른 사람이 말하는 버전 1줄 버전!', createdAt: '2023-10-25T10:05:00', senderProfileImage: undefined, type: 'TALK' },
+                    { messageId: '1', senderId: '101', senderName: '김철수', message: '같이 가요!', createdAt: '2023-10-25T10:00:00', type: 'TALK' },
+                    { messageId: '2', senderId: '202', senderName: '김쩌고', message: '다른 사람이 말하는 버전 1줄 버전!', createdAt: '2023-10-25T10:05:00', type: 'TALK' },
                 ] as ChatMessage[];
             }
         },
@@ -79,14 +118,15 @@ const ChatRoomPage: React.FC = () => {
     // 2. STOMP 연결
     useEffect(() => {
         const wsUrl = getWebSocketUrl();
-        console.log('Connecting to WebSocket:', wsUrl);
+        console.log('[DEBUG] Calculated WebSocket URL:', wsUrl);
+        console.log('[DEBUG] Current Base URL:', import.meta.env.VITE_API_BASE_URL);
 
         const client = new Client({
             brokerURL: wsUrl,
             connectHeaders: {
                 Authorization: token ? `Bearer ${token}` : '',
             },
-            debug: (str) => {
+            debug: (str: string) => {
                 console.log('STOMP: ' + str);
             },
             reconnectDelay: 5000,
@@ -94,11 +134,11 @@ const ChatRoomPage: React.FC = () => {
             heartbeatOutgoing: 4000,
         });
 
-        client.onConnect = (frame) => {
+        client.onConnect = (frame: any) => {
             console.log('Connected: ' + frame);
 
             // Subscribe to Meeting Topic
-            client.subscribe(`/topic/meeting/${parsedMeetingId}`, (message) => {
+            client.subscribe(`/topic/meeting/${parsedMeetingId}`, (message: any) => {
                 if (message.body) {
                     try {
                         console.log('STOMP Message Received:', message.body);
@@ -112,7 +152,7 @@ const ChatRoomPage: React.FC = () => {
             });
         };
 
-        client.onStompError = (frame) => {
+        client.onStompError = (frame: any) => {
             console.error('Broker reported error: ' + frame.headers['message']);
             console.error('Additional details: ' + frame.body);
         };
@@ -125,45 +165,6 @@ const ChatRoomPage: React.FC = () => {
         };
     }, [parsedMeetingId, token]);
 
-    // 3. 메시지 전송
-    const handleSendMessage = () => {
-        if (!inputMessage.trim()) return;
-
-        // 전송할 메시지 객체 생성
-        const messagePayload = {
-            meetingId: parsedMeetingId,
-            senderId: String(myId), // 로그인 안했으면 게스트 ID
-            message: inputMessage,
-            messageType: 'TALK'
-        };
-
-        // STOMP 전송
-        if (stompClient.current && stompClient.current.connected) {
-            const destination = `/app/chat/send/${parsedMeetingId}`;
-            console.log(`Sending message to ${destination}`, messagePayload);
-            stompClient.current.publish({
-                destination: destination,
-                body: JSON.stringify(messagePayload),
-            });
-            setInputMessage('');
-            // Optimistic Update는 하지 않음 (서버 응답(구독)으로 받아서 처리)
-        } else {
-            console.error('STOMP Client is not connected. Status:', stompClient.current?.state);
-            alert('채팅 서버와 연결되지 않았습니다.');
-        }
-    };
-
-    const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-        if (e.key === 'Enter' && !e.nativeEvent.isComposing) {
-            handleSendMessage();
-        }
-    };
-
-    const scrollToBottom = () => {
-        setTimeout(() => {
-            messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-        }, 100);
-    };
 
     return (
         <div className="absolute inset-0 flex flex-col w-full bg-white">
@@ -182,7 +183,7 @@ const ChatRoomPage: React.FC = () => {
             {/* Message List */}
             <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-white scrollbar-hide">
                 <div className="text-center text-xs text-gray-400 my-2">
-                    {user ? '로그인 상태입니다.' : `게스트 모드 (${guestId})`}
+                    {user ? '로그인 상태입니다.' : '게스트 모드 (' + guestId + ')'}
                 </div>
 
                 {messages.length === 0 ? (

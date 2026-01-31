@@ -5,6 +5,7 @@ import com.aidea.backend.domain.chat.dto.response.ChatMessageResponse;
 import com.aidea.backend.domain.chat.dto.response.ChatRoomResponse;
 import com.aidea.backend.domain.chat.service.ChatService;
 import com.aidea.backend.domain.user.repository.UserRepository;
+import com.aidea.backend.global.common.dto.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -59,9 +60,7 @@ public class ChatController {
         return ResponseEntity.ok().build();
     }
 
-    @Operation(summary = "내 채팅방 목록 조회", description = "참여 중인 모임의 채팅방 목록을 조회합니다")
-    @GetMapping("/rooms")
-    public ResponseEntity<List<ChatRoomResponse>> getChatRooms() {
+    public ResponseEntity<ApiResponse<List<ChatRoomResponse>>> getChatRooms() {
         var auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
         if (auth == null || auth.getName().equals("anonymousUser")) {
             throw new RuntimeException("로그인이 필요합니다.");
@@ -71,17 +70,17 @@ public class ChatController {
                 .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
 
         List<ChatRoomResponse> response = chatService.getMyChatRooms(user.getUserId());
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(ApiResponse.success(response));
     }
 
     @Operation(summary = "채팅 메시지 조회", description = "채팅방의 최근 메시지를 조회합니다")
     @GetMapping("/meetings/{meetingId}/messages")
-    public ResponseEntity<List<ChatMessageResponse>> getMessages(
+    public ResponseEntity<ApiResponse<List<ChatMessageResponse>>> getMessages(
             @PathVariable Long meetingId,
             @RequestParam(defaultValue = "50") int limit) {
 
         List<ChatMessageResponse> messages = chatService.getRecentMessages(meetingId, limit);
-        return ResponseEntity.ok(messages);
+        return ResponseEntity.ok(ApiResponse.success(messages));
     }
 
     @Operation(summary = "메시지 읽음 처리", description = "채팅방 메시지를 읽음으로 처리합니다")

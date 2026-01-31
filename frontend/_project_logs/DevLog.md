@@ -60,6 +60,27 @@
     *   **Cleanup**: 미사용 변수(`navigate`, `useQueryClient` 등) 제거.
 *   **결과**: 빌드 성공 및 로컬 개발 서버(Port 5174) 정상 구동 확인.
 
+### 2026-01-28 (백엔드 연동 및 회원가입 버그 수정)
+
+### 15. 🔌 백엔드 및 환경 설정 (Backend & Env Setup)
+*   **서버 구동**: `docker-compose` 환경 변수(`JWT_SECRET`, DB Credentials) 설정 및 `SPRING_JPA_HIBERNATE_DDL_AUTO=update`로 스키마 오류 해결.
+*   **포트/CORS**:
+    *   Vite 포트 충돌(Port 5173 사용 중) 해결 및 프로세스 정리.
+    *   Backend `SecurityConfig.java`: `http://localhost:*` 패턴 허용으로 CORS 차단 문제 해결.
+
+### 16. 🐛 회원가입(닉네임 중복 확인) API 수정 (Bug Fix)
+*   **증상**: `/api/users/nickname-check` 호출 시 `500 Internal Server Error` (JSON Parse Error).
+*   **원인**: 프론트엔드 API 타입 정의(`boolean` 기대)와 백엔드 실제 응답(`{ available: boolean, message: string }`) 불일치.
+*   **해결**:
+    *   `auth.types.ts`: `NicknameCheckResult` 인터페이스 추가.
+    *   `authApi.ts`: 응답 타입을 `BaseResponse<NicknameCheckResult>`로 수정.
+    *   `SignupPage.tsx`: `response.data.available` 필드를 확인하도록 로직 변경.
+*   **결과**: 회원가입 시 닉네임 중복 체크 정상 동작 확인.
+
+### 17. 💾 버전 관리 (Version Control)
+*   백엔드 CORS 설정 및 프론트엔드 API 수정 사항 커밋 (`Fix nickname check API errors`).
+*   `frontend/youngsun` 브랜치 푸시 완료.
+
 ---
 
 ## 5. 🔜 향후 계획 (Next Steps)

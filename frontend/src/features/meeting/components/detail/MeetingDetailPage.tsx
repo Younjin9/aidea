@@ -226,23 +226,24 @@ const MeetingDetailPage: React.FC = () => {
     }
   }, [locationState, meetingId, getEventsByGroupId, addEvent, updateEventInStore, deleteEventInStore]);
 
-  // 스토어의 이벤트 정보가 바뀌면 meeting 상태도 동기화
-  useEffect(() => {
-    if (storedEvents.length > 0) {
-      setMeeting(prev => ({ ...prev, events: storedEvents }));
-    }
-  }, [storedEvents]);
-
-  // API에서 모임 상세 데이터가 오면 meeting 상태 갱신, 실패 시 mock 데이터 사용
+  // 2. API에서 모임 상세 데이터가 오면 meeting 상태 갱신, 실패 시 mock 데이터 사용
   useEffect(() => {
     if (apiMeetingDetail) {
-      console.log('Meeting Detail API Response Success:', apiMeetingDetail);
+      console.log('[DEBUG] Meeting Detail API Response:', apiMeetingDetail);
+
+      // queryFn에서 이미 response.data를 리턴했으므로 apiMeetingDetail은 MeetingDetail 객체여야 함
+      // 하지만 ApiResponse 객체가 그대로 실려오는 경우를 대비한 방어 로직
+      const actualData = (apiMeetingDetail as any).data || apiMeetingDetail;
+
       // members나 events가 없는 경우 빈 배열로 처리하여 UI 깨짐 방지
-      const sanitizedDetail = {
-        ...apiMeetingDetail,
-        members: apiMeetingDetail.members || [],
-        events: apiMeetingDetail.events || [],
+      // 백엔드 필드명(members, events)과 프론트엔드 타입이 일치하는지 확인하며 매핑
+      const sanitizedDetail: MeetingDetail = {
+        ...actualData,
+        members: Array.isArray(actualData.members) ? actualData.members : [],
+        events: Array.isArray(actualData.events) ? actualData.events : [],
       };
+
+      console.log('[DEBUG] Sanitized Meeting Detail for State:', sanitizedDetail);
       setMeeting(sanitizedDetail);
 
       // 좋아요 상태도 동시 동기화
@@ -250,7 +251,8 @@ const MeetingDetailPage: React.FC = () => {
         setIsLiked(sanitizedDetail.isLiked);
       }
     } else if (error) {
-      console.warn('모임 상세 API 호출 실패, Mock 데이터 사용:', error);
+      console.error('[ERROR] Meeting Detail API Failure:', error);
+      // API 실패 시 기존 meeting 상태(Mock/Store)가 유지되므로 별도 처리는 하지 않음
     }
   }, [apiMeetingDetail, error]);
 
