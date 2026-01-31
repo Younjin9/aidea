@@ -284,6 +284,7 @@ public class UserService {
                                                         .status(meeting.getStatus())
                                                         .isPublic(!meeting.getIsApprovalRequired()) // isApprovalRequired
                                                                                                     // -> isPublic
+                                                        .memberCount(meeting.getCurrentMembers())
                                                         .creator(CreatorDto.builder()
                                                                         .userId(meeting.getCreator().getUserId())
                                                                         .nickname(meeting.getCreator().getNickname())
@@ -327,6 +328,7 @@ public class UserService {
                                                 .status(meeting.getStatus())
                                                 .isPublic(!meeting.getIsApprovalRequired()) // isApprovalRequired ->
                                                                                             // isPublic
+                                                .memberCount(meeting.getCurrentMembers())
                                                 .creator(CreatorDto.builder()
                                                                 .userId(meeting.getCreator().getUserId())
                                                                 .nickname(meeting.getCreator().getNickname())
