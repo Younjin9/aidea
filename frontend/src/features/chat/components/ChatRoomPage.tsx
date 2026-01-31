@@ -31,7 +31,9 @@ const ChatRoomPage: React.FC = () => {
 
     // 시간 포맷팅 함수
     const formatTime = (dateString: string) => {
+        if (!dateString) return '';
         const date = new Date(dateString);
+        if (isNaN(date.getTime())) return '';
         let hours = date.getHours();
         const minutes = date.getMinutes();
         const ampm = hours >= 12 ? '오후' : '오전';
@@ -99,6 +101,7 @@ const ChatRoomPage: React.FC = () => {
             client.subscribe(`/topic/meeting/${parsedMeetingId}`, (message) => {
                 if (message.body) {
                     try {
+                        console.log('STOMP Message Received:', message.body);
                         const newMessage: ChatMessage = JSON.parse(message.body);
                         setMessages((prev) => [...prev, newMessage]);
                         scrollToBottom();
@@ -136,7 +139,7 @@ const ChatRoomPage: React.FC = () => {
 
         // STOMP 전송
         if (stompClient.current && stompClient.current.connected) {
-            const destination = `/app/chat.send/${parsedMeetingId}`;
+            const destination = `/app/chat/send/${parsedMeetingId}`;
             console.log(`Sending message to ${destination}`, messagePayload);
             stompClient.current.publish({
                 destination: destination,
