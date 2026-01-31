@@ -43,6 +43,44 @@ const ChatRoomPage: React.FC = () => {
         return `${ampm} ${hours}:${minutesStr}`;
     };
 
+    const scrollToBottom = () => {
+        setTimeout(() => {
+            messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        }, 100);
+    };
+
+    const handleSendMessage = () => {
+        if (!inputMessage.trim()) return;
+
+        // 전송할 메시지 객체 생성
+        const messagePayload = {
+            meetingId: parsedMeetingId,
+            senderId: String(myId), // 로그인 안했으면 게스트 ID
+            message: inputMessage,
+            messageType: 'TALK'
+        };
+
+        // STOMP 전송
+        if (stompClient.current && stompClient.current.connected) {
+            const destination = `/app/chat/send/${parsedMeetingId}`;
+            console.log(`Sending message to ${destination}`, messagePayload);
+            stompClient.current.publish({
+                destination: destination,
+                body: JSON.stringify(messagePayload),
+            });
+            setInputMessage('');
+        } else {
+            console.error('STOMP Client is not connected. Status:', stompClient.current?.state);
+            alert('채팅 서버와 연결되지 않았습니다.');
+        }
+    };
+
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === 'Enter' && !e.nativeEvent.isComposing) {
+            handleSendMessage();
+        }
+    };
+
     // 1. 기존 메시지 불러오기
     const { data: initialMessages } = useQuery({
         queryKey: ['chatMessages', parsedMeetingId],
@@ -50,7 +88,6 @@ const ChatRoomPage: React.FC = () => {
             try {
                 const response = await chatApi.getMessages(parsedMeetingId);
                 return response.data ?? [];
-                return Array.isArray(response) ? response : [];
             } catch {
                 // Fallback Dummy Data for UI Dev
                 return [
@@ -128,44 +165,6 @@ const ChatRoomPage: React.FC = () => {
         };
     }, [parsedMeetingId, token]);
 
-    // 3. 메시지 전송
-    const handleSendMessage = () => {
-        if (!inputMessage.trim()) return;
-
-        // 전송할 메시지 객체 생성
-        const messagePayload = {
-            meetingId: parsedMeetingId,
-            senderId: String(myId), // 로그인 안했으면 게스트 ID
-            message: inputMessage,
-            messageType: 'TALK'
-        };
-
-        // STOMP 전송
-        if (stompClient.current && stompClient.current.connected) {
-            const destination = `/app/chat/send/${parsedMeetingId}`;
-            console.log(`Sending message to ${destination}`, messagePayload);
-            stompClient.current.publish({
-                destination: destination,
-                body: JSON.stringify(messagePayload),
-            });
-            setInputMessage('');
-        } else {
-            console.error('STOMP Client is not connected. Status:', stompClient.current?.state);
-            alert('채팅 서버와 연결되지 않았습니다.');
-        }
-    };
-
-    const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-        if (e.key === 'Enter' && !e.nativeEvent.isComposing) {
-            handleSendMessage();
-        }
-    };
-
-    const scrollToBottom = () => {
-        setTimeout(() => {
-            messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-        }, 100);
-    };
 
     return (
         <div className="absolute inset-0 flex flex-col w-full bg-white">
