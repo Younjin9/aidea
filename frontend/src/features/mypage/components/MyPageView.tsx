@@ -11,7 +11,6 @@ import Modal from '@/shared/components/ui/Modal';
 import logo from '@/assets/images/logo.png';
 import { useMyPage, myPageKeys } from '../hooks/useMyPage';
 import { useMyPageStore } from '../store/myPageStore';
-import { useMeetingStore } from '@/features/meeting/store/meetingStore';
 import { useAuthStore } from '@/features/auth/store/authStore';
 import { useMeetings } from '@/features/meeting/hooks/useMeetings';
 import type { MeetingUI } from '@/shared/types/Meeting.types';
