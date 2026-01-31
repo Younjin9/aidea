@@ -10,7 +10,7 @@ import OAuthCallbackPage from '@/features/auth/components/OAuthCallbackPage';
 import FindIdPage from '@/features/auth/components/FindIdPage';
 import FindPwPage from '@/features/auth/components/FindPwPage';
 import InterestPage from '@/features/onboarding/components/InterestPage';
-import RequiredInfoPage from '@/features/onboarding/components/RequiredInfoPage'; // Import Here
+import RequiredInfoPage from '../features/onboarding/components/RequiredInfoPage';
 import ShortsPage from '@/features/recommendation/components/ShortsPage';
 import MeetingListPage from '@/features/meeting/components/MeetingListPage';
 import MeetingCreatePage from '@/features/meeting/components/MeetingCreatePage';
