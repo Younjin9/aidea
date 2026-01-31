@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+﻿import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { Send, ChevronLeft } from 'lucide-react';
@@ -15,7 +15,7 @@ const ChatRoomPage: React.FC = () => {
     const user = useAuthStore((state) => state.user);
 
     // 테스트를 위한 임시 유저 (로그인 안 된 경우)
-    const [guestId] = useState(() => `guest-${Math.floor(Math.random() * 10000)}`);
+    const [guestId] = useState(() => 'guest-' + Math.floor(Math.random() * 10000));
     const myId = user?.userId ? String(user.userId) : guestId;
 
     const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -37,7 +37,8 @@ const ChatRoomPage: React.FC = () => {
         const ampm = hours >= 12 ? '오후' : '오전';
         hours = hours % 12;
         hours = hours ? hours : 12;
-        return `${ampm} ${hours}:${minutes < 10 ? '0' + minutes : minutes}`;
+        const minutesStr = minutes < 10 ? '0' + minutes : minutes;
+        return `${ampm} ${hours}:${minutesStr}`;
     };
 
     // 1. 기존 메시지 불러오기
@@ -50,8 +51,8 @@ const ChatRoomPage: React.FC = () => {
             } catch {
                 // Fallback Dummy Data for UI Dev
                 return [
-                    { messageId: '1', senderId: '101', senderName: '김철수', message: '같이 가요!', createdAt: '2023-10-25T10:00:00', senderProfileImage: undefined, type: 'TALK' },
-                    { messageId: '2', senderId: '202', senderName: '김쩌고', message: '다른 사람이 말하는 버전 1줄 버전!', createdAt: '2023-10-25T10:05:00', senderProfileImage: undefined, type: 'TALK' },
+                    { messageId: '1', senderId: '101', senderName: '김철수', message: '같이 가요!', createdAt: '2023-10-25T10:00:00', type: 'TALK' },
+                    { messageId: '2', senderId: '202', senderName: '김쩌고', message: '다른 사람이 말하는 버전 1줄 버전!', createdAt: '2023-10-25T10:05:00', type: 'TALK' },
                 ] as ChatMessage[];
             }
         },
@@ -84,7 +85,7 @@ const ChatRoomPage: React.FC = () => {
             connectHeaders: {
                 Authorization: token ? `Bearer ${token}` : '',
             },
-            debug: (str) => {
+            debug: (str: string) => {
                 console.log('STOMP: ' + str);
             },
             reconnectDelay: 5000,
@@ -92,11 +93,11 @@ const ChatRoomPage: React.FC = () => {
             heartbeatOutgoing: 4000,
         });
 
-        client.onConnect = (frame) => {
+        client.onConnect = (frame: any) => {
             console.log('Connected: ' + frame);
 
             // Subscribe to Meeting Topic
-            client.subscribe(`/topic/meeting/${parsedMeetingId}`, (message) => {
+            client.subscribe(`/topic/meeting/${parsedMeetingId}`, (message: any) => {
                 if (message.body) {
                     try {
                         const newMessage: ChatMessage = JSON.parse(message.body);
@@ -109,7 +110,7 @@ const ChatRoomPage: React.FC = () => {
             });
         };
 
-        client.onStompError = (frame) => {
+        client.onStompError = (frame: any) => {
             console.error('Broker reported error: ' + frame.headers['message']);
             console.error('Additional details: ' + frame.body);
         };
@@ -143,7 +144,6 @@ const ChatRoomPage: React.FC = () => {
                 body: JSON.stringify(messagePayload),
             });
             setInputMessage('');
-            // Optimistic Update는 하지 않음 (서버 응답(구독)으로 받아서 처리)
         } else {
             console.error('STOMP Client is not connected. Status:', stompClient.current?.state);
             alert('채팅 서버와 연결되지 않았습니다.');
@@ -179,7 +179,7 @@ const ChatRoomPage: React.FC = () => {
             {/* Message List */}
             <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-white scrollbar-hide">
                 <div className="text-center text-xs text-gray-400 my-2">
-                    {user ? '로그인 상태입니다.' : `게스트 모드 (${guestId})`}
+                    {user ? '로그인 상태입니다.' : '게스트 모드 (' + guestId + ')'}
                 </div>
 
                 {messages.length === 0 ? (
@@ -189,8 +189,14 @@ const ChatRoomPage: React.FC = () => {
                     </div>
                 ) : (
                     messages.map((msg, idx) => {
-                        // 내 메시지 판별 로직 (로그인 ID 또는 게스트 ID 비교)
-                        const isMe = String(msg.senderId) === String(myId);
+                        // 내 메시지 판별 로직
+                        const currentUserId = user?.userId ? String(user.userId) : null;
+                        const messageSenderId = String(msg.senderId);
+
+                        const isMe = messageSenderId === String(myId) || 
+                                     msg.senderName === '나' || 
+                                     messageSenderId === '999' ||
+                                     (currentUserId && messageSenderId === currentUserId);
 
                         return (
                             <div key={idx} className={`flex w-full ${isMe ? 'justify-end' : 'justify-start'} items-end mb-4`}>
@@ -206,11 +212,8 @@ const ChatRoomPage: React.FC = () => {
                                     {!isMe && <span className="text-xs text-gray-600 mb-1 ml-1">{msg.senderName}</span>}
                                     <div className="flex items-end gap-1">
                                         {isMe && <span className="text-[10px] text-gray-400 min-w-fit mb-1">{formatTime(msg.createdAt)}</span>}
-                                        <div className={`p-3 text-sm whitespace-pre-wrap leading-relaxed ${isMe
-                                            ? 'bg-[#FF206E] text-white rounded-[20px] rounded-tr-none'
-                                            : 'bg-[#BDBDBD] text-white rounded-[20px] rounded-tl-none'
-                                            }`}>
-                                            {msg.message}
+                                        <div className={`p-3 text-sm whitespace-pre-wrap leading-relaxed ${isMe ? 'bg-primary text-white rounded-l-2xl rounded-tr-2xl' : 'bg-[#F3F4F6] text-black rounded-r-2xl rounded-tl-2xl'}`}>
+                                            {msg.message} 
                                         </div>
                                         {!isMe && <span className="text-[10px] text-gray-400 min-w-fit mb-1">{formatTime(msg.createdAt)}</span>}
                                     </div>

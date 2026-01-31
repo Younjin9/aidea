@@ -10,6 +10,7 @@ import OAuthCallbackPage from '@/features/auth/components/OAuthCallbackPage';
 import FindIdPage from '@/features/auth/components/FindIdPage';
 import FindPwPage from '@/features/auth/components/FindPwPage';
 import InterestPage from '@/features/onboarding/components/InterestPage';
+import RequiredInfoPage from '@/features/onboarding/components/RequiredInfoPage'; // Import Here
 import ShortsPage from '@/features/recommendation/components/ShortsPage';
 import MeetingListPage from '@/features/meeting/components/MeetingListPage';
 import MeetingCreatePage from '@/features/meeting/components/MeetingCreatePage';
@@ -23,6 +24,8 @@ import MyPageView from '@/features/mypage/components/MyPageView';
 import ProfileEditPage from '@/features/mypage/components/ProfileEditPage';
 import MyMeetingsPage from '@/features/mypage/components/MyMeetingsPage';
 import { useAuthStore } from '@/features/auth/store/authStore';
+// BottomTab import removed as it causes error and PrivateRoute uses Outlet
+// import BottomTab from '@/shared/components/layout/BottomTab';
 
 // 페이지 이동 시 스크롤을 맨 위로 이동
 const ScrollToTop: React.FC = () => {
@@ -36,16 +39,23 @@ const ScrollToTop: React.FC = () => {
 };
 
 const PrivateRoute = () => {
-  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
-  const user = useAuthStore((state) => state.user);
+  const { isAuthenticated, user } = useAuthStore();
   const location = useLocation();
 
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
+
+  const hasRequiredInfo = user?.gender && user?.location;
+  const hasInterests = user?.interests && user.interests.length > 0;
+
+  // 1. 필수 정보(성별/지역)가 없으면 -> /onboarding/required-info로 리다이렉트
+  if (!hasRequiredInfo && location.pathname !== '/onboarding/required-info') {
+    return <Navigate to="/onboarding/required-info" replace />;
   }
 
-  const hasInterests = !!user?.interests && user.interests.length > 0;
-  if (!hasInterests && location.pathname !== '/onboarding/interest') {
+  // 2. 필수 정보는 있는데 관심사가 없으면 -> /onboarding/interest로 리다이렉트
+  //    (단, 현재 경로가 interest라면 루프 방지)
+  //    (required-info 페이지에서는 관심사 체크 건너뜀)
+  if (hasRequiredInfo && !hasInterests && location.pathname !== '/onboarding/interest' && location.pathname !== '/onboarding/required-info') {
     return <Navigate to="/onboarding/interest" replace />;
   }
 
@@ -80,6 +90,10 @@ const AppRoutes: React.FC = () => {
             <Route path="/find-id" element={<FindIdPage />} />
             <Route path="/find-pw" element={<FindPwPage />} />
           </Route>
+          
+          {/* Onboarding Routes */}
+          <Route path="/onboarding/required-info" element={<RequiredInfoPage />} />
+          <Route path="/onboarding/interest" element={<InterestPage />} />
           
           <Route path="/chat" element={<ChatRoomPage />} />
         </Route>
