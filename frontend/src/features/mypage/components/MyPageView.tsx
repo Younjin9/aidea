@@ -19,7 +19,8 @@ import type { MeetingUI } from '@/shared/types/Meeting.types';
 const MyPageView: React.FC<{ onUnlike?: (id: number) => void }> = ({ onUnlike }) => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { user, myMeetings, likedMeetings, isLoading, refetchLikedMeetings } = useMyPage();
+  const { myMeetings, likedMeetings, isLoading, refetchLikedMeetings } = useMyPage();
+  const user = useAuthStore((state) => state.user);
   const clearUser = useMyPageStore((state) => state.clearUser);
   const initializeMeetingMockData = useMeetingStore((state) => state.initializeMockData);
   const logoutAuth = useAuthStore((state) => state.logout);
@@ -171,8 +172,8 @@ const MyPageView: React.FC<{ onUnlike?: (id: number) => void }> = ({ onUnlike })
             {displayedLikedMeetings.slice(0, 3).map((meeting) => (
               <MeetingCard 
                 key={meeting.id} 
-                {...meeting} 
-                onUnlike={() => handleUnlike(meeting.id)}
+                meeting={meeting}
+                onLike={() => handleUnlike(meeting.id)}
               />
             ))}
           </div>

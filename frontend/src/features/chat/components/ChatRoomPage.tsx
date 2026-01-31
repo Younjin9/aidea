@@ -85,7 +85,7 @@ const ChatRoomPage: React.FC = () => {
             connectHeaders: {
                 Authorization: token ? `Bearer ${token}` : '',
             },
-            debug: (str) => {
+            debug: (str: string) => {
                 console.log('STOMP: ' + str);
             },
             reconnectDelay: 5000,
@@ -93,11 +93,11 @@ const ChatRoomPage: React.FC = () => {
             heartbeatOutgoing: 4000,
         });
 
-        client.onConnect = (frame) => {
+        client.onConnect = (frame: any) => {
             console.log('Connected: ' + frame);
 
             // Subscribe to Meeting Topic
-            client.subscribe(`/topic/meeting/${parsedMeetingId}`, (message) => {
+            client.subscribe(`/topic/meeting/${parsedMeetingId}`, (message: any) => {
                 if (message.body) {
                     try {
                         const newMessage: ChatMessage = JSON.parse(message.body);
@@ -110,7 +110,7 @@ const ChatRoomPage: React.FC = () => {
             });
         };
 
-        client.onStompError = (frame) => {
+        client.onStompError = (frame: any) => {
             console.error('Broker reported error: ' + frame.headers['message']);
             console.error('Additional details: ' + frame.body);
         };
@@ -213,7 +213,7 @@ const ChatRoomPage: React.FC = () => {
                                     <div className="flex items-end gap-1">
                                         {isMe && <span className="text-[10px] text-gray-400 min-w-fit mb-1">{formatTime(msg.createdAt)}</span>}
                                         <div className={`p-3 text-sm whitespace-pre-wrap leading-relaxed ${isMe ? 'bg-primary text-white rounded-l-2xl rounded-tr-2xl' : 'bg-[#F3F4F6] text-black rounded-r-2xl rounded-tl-2xl'}`}>
-                                            {msg.message || msg.content} 
+                                            {msg.message} 
                                         </div>
                                         {!isMe && <span className="text-[10px] text-gray-400 min-w-fit mb-1">{formatTime(msg.createdAt)}</span>}
                                     </div>

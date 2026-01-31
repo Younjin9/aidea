@@ -24,7 +24,8 @@ import MyPageView from '@/features/mypage/components/MyPageView';
 import ProfileEditPage from '@/features/mypage/components/ProfileEditPage';
 import MyMeetingsPage from '@/features/mypage/components/MyMeetingsPage';
 import { useAuthStore } from '@/features/auth/store/authStore';
-import BottomTab from '@/shared/components/layout/BottomTab';
+// BottomTab import removed as it causes error and PrivateRoute uses Outlet
+// import BottomTab from '@/shared/components/layout/BottomTab';
 
 // 페이지 이동 시 스크롤을 맨 위로 이동
 const ScrollToTop: React.FC = () => {
@@ -38,10 +39,9 @@ const ScrollToTop: React.FC = () => {
 };
 
 const PrivateRoute = () => {
-  const { isAuthenticated, user, isLoading } = useAuthStore();
+  const { isAuthenticated, user } = useAuthStore();
   const location = useLocation();
 
-  if (isLoading) return <div>Loading...</div>; // 인증 체크 중 로딩 표시
   if (!isAuthenticated) return <Navigate to="/login" replace />;
 
   const hasRequiredInfo = user?.gender && user?.location;

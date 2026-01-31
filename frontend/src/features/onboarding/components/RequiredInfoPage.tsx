@@ -9,10 +9,10 @@ import type { Gender } from '@/shared/types/common.types';
 
 const RequiredInfoPage: React.FC = () => {
     const navigate = useNavigate();
-    const { user, setUser } = useAuthStore((state) => ({ 
+    const { user, updateUser } = useAuthStore((state) => ({ 
         user: state.user,
-        setUser: state.updateUser 
-    })); // Assuming updateUser exists in authStore
+        updateUser: state.updateUser 
+    }));
 
     const [nickname, setNickname] = useState('');
     const [gender, setGender] = useState<Gender | null>(null);
@@ -24,17 +24,24 @@ const RequiredInfoPage: React.FC = () => {
         if (user) {
             if (user.nickname) setNickname(user.nickname);
             if (user.gender) setGender(user.gender);
-            if (user.location && 'lat' in user.location) {
-                setLocation(user.location as { region: string; lat: number; lng: number });
+            if (user.location) {
+                const loc = user.location as any;
+                if (loc.region || loc.latitude || loc.lat) {
+                    setLocation({
+                        region: loc.region || '',
+                        lat: loc.lat || loc.latitude || 0,
+                        lng: loc.lng || loc.longitude || 0
+                    });
+                }
             }
         }
     }, [user]);
 
-    const handleLocationSelect = (selected: { address: string; lat: number; lng: number }) => {
+    const handleLocationSelect = (selected: { address: string; latitude: number; longitude: number }) => {
         setLocation({
             region: selected.address,
-            lat: selected.lat,
-            lng: selected.lng
+            lat: selected.latitude,
+            lng: selected.longitude
         });
         setIsLocationModalOpen(false);
     };
@@ -64,17 +71,21 @@ const RequiredInfoPage: React.FC = () => {
             // 2. Update Location
             await userApi.updateLocation({
                 region: location.region,
-                lat: location.lat,
-                lng: location.lng
+                latitude: location.lat,
+                longitude: location.lng
             });
 
             // Update local store
             if (user) {
-                setUser({
+                updateUser({
                     ...user,
                     nickname: nickname,
                     gender: gender,
-                    location: location
+                    location: {
+                        region: location.region,
+                        latitude: location.lat,
+                        longitude: location.lng
+                    }
                 });
             }
 
@@ -133,7 +144,6 @@ const RequiredInfoPage: React.FC = () => {
                 {/* 지역 선택 */}
                 <div onClick={() => setIsLocationModalOpen(true)} className="cursor-pointer">
                     <div className={`w-full rounded-xl px-4 py-3.5 text-left border-none bg-gray-50 flex items-center ${location ? 'text-gray-900' : 'text-gray-400'}`}>
-                        {/* Assuming Input component handles styling, but here using div mimicking input */}
                          {location ? location.region : '지역'}
                     </div>
                 </div>
