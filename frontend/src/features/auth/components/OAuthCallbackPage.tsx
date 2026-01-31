@@ -15,7 +15,7 @@ const OAuthCallbackPage: React.FC = () => {
 
       if (accessToken && refreshToken) {
         try {
-          // 1. 토큰 저장 (임시로 user는 null 로 설정하거나, 간단한 객체로 설정 후 getMe로 갱신)
+          // 1. 토큰 저장
            localStorage.setItem('accessToken', accessToken);
            localStorage.setItem('refreshToken', refreshToken);
 
@@ -26,12 +26,16 @@ const OAuthCallbackPage: React.FC = () => {
             const user = meResponse.data;
             setAuth(user, accessToken); 
             
-            // 필수 정보 확인
+            // 2. 가입 시 성별/지역 정보가 누락된 경우 -> 필수 정보 입력 페이지
             if (!user.gender || !user.location) {
                 navigate('/onboarding/required-info', { replace: true });
-            } else if (!user.interests || user.interests.length === 0) {
+            }
+            // 3. 관심사가 없는 경우 -> 관심사 설정 페이지
+            else if (!user.interests || user.interests.length === 0) {
                 navigate('/onboarding/interest', { replace: true });
-            } else {
+            }
+            // 4. 모두 완료된 경우 -> 메인으로
+            else {
                 navigate('/shorts', { replace: true });
             }
           } else {

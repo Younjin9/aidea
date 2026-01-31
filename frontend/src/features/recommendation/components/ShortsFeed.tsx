@@ -1,13 +1,9 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import RecommendedMeetingCard from './RecommendedMeetingCard';
-import { useMeetingStore } from '@/features/meeting/store/meetingStore';
+import { useMeetings } from '@/features/meeting/hooks/useMeetings';
 
 const ShortsFeed: React.FC = () => {
-  const { meetings, initializeMockData } = useMeetingStore();
-
-  useEffect(() => {
-    initializeMockData();
-  }, [initializeMockData]);
+  const { meetings } = useMeetings();
 
   if (!meetings || meetings.length === 0) {
     return (

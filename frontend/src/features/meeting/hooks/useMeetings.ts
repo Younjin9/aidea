@@ -57,8 +57,9 @@ export const useMeetings = (params: MeetingListParams = {}) => {
   const setMeetings = useMeetingStore((state) => state.setMeetings);
   const groupByCategoryFn = useMeetingStore((state) => state.groupByCategory);
   const toggleLikeByGroupId = useMeetingStore((state) => state.toggleLikeByGroupId);
-  const initializeMockData = useMeetingStore((state) => state.initializeMockData);
-  const isInitialized = useMeetingStore((state) => state.isInitialized);
+
+  // API 기반 좋아요 토글
+  const { mutate: toggleLikeMeetingMutation } = useToggleLikeMeeting();
 
   // API 호출
   const { data, isLoading, error, refetch } = useQuery({
@@ -72,15 +73,17 @@ export const useMeetings = (params: MeetingListParams = {}) => {
     retry: 1,
   });
 
-  // API 성공 시 store 업데이트, 실패 시 Mock 데이터 사용
+  // API 성공 시 store 업데이트 (Mock 데이터 사용 안 함)
   useEffect(() => {
     if (data) {
       setMeetings(data);
-    } else if (error && !isInitialized) {
-      console.warn('API 호출 실패, Mock 데이터 사용:', error);
-      initializeMockData();
     }
-  }, [data, error, isInitialized, setMeetings, initializeMockData]);
+  }, [data, setMeetings]);
+
+  // toggleLikeMeeting wrapper - 두 개의 인자를 객체로 변환
+  const toggleLikeMeeting = (groupId: string, isLiked: boolean) => {
+    toggleLikeMeetingMutation({ groupId, isLiked });
+  };
 
   return {
     meetings,
@@ -89,6 +92,7 @@ export const useMeetings = (params: MeetingListParams = {}) => {
     error,
     groupByCategory: groupByCategoryFn,
     toggleLike: toggleLikeByGroupId,
+    toggleLikeMeeting,
     refetch,
   };
 };
@@ -175,20 +179,23 @@ export const useCreateMeeting = () => {
  */
 export const useJoinMeeting = () => {
   const queryClient = useQueryClient();
-  const joinMeeting = useMeetingStore((state) => state.joinMeeting);
 
   return useMutation({
     mutationFn: async ({ groupId, requestMessage }: { groupId: string; requestMessage?: string }) => {
       const response = await meetingApi.join(groupId, { requestMessage });
-      return { groupId, ...response.data };
+      return { groupId, data: response.data };
     },
-    onSuccess: (_, { groupId }) => {
-      joinMeeting(groupId, 'MEMBER');
+    onSuccess: ({ groupId, data }) => {
+      // API 응답에서 실제 status 확인 (PENDING | APPROVED)
+      console.log('모임 참여 성공:', data);
+
+      // React Query 캐시 무효화 (API 재호출하여 최신 myRole, myStatus 반영)
       queryClient.invalidateQueries({ queryKey: meetingKeys.detail(groupId) });
+      queryClient.invalidateQueries({ queryKey: meetingKeys.list() });
       queryClient.invalidateQueries({ queryKey: myPageKeys.myMeetings() });
     },
     onError: (error) => {
-      console.warn('모임 참여 API 실패 (fallback 처리됨):', error);
+      console.error('모임 참여 API 실패:', error);
     },
   });
 };
@@ -202,15 +209,19 @@ export const useLeaveMeeting = () => {
   const leaveMeeting = useMeetingStore((state) => state.leaveMeeting);
 
   return useMutation({
-    mutationFn: async (groupId: string) => {
+    mutationFn: async ({ groupId, shouldNavigate = true }: { groupId: string; shouldNavigate?: boolean }) => {
       await meetingApi.leave(groupId);
-      return groupId;
+      return { groupId, shouldNavigate };
     },
-    onSuccess: (groupId) => {
+    onSuccess: ({ groupId, shouldNavigate }) => {
       leaveMeeting(groupId);
       queryClient.invalidateQueries({ queryKey: meetingKeys.all });
       queryClient.invalidateQueries({ queryKey: myPageKeys.myMeetings() });
-      navigate('/meetings');
+      queryClient.invalidateQueries({ queryKey: meetingKeys.detail(groupId) }); // 상세 정보 갱신
+
+      if (shouldNavigate) {
+        navigate('/meetings');
+      }
     },
     onError: (error) => {
       console.warn('모임 탈퇴 API 실패 (fallback 처리됨):', error);

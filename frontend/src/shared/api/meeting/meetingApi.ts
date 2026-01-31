@@ -1,5 +1,6 @@
 import apiClient, { buildQueryString } from '../client';
 import type { ApiResponse, PaginatedResponse } from '@/shared/types/common.types';
+import type { UpdateProfileImageResponse } from '@/shared/types/User.types';
 import type {
   Meeting,
   MeetingDetail,
@@ -88,7 +89,7 @@ export const update = async (
  * 모임 이미지 업로드 (S3 전용)
  * POST /api/groups/image
  */
-export const uploadImage = async (image: File): Promise<ApiResponse<{ imageUrl: string }>> => {
+export const uploadImage = async (image: File): Promise<UpdateProfileImageResponse> => {
   const formData = new FormData();
   formData.append('image', image);
 
@@ -126,7 +127,7 @@ export const leave = async (groupId: string): Promise<ApiResponse<void>> => {
 
 /**
  * 모임 좋아요
- * POST /api/groups/{groupId}/like
+ * POST /api/groups/{groupId}/like (토글: 찜하기/취소)
  */
 export const like = async (groupId: string): Promise<ApiResponse<void>> => {
   return apiClient.post(`/api/groups/${groupId}/like`);
@@ -134,10 +135,10 @@ export const like = async (groupId: string): Promise<ApiResponse<void>> => {
 
 /**
  * 모임 좋아요 취소
- * DELETE /api/groups/{groupId}/like
+ * POST /api/groups/{groupId}/like (토글: unlike도 같은 POST 엔드포인트)
  */
 export const unlike = async (groupId: string): Promise<ApiResponse<void>> => {
-  return apiClient.delete(`/api/groups/${groupId}/like`);
+  return apiClient.post(`/api/groups/${groupId}/like`);
 };
 
 /**
