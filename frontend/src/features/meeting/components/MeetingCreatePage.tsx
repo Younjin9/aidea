@@ -10,9 +10,11 @@ import LocationSearchModal from './LocationSearchModal';
 import { INTEREST_CATEGORIES } from '@/shared/config/constants';
 import defaultLogo from '@/assets/images/logo.png';
 import { useMeetingStore } from '../store/meetingStore';
-import { useMyPageStore } from '@/features/mypage/store/myPageStore';
+import { useAuthStore } from '@/features/auth/store/authStore';
 import { useCreateMeeting } from '../hooks/useMeetings';
 import * as meetingApi from '@/shared/api/meeting/meetingApi';
+
+const getFutureMeetingDate = () => new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('.')[0];
 
 const MeetingCreatePage: React.FC = () => {
   const navigate = useNavigate();
@@ -20,7 +22,7 @@ const MeetingCreatePage: React.FC = () => {
   const addMeeting = useMeetingStore((state) => state.addMeeting);
 
   // 유저 프로필 이미지 가져오기
-  const user = useMyPageStore((state) => state.user);
+  const user = useAuthStore((state) => state.user);
   const currentUserProfileImage = user?.profileImage;
 
   // API Mutation
@@ -117,8 +119,9 @@ const MeetingCreatePage: React.FC = () => {
       // 1. 이미지가 있으면 먼저 S3에 업로드
       if (imageFile) {
         const uploadRes = await meetingApi.uploadImage(imageFile);
-        if (uploadRes.success) {
-          finalImageUrl = uploadRes.data.imageUrl;
+        const uploadedUrl = uploadRes.profileImage || (uploadRes as { imageUrl?: string }).imageUrl;
+        if (uploadedUrl) {
+          finalImageUrl = uploadedUrl;
         }
       }
 
@@ -136,7 +139,7 @@ const MeetingCreatePage: React.FC = () => {
           longitude: coords.lng,
           isPublic: false, // ✅ 기본값: 승인 필요 모임
           // 400 Error 대응: 서버(KST) 기준 미래 시간 전송
-          meetingDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('.')[0], // 7일 후 (초 단위까지 포함)
+          meetingDate: getFutureMeetingDate(), // 7일 후 (초 단위까지 포함)
           imageUrl: finalImageUrl,
         },
         {

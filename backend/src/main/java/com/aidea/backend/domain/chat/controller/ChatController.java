@@ -27,12 +27,12 @@ public class ChatController {
     private final UserRepository userRepository;
     private final org.springframework.messaging.simp.SimpMessagingTemplate messagingTemplate;
 
-    @MessageMapping("/chat.send/{meetingId}")
+    @MessageMapping("/chat/send/{meetingId}")
     public void sendMessage(
             @Payload ChatMessageRequest request,
             @DestinationVariable Long meetingId,
             Principal principal) {
-        
+
         if (principal == null) {
             throw new RuntimeException("인증되지 않은 사용자입니다.");
         }
