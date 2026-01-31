@@ -34,6 +34,9 @@ public class User {
     @Column(nullable = false, length = 50)
     private String nickname;
 
+    @Column(length = 200)
+    private String bio;
+
     @Column(name = "phone_number", length = 20)
     private String phoneNumber;
 
@@ -66,6 +69,18 @@ public class User {
     @Column(name = "location_updated_at")
     private LocalDateTime locationUpdatedAt;
 
+    @Column(name = "chat_enabled")
+    @Builder.Default
+    private Boolean chatEnabled = true;
+
+    @Column(name = "event_enabled")
+    @Builder.Default
+    private Boolean eventEnabled = true;
+
+    @Column(name = "marketing_enabled")
+    @Builder.Default
+    private Boolean marketingEnabled = false;
+
     @CreationTimestamp
     @Column(name = "created_at")
     private LocalDateTime createdAt;
@@ -74,9 +89,10 @@ public class User {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
-    public User update(String nickname, String profileImage, String phoneNumber, 
-                     String gender, String location, Double latitude, Double longitude) {
+    public User update(String nickname, String bio, String profileImage, String phoneNumber,
+            String gender, String location, Double latitude, Double longitude) {
         this.nickname = nickname;
+        this.bio = bio;
         this.profileImage = profileImage;
         this.phoneNumber = phoneNumber;
         this.gender = gender;

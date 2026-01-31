@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Search, X } from 'lucide-react';
+import { Search, X, MapPin } from 'lucide-react';
 import Button from '@/shared/components/ui/Button';
 
 // 카카오 지도 타입 선언
@@ -11,8 +11,12 @@ declare global {
         Map: new (container: HTMLElement, options: { center: LatLng; level: number }) => KakaoMap;
         LatLng: new (lat: number, lng: number) => LatLng;
         Marker: new (options: { position: LatLng; map?: KakaoMap }) => Marker;
+        event: {
+          addListener: (target: any, type: string, callback: Function) => void;
+        };
         services: {
           Places: new () => Places;
+          Geocoder: new () => Geocoder;
           Status: { OK: string; ZERO_RESULT: string };
         };
       };
@@ -48,6 +52,10 @@ interface Places {
     keyword: string,
     callback: (result: PlaceResult[], status: string) => void
   ) => void;
+}
+
+interface Geocoder {
+  coord2Address: (lng: number, lat: number, callback: (result: any, status: string) => void) => void;
 }
 
 export interface SelectedPlace {
@@ -92,21 +100,59 @@ const KakaoMapModal: React.FC<KakaoMapModalProps> = ({ isOpen, onClose, onSelect
     if (!mapContainerRef.current) return;
 
     const kakao = window.kakao;
+    if (!kakao || !kakao.maps) {
+      console.warn('Kakao Maps script is not yet available, retrying...');
+      return;
+    }
+
     kakao.maps.load(() => {
       const map = new kakao.maps.Map(mapContainerRef.current as HTMLElement, {
         center: currentLocation
           ? new kakao.maps.LatLng(currentLocation.latitude, currentLocation.longitude)
-          : new kakao.maps.LatLng(37.5665, 126.978), // Default to Seoul
+          : new kakao.maps.LatLng(37.5665, 126.978),
         level: 3,
       });
 
       mapRef.current = map;
+
+      const initialPosition = currentLocation
+        ? new kakao.maps.LatLng(currentLocation.latitude, currentLocation.longitude)
+        : new kakao.maps.LatLng(37.5665, 126.978);
+
       markerRef.current = new kakao.maps.Marker({
-        position: new kakao.maps.LatLng(37.5665, 126.978), // Default position
+        position: initialPosition,
         map,
       });
 
       placesRef.current = new kakao.maps.services.Places();
+
+      // ✅ 지도 클릭 이벤트 - 클릭한 위치로 마커 이동 & 주소 가져오기
+      kakao.maps.event.addListener(map, 'click', (mouseEvent: any) => {
+        const latlng = mouseEvent.latLng;
+
+        // 마커 위치 이동
+        if (markerRef.current) {
+          markerRef.current.setPosition(latlng);
+        }
+
+        // 좌표를 주소로 변환
+        const geocoder = new kakao.maps.services.Geocoder();
+        geocoder.coord2Address(latlng.getLng(), latlng.getLat(), (result: any, status: any) => {
+          if (status === kakao.maps.services.Status.OK) {
+            const address = result[0].address;
+            const roadAddress = result[0].road_address;
+
+            setSelectedPlace({
+              place_name: roadAddress?.building_name || address.region_3depth_name || '선택한 위치',
+              address_name: address.address_name,
+              road_address_name: roadAddress?.address_name,
+              x: String(latlng.getLng()),
+              y: String(latlng.getLat()),
+            });
+          }
+        });
+      });
+
       setIsMapLoaded(true);
     });
   }, [isOpen, currentLocation]);
@@ -189,7 +235,7 @@ const KakaoMapModal: React.FC<KakaoMapModalProps> = ({ isOpen, onClose, onSelect
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onKeyPress={handleKeyPress}
-                placeholder="장소, 주소, 버스 검색"
+                placeholder="장소, 주소 검색 (예: 스타벅스, 카페)"
                 className="w-full bg-gray-100 rounded-lg pl-4 pr-10 py-2 text-sm outline-none"
               />
               <button onClick={handleSearch} className="absolute right-3 top-1/2 -translate-y-1/2">
@@ -223,14 +269,24 @@ const KakaoMapModal: React.FC<KakaoMapModalProps> = ({ isOpen, onClose, onSelect
               <p className="text-sm text-gray-500">지도를 불러오는 중...</p>
             </div>
           )}
+
+          {/* 지도 사용 안내 */}
+          {isMapLoaded && !selectedPlace && (
+            <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-white/90 backdrop-blur-sm px-4 py-2 rounded-full shadow-md pointer-events-none select-none">
+              <div className="flex items-center gap-2 text-xs text-gray-600">
+                <MapPin size={14} className="text-primary" />
+                <span>지도를 클릭하거나 검색하세요</span>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Selected Place Info & Confirm Button */}
         {selectedPlace && (
-          <div className="p-4 border-t border-gray-100">
+          <div className="p-4 border-t border-gray-100 bg-white">
             <div className="mb-3">
               <p className="font-medium text-sm">{selectedPlace.place_name}</p>
-              <p className="text-xs text-gray-500">{selectedPlace.road_address_name || selectedPlace.address_name}</p>
+              <p className="text-xs text-gray-500 mt-1">{selectedPlace.road_address_name || selectedPlace.address_name}</p>
             </div>
             <Button variant="primary" size="md" fullWidth onClick={handleConfirm}>
               이 위치로 선택

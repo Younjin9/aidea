@@ -1,16 +1,9 @@
 spring:
-  datasource:
-    url: jdbc:postgresql://localhost:5432/${PG_DB:aidea_dev}
-    username: ${PG_USER:aidea}
-    password: ${PG_PASSWORD:aidea1234}
-    driver-class-name: org.postgresql.Driver
-
   application:
     name: aidea-backend
 
   profiles:
     active: ${SPRING_PROFILES_ACTIVE:local}
-    
 
   jpa:
     hibernate:

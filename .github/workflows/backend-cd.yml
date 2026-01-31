@@ -2,10 +2,11 @@ name: Backend CD
 
 on:
   push:
-    branches: [ "develop" ]
+    branches: ["backend-integration"]
     paths:
       - 'backend/**'
       - 'docker-compose.yml'
+  workflow_dispatch:
 
 env:
   VERSION: ${{ github.sha }}
@@ -23,7 +24,7 @@ jobs:
 
       - name: Set up Docker Image Name
         run: |
-          echo "DOCKER_IMAGE=ghcr.io/$(echo ${{ github.actor }} | tr '[:upper:]' '[:lower:]')/aidea-backend" >> $GITHUB_ENV
+          echo "DOCKER_IMAGE=${{ secrets.DOCKERHUB_USERNAME }}/aidea-backend" >> $GITHUB_ENV
 
       # 1. Java Setup & Build
       - name: Set up JDK 17
@@ -41,13 +42,12 @@ jobs:
           cd backend
           ./gradlew clean build -x test
 
-      # 2. Docker Build & Push to GHCR
-      - name: Log in to GitHub Container Registry
+      # 2. Docker Build & Push to Docker Hub
+      - name: Log in to Docker Hub
         uses: docker/login-action@v3
         with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Build and Push Docker Image
         uses: docker/build-push-action@v5
@@ -65,8 +65,8 @@ jobs:
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
-            # Login to GHCR on EC2
-            echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u $(echo ${{ github.actor }} | tr '[:upper:]' '[:lower:]') --password-stdin
+            # Login to Docker Hub on EC2
+            echo ${{ secrets.DOCKERHUB_TOKEN }} | docker login -u ${{ secrets.DOCKERHUB_USERNAME }} --password-stdin
             
             # Pull latest image
             docker pull ${{ env.DOCKER_IMAGE }}:latest
@@ -109,7 +109,7 @@ jobs:
                 ports:
                   - "8080:8080"
                 environment:
-                  SPRING_PROFILES_ACTIVE: prod
+                  SPRING_PROFILES_ACTIVE: dev
                   DB_HOST: mysql
                   DB_NAME: ${{ secrets.DB_NAME }}
                   DB_USER: ${{ secrets.DB_USER }}
@@ -118,6 +118,9 @@ jobs:
                   JWT_SECRET: ${{ secrets.JWT_SECRET }}
                   KAKAO_CLIENT_ID: ${{ secrets.KAKAO_CLIENT_ID }}
                   KAKAO_CLIENT_SECRET: ${{ secrets.KAKAO_CLIENT_SECRET }}
+                  AWS_ACCESS_KEY: ${{ secrets.AWS_ACCESS_KEY }}
+                  AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+                  AWS_S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}
                 depends_on:
                   - mysql
                   - redis

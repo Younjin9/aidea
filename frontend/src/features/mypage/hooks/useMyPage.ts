@@ -76,13 +76,13 @@ export const useMyPage = () => {
   });
 
   // 찜한 모임 (API) - meetingApi.getLiked, 실패 시 store fallback
-  const { data: likedMeetingsData, error: likedMeetingsError } = useQuery({
+  const { data: likedMeetingsData, error: likedMeetingsError, refetch: refetchLikedMeetings } = useQuery({
     queryKey: myPageKeys.likedMeetings(),
     queryFn: async () => {
       const response = await meetingApi.getLiked();
       return transformMeetingsToUI(response.data || []);
     },
-    staleTime: 1000 * 60 * 3,
+    staleTime: 0, // 항상 최신 데이터 가져오기
     retry: 1,
   });
 
@@ -122,5 +122,6 @@ export const useMyPage = () => {
 
     // Refetch
     refetchProfile,
+    refetchLikedMeetings,
   };
 };

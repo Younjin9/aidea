@@ -16,7 +16,7 @@ export interface ChatMessage {
   senderId: string;
   senderName: string;
   senderProfileImage?: string;
-  content: string;
+  message: string;
   createdAt: string;
   type: 'TALK' | 'ENTER' | 'LEAVE' | 'IMAGE';
 }

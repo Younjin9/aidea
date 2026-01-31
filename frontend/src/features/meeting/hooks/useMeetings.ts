@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import meetingApi from '@/shared/api/meeting/meetingApi';
 import { useMeetingStore } from '../store/meetingStore';
 import { myPageKeys } from '@/features/mypage/hooks/useMyPage';
-import type { Meeting, MeetingUI, MeetingListParams, CreateMeetingRequest } from '@/shared/types/Meeting.types';
+import type { Meeting, MeetingUI, MeetingListParams, CreateMeetingRequest, UpdateMeetingRequest } from '@/shared/types/Meeting.types';
 
 // ============================================
 // Helper Functions
@@ -15,14 +15,19 @@ import type { Meeting, MeetingUI, MeetingListParams, CreateMeetingRequest } from
  */
 const transformMeetingToUI = (meeting: Meeting): MeetingUI => {
   return {
-    id: parseInt(meeting.groupId, 10) || 0,
-    groupId: meeting.groupId,
+    id: meeting.groupId,
+    groupId: meeting.groupId.toString(),
     image: meeting.imageUrl || '',
     title: meeting.title,
     category: meeting.interestCategoryName || '카테고리',
-    location: `${meeting.location.region || '위치 정보 없음'}`,
+    location: meeting.region || meeting.location || '위치 정보',
     members: meeting.memberCount,
+    maxMembers: meeting.maxMembers,
+    description: meeting.description,
     isLiked: false,
+    ownerUserId: meeting.ownerUserId, // still keep this but relying on myRole is better
+    myStatus: meeting.myStatus as 'PENDING' | 'APPROVED' | undefined,
+    myRole: meeting.myRole as 'HOST' | 'MEMBER' | undefined,
   };
 };
 
@@ -60,8 +65,8 @@ export const useMeetings = (params: MeetingListParams = {}) => {
     queryKey: meetingKeys.list(),
     queryFn: async () => {
       const response = await meetingApi.getList(params);
-      const content = response.data.content;
-      return transformMeetingsToUI(content || []);
+      const content = response.data?.content || [];
+      return transformMeetingsToUI(content);
     },
     staleTime: 1000 * 60 * 3,
     retry: 1,
@@ -94,7 +99,6 @@ export const useMeetings = (params: MeetingListParams = {}) => {
 
 export const useToggleLikeMeeting = () => {
   const queryClient = useQueryClient();
-  const toggleLikeByGroupId = useMeetingStore((state) => state.toggleLikeByGroupId);
 
   return useMutation({
     mutationFn: async ({ groupId, isLiked }: { groupId: string; isLiked: boolean }) => {
@@ -105,16 +109,10 @@ export const useToggleLikeMeeting = () => {
       }
       return { groupId };
     },
-    onMutate: async ({ groupId }) => {
-      toggleLikeByGroupId(groupId);
-    },
-    onError: (err, { groupId }) => {
-      console.warn('모임 좋아요/취소 API 실패, 상태 복원:', err);
-      toggleLikeByGroupId(groupId);
-    },
     onSuccess: (_, { groupId }) => {
       queryClient.invalidateQueries({ queryKey: meetingKeys.all });
       queryClient.invalidateQueries({ queryKey: myPageKeys.myMeetings() });
+      queryClient.invalidateQueries({ queryKey: myPageKeys.likedMeetings() });
       queryClient.invalidateQueries({ queryKey: ['members', groupId] });
     },
   });
@@ -138,18 +136,23 @@ export const useCreateMeeting = () => {
       return response.data;
     },
     onSuccess: (data) => {
+      if (!data) {
+        console.error('모임 생성 성공했으나 데이터가 없습니다.');
+        return;
+      }
+
       addMeeting({
-        groupId: data.groupId,
+        groupId: data.groupId?.toString() || '',
         image: data.imageUrl || '',
-        title: data.title,
+        title: data.title || '',
         category: data.interestCategoryName || '카테고리',
-        location: data.location.region || '위치 정보 없음',
-        members: data.memberCount,
-        maxMembers: data.maxMembers,
-        description: data.description,
-        date: data.createdAt,
+        location: data.region || '위치 정보 없음',
+        members: data.currentMembers || 1,
+        maxMembers: data.maxMembers || 0,
+        description: data.description || '',
+        date: data.createdAt || new Date().toISOString(),
         isLiked: false,
-        ownerUserId: data.ownerUserId,
+        ownerUserId: data.creator?.userId || 0,
         myStatus: 'APPROVED',
         myRole: 'HOST',
       });
@@ -158,8 +161,11 @@ export const useCreateMeeting = () => {
       queryClient.invalidateQueries({ queryKey: myPageKeys.myMeetings() });
       navigate('/meetings');
     },
-    onError: (error) => {
+    onError: (error: any) => {
       console.warn('모임 생성 API 실패 (fallback 처리됨):', error);
+      if (error?.details) {
+        console.error('Validation Details:', JSON.stringify(error.details, null, 2));
+      }
     },
   });
 };
@@ -208,6 +214,52 @@ export const useLeaveMeeting = () => {
     },
     onError: (error) => {
       console.warn('모임 탈퇴 API 실패 (fallback 처리됨):', error);
+    },
+  });
+};
+
+/**
+ * 모임 정보 수정
+ */
+export const useUpdateMeeting = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ groupId, data }: { groupId: string; data: UpdateMeetingRequest }) => {
+      const response = await meetingApi.update(groupId, data);
+      return response.data;
+    },
+    onSuccess: (_, { groupId }) => {
+      queryClient.invalidateQueries({ queryKey: meetingKeys.detail(groupId) });
+      queryClient.invalidateQueries({ queryKey: meetingKeys.all });
+      queryClient.invalidateQueries({ queryKey: myPageKeys.myMeetings() });
+    },
+    onError: (error) => {
+      console.warn('모임 수정 API 실패 (fallback 처리됨):', error);
+    },
+  });
+};
+
+/**
+ * 모임 이미지 수정 (API 준비 중)
+ */
+export const useUpdateMeetingImage = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (_params: { groupId: string; image: File }) => {
+      // TODO: API가 준비되면 활성화
+      // const response = await meetingApi.updateImage(groupId, image);
+      // return { groupId, imageUrl: response.data.imageUrl };
+      throw new Error('API not implemented yet');
+    },
+    onSuccess: ({ groupId }) => {
+      queryClient.invalidateQueries({ queryKey: meetingKeys.detail(groupId) });
+      queryClient.invalidateQueries({ queryKey: meetingKeys.all });
+      queryClient.invalidateQueries({ queryKey: myPageKeys.myMeetings() });
+    },
+    onError: (error) => {
+      console.warn('모임 이미지 수정 API 실패 (fallback 처리됨):', error);
     },
   });
 };

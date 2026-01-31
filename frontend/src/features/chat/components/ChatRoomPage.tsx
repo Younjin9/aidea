@@ -1,7 +1,8 @@
-import React, { useEffect, useState, useRef } from 'react';
+﻿import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation } from '@tanstack/react-query';
-import { Send, Users, ChevronLeft } from 'lucide-react';
+import { Send, ChevronLeft } from 'lucide-react';
+import { Client } from '@stomp/stompjs';
 import { chatApi } from '@/shared/api/chatAPI';
 import { useAuthStore } from '@/features/auth/store/authStore';
 import type { ChatMessage } from '@/shared/types/Chat.types';
@@ -10,13 +11,15 @@ const ChatRoomPage: React.FC = () => {
     const params = useParams<{ meetingId: string }>();
     const meetingId = params.meetingId;
     const navigate = useNavigate();
-    // const queryClient = useQueryClient();
     const user = useAuthStore((state) => state.user);
-    const myId = user?.userId ? String(user.userId) : '999'; // Fallback ID
+
+    // 테스트를 위한 임시 유저 (로그인 안 된 경우)
+    const [guestId] = useState(() => guest-);
+    const myId = user?.userId ? String(user.userId) : guestId;
 
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [inputMessage, setInputMessage] = useState('');
-    const socketRef = useRef<WebSocket | null>(null);
+    const stompClient = useRef<Client | null>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
     // 데모용 Fallback: meetingId가 없으면 1로 설정
@@ -30,7 +33,7 @@ const ChatRoomPage: React.FC = () => {
         const ampm = hours >= 12 ? '오후' : '오전';
         hours = hours % 12;
         hours = hours ? hours : 12;
-        return `${ampm} ${hours}:${minutes < 10 ? '0' + minutes : minutes}`;
+        return ${ampm} :;
     };
 
     // 1. 기존 메시지 불러오기
@@ -39,15 +42,13 @@ const ChatRoomPage: React.FC = () => {
         queryFn: async () => {
             try {
                 const response = await chatApi.getMessages(parsedMeetingId);
-                // @ts-ignore
-                return response.result || response.data || [];
-            } catch (e) {
+                // @ts-expect-error
+                return Array.isArray(response) ? response : [];
+            } catch {
                 // Fallback Dummy Data for UI Dev
                 return [
-                    { messageId: '1', senderId: '101', senderName: '김철수', content: '같이 가요!', createdAt: '2023-10-25T10:00:00', senderProfileImage: undefined },
-                    { messageId: '2', senderId: '202', senderName: '김쩌고', content: '다른 사람이 말하는 버전 1줄 버전!', createdAt: '2023-10-25T10:05:00', senderProfileImage: undefined },
-                    { messageId: '3', senderId: '202', senderName: '김쩌고', content: '다른 사람이 말하는 버전 2줄 버전!\n다른 사람이 말하는 버전 2줄 버전!', createdAt: '2023-10-25T10:06:00', senderProfileImage: undefined },
-                    { messageId: '4', senderId: myId, senderName: '나', content: '자신이 말하는 버전 2줄 버전!\n자신이 말하는 버전 2줄 버전!', createdAt: '2023-10-25T10:07:00' },
+                    { messageId: '1', senderId: '101', senderName: '김철수', message: '같이 가요!', createdAt: '2023-10-25T10:00:00', senderProfileImage: undefined, type: 'TALK' },
+                    { messageId: '2', senderId: '202', senderName: '김쩌고', message: '다른 사람이 말하는 버전 1줄 버전!', createdAt: '2023-10-25T10:05:00', senderProfileImage: undefined, type: 'TALK' },
                 ] as ChatMessage[];
             }
         },
@@ -68,80 +69,77 @@ const ChatRoomPage: React.FC = () => {
                 markAsRead(parsedMeetingId);
             }
         }
-    }, [initialMessages, parsedMeetingId]);
+    }, [initialMessages, parsedMeetingId, markAsRead]);
 
-    // 2. WebSocket 연결
+    // 2. STOMP 연결
     useEffect(() => {
-        if (!user) return; // Allow demo without user check effectively, but safe check
+        const client = new Client({
+            brokerURL: 'ws://localhost:8080/ws/websocket', // Backend WebSocket Endpoint (Direct)
+            debug: (str) => {
+                console.log('STOMP: ' + str);
+            },
+            reconnectDelay: 5000,
+            heartbeatIncoming: 4000,
+            heartbeatOutgoing: 4000,
+        });
 
-        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const host = 'localhost:8080'; // Should use env var
-        const wsUrl = `${protocol}//${host}/api/chat/ws/chat`;
+        client.onConnect = (frame) => {
+            console.log('Connected: ' + frame);
 
-        try {
-            const socket = new WebSocket(wsUrl);
-            socketRef.current = socket;
-
-            socket.onopen = () => {
-                console.log('Connected to WebSocket');
-            };
-
-            socket.onmessage = (event) => {
-                try {
-                    const newMessage: ChatMessage = JSON.parse(event.data);
-                    setMessages((prev) => [...prev, newMessage]);
-                    scrollToBottom();
-                } catch (e) {
-                    console.error('Message parse error', e);
+            // Subscribe to Meeting Topic
+            client.subscribe(/topic/meeting/, (message) => {
+                if (message.body) {
+                    try {
+                        const newMessage: ChatMessage = JSON.parse(message.body);
+                        setMessages((prev) => [...prev, newMessage]);
+                        scrollToBottom();
+                    } catch (e) {
+                        console.error('Message parse error', e);
+                    }
                 }
-            };
+            });
+        };
 
-            socket.onclose = () => {
-                console.log('Disconnected from WebSocket');
-            };
-        } catch (e) {
-            console.error("WebSocket Init Failed", e);
-        }
+        client.onStompError = (frame) => {
+            console.error('Broker reported error: ' + frame.headers['message']);
+            console.error('Additional details: ' + frame.body);
+        };
+
+        client.activate();
+        stompClient.current = client;
 
         return () => {
-            if (socketRef.current) {
-                socketRef.current.close();
-            }
+            client.deactivate();
         };
-    }, [parsedMeetingId, user]);
+    }, [parsedMeetingId]);
 
     // 3. 메시지 전송
     const handleSendMessage = () => {
         if (!inputMessage.trim()) return;
 
-        // Optimistic UI Update (즉시 추가)
-        const tempMessage: ChatMessage = {
-            messageId: Date.now().toString(),
-            senderId: user?.userId || myId,
-            senderName: user?.nickname || '나',
-            senderProfileImage: user?.profileImage,
-            content: inputMessage,
-            createdAt: new Date().toISOString(),
-            type: 'TALK',
+        // 전송할 메시지 객체 생성
+        const messagePayload = {
+            meetingId: parsedMeetingId,
+            senderId: String(myId), // 로그인 안했으면 게스트 ID
+            message: inputMessage,
+            messageType: 'TALK'
         };
-        setMessages((prev) => [...prev, tempMessage]);
-        setInputMessage('');
-        scrollToBottom();
 
-        // WebSocket 전송
-        if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
-            const messagePayload = {
-                meetingId: parsedMeetingId,
-                senderId: user?.userId || myId,
-                content: inputMessage,
-                type: 'TALK'
-            };
-            socketRef.current.send(JSON.stringify(messagePayload));
+        // STOMP 전송
+        if (stompClient.current && stompClient.current.connected) {
+            stompClient.current.publish({
+                destination: /app/chat.send.,
+                body: JSON.stringify(messagePayload),
+            });
+            setInputMessage('');
+            // Optimistic Update는 하지 않음 (서버 응답(구독)으로 받아서 처리)
+        } else {
+            console.error('STOMP Client is not connected');
+            alert('채팅 서버와 연결되지 않았습니다.');
         }
     };
 
     const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-        // 한글 입력 중 조합 문제 방지 (isComposing)
         if (e.key === 'Enter' && !e.nativeEvent.isComposing) {
             handleSendMessage();
         }
@@ -153,7 +151,6 @@ const ChatRoomPage: React.FC = () => {
         }, 100);
     };
 
-    // 헤더 뒤로가기 버튼 제거 (모임 상세 내부 탭으로 들어갈 경우)
     return (
         <div className="absolute inset-0 flex flex-col w-full bg-white">
             {/* Header (Visible only when standalone usage) */}
@@ -163,17 +160,17 @@ const ChatRoomPage: React.FC = () => {
                         <button onClick={() => navigate(-1)} className="p-1 -ml-2">
                             <ChevronLeft size={24} color="#000" />
                         </button>
-                        <h1 className="font-bold text-lg">맛집 탐방</h1>
-                    </div>
-                    <div className="flex items-center gap-1">
-                        <Users size={18} />
-                        <span className="text-sm font-medium">14</span>
+                        <h1 className="font-bold text-lg">맛집 탐방 (Test)</h1>
                     </div>
                 </header>
             )}
 
             {/* Message List */}
             <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-white scrollbar-hide">
+                <div className="text-center text-xs text-gray-400 my-2">
+                    {user ? '로그인 상태입니다.' : 게스트 모드 ()}
+                </div>
+
                 {messages.length === 0 ? (
                     <div className="h-full flex flex-col items-center justify-center text-gray-400">
                         <p>대화 내용이 없습니다.</p>
@@ -181,16 +178,17 @@ const ChatRoomPage: React.FC = () => {
                     </div>
                 ) : (
                     messages.map((msg, idx) => {
-                        // 안전한 ID 비교 (문자열 변환)
+                        // 내 메시지 판별 로직
                         const currentUserId = user?.userId ? String(user.userId) : null;
                         const messageSenderId = String(msg.senderId);
-                        
-                        const isMe = msg.senderName === '나' || 
-                                     (currentUserId && messageSenderId === currentUserId) || 
-                                     messageSenderId === '999';
+
+                        const isMe = messageSenderId === String(myId) || 
+                                     msg.senderName === '나' || 
+                                     messageSenderId === '999' ||
+                                     (currentUserId && messageSenderId === currentUserId);
 
                         return (
-                            <div key={idx} className={`flex w-full ${isMe ? 'justify-end' : 'justify-start'} items-end mb-4`}>
+                            <div key={idx} className={lex w-full  items-end mb-4}>
                                 {!isMe && (
                                     <div className="flex flex-col items-center mr-3">
                                         <div className="w-10 h-10 rounded-full bg-gray-300 overflow-hidden mb-1">
@@ -199,15 +197,12 @@ const ChatRoomPage: React.FC = () => {
                                     </div>
                                 )}
 
-                                <div className={`flex flex-col max-w-[70%] ${isMe ? 'items-end' : 'items-start'}`}>
+                                <div className={lex flex-col max-w-[70%] }>
                                     {!isMe && <span className="text-xs text-gray-600 mb-1 ml-1">{msg.senderName}</span>}
                                     <div className="flex items-end gap-1">
                                         {isMe && <span className="text-[10px] text-gray-400 min-w-fit mb-1">{formatTime(msg.createdAt)}</span>}
-                                        <div className={`p-3 text-sm whitespace-pre-wrap leading-relaxed ${isMe
-                                                ? 'bg-[#FF206E] text-white rounded-[20px] rounded-tr-none'
-                                                : 'bg-[#BDBDBD] text-white rounded-[20px] rounded-tl-none'
-                                            }`}>
-                                            {msg.content}
+                                        <div className={p-3 text-sm whitespace-pre-wrap leading-relaxed }>
+                                            {msg.message || msg.content} 
                                         </div>
                                         {!isMe && <span className="text-[10px] text-gray-400 min-w-fit mb-1">{formatTime(msg.createdAt)}</span>}
                                     </div>

@@ -2,9 +2,10 @@ name: Frontend CD
 
 on:
   push:
-    branches: [ "develop" ]
+    branches: [ "frontend-integration" ]
     paths:
       - 'frontend/**'
+  workflow_dispatch:
 
 jobs:
   build-and-deploy:
@@ -32,7 +33,8 @@ jobs:
       # 2. Build
       - name: Build
         env:
-          VITE_API_URL: http://13.125.49.100:8080 # Change this to your actual API domain if needed
+          VITE_API_BASE_URL: ${{ secrets.VITE_API_BASE_URL }}
+          VITE_KAKAO_MAP_API_KEY: ${{ secrets.VITE_KAKAO_MAP_API_KEY }}
         run: npm run build
 
       # 3. Deploy to S3
@@ -45,7 +47,10 @@ jobs:
 
       - name: Sync to S3
         run: |
-          aws s3 sync dist/ s3://${{ secrets.S3_BUCKET_NAME }} --delete
+          aws s3 sync dist/ s3://${{ secrets.S3_BUCKET_NAME }} --delete \
+            --exclude "profile-images/*" \
+            --exclude "meeting-images/*" \
+            --exclude "chat-images/*"
 
       # 4. Invalidate CloudFront and Wait for completion
       - name: Invalidate CloudFront

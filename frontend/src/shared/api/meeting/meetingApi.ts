@@ -1,4 +1,4 @@
-import apiClient, { buildQueryString, createFormData } from '../client';
+import apiClient, { buildQueryString } from '../client';
 import type { ApiResponse, PaginatedResponse } from '@/shared/types/common.types';
 import type {
   Meeting,
@@ -21,7 +21,7 @@ import type {
  */
 export const getList = async (params: MeetingListParams): Promise<ApiResponse<PaginatedResponse<Meeting>>> => {
   const queryString = buildQueryString(params);
-  return apiClient.get(`/groups?${queryString}`);
+  return apiClient.get(`/api/groups?${queryString}`);
 };
 
 /**
@@ -33,7 +33,7 @@ export const getNearby = async (
   lng: number,
   radiusKm: number = 5
 ): Promise<ApiResponse<Meeting[]>> => {
-  return apiClient.get(`/groups/nearby?lat=${lat}&lng=${lng}&radiusKm=${radiusKm}`);
+  return apiClient.get(`/api/groups/nearby?lat=${lat}&lng=${lng}&radiusKm=${radiusKm}`);
 };
 
 /**
@@ -41,7 +41,7 @@ export const getNearby = async (
  * GET /api/groups/popular
  */
 export const getPopular = async (period: 'week' | 'month' = 'week'): Promise<ApiResponse<Meeting[]>> => {
-  return apiClient.get(`/groups/popular?period=${period}`);
+  return apiClient.get(`/api/groups/popular?period=${period}`);
 };
 
 /**
@@ -54,7 +54,7 @@ export const search = async (
 ): Promise<ApiResponse<PaginatedResponse<Meeting>>> => {
   const params = { keyword, ...filters };
   const queryString = buildQueryString(params);
-  return apiClient.get(`/groups/search?${queryString}`);
+  return apiClient.get(`/api/groups/search?${queryString}`);
 };
 
 /**
@@ -62,7 +62,7 @@ export const search = async (
  * GET /api/groups/{groupId}
  */
 export const getDetail = async (groupId: string): Promise<ApiResponse<MeetingDetail>> => {
-  return apiClient.get(`/groups/${groupId}`);
+  return apiClient.get(`/api/groups/${groupId}`);
 };
 
 /**
@@ -70,14 +70,7 @@ export const getDetail = async (groupId: string): Promise<ApiResponse<MeetingDet
  * POST /api/groups
  */
 export const create = async (data: CreateMeetingRequest): Promise<ApiResponse<MeetingDetail>> => {
-  if (data.image) {
-    const formData = createFormData(data);
-    return apiClient.post('/groups', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
-  }
-
-  return apiClient.post('/groups', data);
+  return apiClient.post('/api/groups', data);
 };
 
 /**
@@ -88,18 +81,18 @@ export const update = async (
   groupId: string,
   data: UpdateMeetingRequest
 ): Promise<ApiResponse<MeetingDetail>> => {
-  return apiClient.patch(`/groups/${groupId}`, data);
+  return apiClient.patch(`/api/groups/${groupId}`, data);
 };
 
 /**
- * 모임 이미지 변경
- * POST /api/groups/{groupId}/image
+ * 모임 이미지 업로드 (S3 전용)
+ * POST /api/groups/image
  */
-export const updateImage = async (groupId: string, image: File): Promise<ApiResponse<{ imageUrl: string }>> => {
+export const uploadImage = async (image: File): Promise<ApiResponse<{ imageUrl: string }>> => {
   const formData = new FormData();
   formData.append('image', image);
 
-  return apiClient.post(`/groups/${groupId}/image`, formData, {
+  return apiClient.post('/api/groups/image', formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
   });
 };
@@ -109,7 +102,7 @@ export const updateImage = async (groupId: string, image: File): Promise<ApiResp
  * DELETE /api/groups/{groupId}
  */
 export const remove = async (groupId: string): Promise<ApiResponse<void>> => {
-  return apiClient.delete(`/groups/${groupId}`);
+  return apiClient.delete(`/api/groups/${groupId}`);
 };
 
 /**
@@ -120,7 +113,7 @@ export const join = async (
   groupId: string,
   data?: JoinMeetingRequest
 ): Promise<ApiResponse<JoinMeetingResponse>> => {
-  return apiClient.post(`/groups/${groupId}/join`, data);
+  return apiClient.post(`/api/groups/${groupId}/join`, data);
 };
 
 /**
@@ -128,7 +121,7 @@ export const join = async (
  * POST /api/groups/{groupId}/leave
  */
 export const leave = async (groupId: string): Promise<ApiResponse<void>> => {
-  return apiClient.post(`/groups/${groupId}/leave`);
+  return apiClient.post(`/api/groups/${groupId}/leave`);
 };
 
 /**
@@ -136,7 +129,7 @@ export const leave = async (groupId: string): Promise<ApiResponse<void>> => {
  * POST /api/groups/{groupId}/like
  */
 export const like = async (groupId: string): Promise<ApiResponse<void>> => {
-  return apiClient.post(`/groups/${groupId}/like`);
+  return apiClient.post(`/api/groups/${groupId}/like`);
 };
 
 /**
@@ -144,7 +137,7 @@ export const like = async (groupId: string): Promise<ApiResponse<void>> => {
  * DELETE /api/groups/{groupId}/like
  */
 export const unlike = async (groupId: string): Promise<ApiResponse<void>> => {
-  return apiClient.delete(`/groups/${groupId}/like`);
+  return apiClient.delete(`/api/groups/${groupId}/like`);
 };
 
 /**
@@ -152,7 +145,7 @@ export const unlike = async (groupId: string): Promise<ApiResponse<void>> => {
  * GET /api/users/me/liked-groups
  */
 export const getLiked = async (): Promise<ApiResponse<Meeting[]>> => {
-  return apiClient.get('/users/me/liked-groups');
+  return apiClient.get('/api/users/me/liked-groups');
 };
 
 /**
@@ -160,7 +153,7 @@ export const getLiked = async (): Promise<ApiResponse<Meeting[]>> => {
  * GET /api/groups/{groupId}/stats
  */
 export const getStats = async (groupId: string): Promise<ApiResponse<MeetingStats>> => {
-  return apiClient.get(`/groups/${groupId}/stats`);
+  return apiClient.get(`/api/groups/${groupId}/stats`);
 };
 
 const meetingApi = {
@@ -171,7 +164,7 @@ const meetingApi = {
   getDetail,
   create,
   update,
-  updateImage,
+  uploadImage,
   remove,
   join,
   leave,

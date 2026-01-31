@@ -1,4 +1,4 @@
-// 마이페이지
+﻿// 마이페이지
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
@@ -11,7 +11,7 @@ import logo from '@/assets/images/logo.png';
 import { useMyPage, myPageKeys } from '../hooks/useMyPage';
 import { useMyPageStore } from '../store/myPageStore';
 import { useMeetingStore } from '@/features/meeting/store/meetingStore';
-import { useAuth } from '@/features/auth/hooks/useAuth';
+import { useAuthStore } from '@/features/auth/store/authStore';
 import { authApi } from '@/shared/api/authApi';
 import userApi from '@/shared/api/user/userApi';
 import type { MeetingUI } from '@/shared/types/Meeting.types';
@@ -19,10 +19,10 @@ import type { MeetingUI } from '@/shared/types/Meeting.types';
 const MyPageView: React.FC<{ onUnlike?: (id: number) => void }> = ({ onUnlike }) => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { user, myMeetings, likedMeetings, isLoading, unlikeMeeting } = useMyPage();
-  const { logout: authLogout } = useAuth();
+  const { user, myMeetings, likedMeetings, isLoading, unlikeMeeting, refetchLikedMeetings } = useMyPage();
   const clearUser = useMyPageStore((state) => state.clearUser);
   const initializeMeetingMockData = useMeetingStore((state) => state.initializeMockData);
+  const logoutAuth = useAuthStore((state) => state.logout);
 
   // 로그아웃/회원탈퇴 모달 상태
   const [showLogoutModal, setShowLogoutModal] = useState(false);
@@ -37,6 +37,11 @@ const MyPageView: React.FC<{ onUnlike?: (id: number) => void }> = ({ onUnlike })
   useEffect(() => {
     initializeMeetingMockData();
   }, [initializeMeetingMockData]);
+
+  // 페이지 진입 시 찜 목록 새로고침
+  useEffect(() => {
+    refetchLikedMeetings?.();
+  }, [refetchLikedMeetings]);
 
   useEffect(() => {
     if (!isInitializedRef.current && likedMeetings.length > 0) {
@@ -70,15 +75,20 @@ const MyPageView: React.FC<{ onUnlike?: (id: number) => void }> = ({ onUnlike })
     }, 1000);
   };
 
+  const handleSetting = () => {
+    // navigate('/settings'); // 설정 페이지가 있다면
+    alert('설정 기능 준비 중입니다.');
+  };
+
   // 로그아웃 핸들러
   const handleLogout = async () => {
     try {
       await authApi.logout();
     } catch (error) {
-      console.error('Logout API failed:', error);
+      console.warn('Logout API failed:', error);
     }
     
-    authLogout(); // Auth 스토어 초기화
+    logoutAuth(); // Auth 스토어 초기화
     clearUser(); // MyPage 스토어 초기화
     
     // React Query 캐시 제거 (다음 로그인 시 이전 사용자 데이터 보임 방지)
@@ -94,7 +104,7 @@ const MyPageView: React.FC<{ onUnlike?: (id: number) => void }> = ({ onUnlike })
     try {
       await userApi.deleteAccount();
       
-      authLogout();
+      logoutAuth();
       clearUser();
       queryClient.removeQueries({ queryKey: myPageKeys.all });
       
@@ -124,7 +134,7 @@ const MyPageView: React.FC<{ onUnlike?: (id: number) => void }> = ({ onUnlike })
         <div className="w-8" />
       </header>
 
-      <main className="flex-1 overflow-y-auto pb-20 no-scrollbar flex flex-col min-h-0">
+      <main className="flex-1 overflow-y-auto pb-32 no-scrollbar flex flex-col min-h-0">
         {/* Profile */}
         <section className="px-6 py-6 border-b border-gray-100">
           <div className="flex items-start gap-4 relative">
@@ -158,7 +168,7 @@ const MyPageView: React.FC<{ onUnlike?: (id: number) => void }> = ({ onUnlike })
           {myMeetings.length > 0 ? (
             <div className="space-y-4">
               {myMeetings.slice(0, 2).map(meeting => (
-                <MeetingCard key={meeting.id} meeting={meeting} onClick={() => navigate(`/meetings/${meeting.groupId}`)} showLikeButton={false} />
+                <MeetingCard key={meeting.id} meeting={meeting} onClick={() => navigate(/meetings/)} showLikeButton={false} />
               ))}
             </div>
           ) : (
@@ -168,14 +178,17 @@ const MyPageView: React.FC<{ onUnlike?: (id: number) => void }> = ({ onUnlike })
 
         {/* 찜 목록 */}
         <section className="px-6 py-6 border-b border-gray-100">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-base font-bold text-gray-900">찜 목록</h3>
-            <button onClick={() => navigate('/my-meetings?tab=liked')} className="text-xs text-gray-500">전체 보기</button>
-          </div>
+          <h3 className="text-base font-bold text-gray-900 mb-4">찜한 모임</h3>
           {displayedLikedMeetings.length > 0 ? (
             <div className="space-y-4">
-              {displayedLikedMeetings.slice(0, 2).map(meeting => (
-                <MeetingCard key={meeting.id} meeting={meeting} onClick={() => navigate(`/meetings/${meeting.groupId}`)} onLike={() => handleUnlike(meeting.id)} showLikeButton />
+              {displayedLikedMeetings.map(meeting => (
+                <MeetingCard 
+                  key={meeting.id} 
+                  meeting={meeting} 
+                  onClick={() => navigate(/meetings/)}
+                  isLiked={meeting.isLiked}
+                  onToggleLike={() => handleUnlike(parseInt(meeting.groupId, 10))}
+                />
               ))}
             </div>
           ) : (
@@ -183,37 +196,45 @@ const MyPageView: React.FC<{ onUnlike?: (id: number) => void }> = ({ onUnlike })
           )}
         </section>
 
-        {/* 로그아웃/회원탈퇴 */}
-        <div className="px-6 py-8 mt-auto flex items-center justify-center gap-2">
-          <button onClick={() => setShowLogoutModal(true)} className="text-xs text-gray-400 underline">로그아웃</button>
-          <span className="text-xs text-gray-300">·</span>
-          <button onClick={() => setShowWithdrawModal(true)} className="text-xs text-gray-400 underline">회원탈퇴</button>
-        </div>
+        {/* 설정 목록 */}
+        <section className="px-6 py-6">
+          <ul className="space-y-4">
+            <li>
+              <button 
+                onClick={handleSetting}
+                className="w-full text-left text-sm text-gray-600 hover:text-gray-900"
+              >
+                환경설정
+              </button>
+            </li>
+            <li>
+              <button onClick={() => setShowLogoutModal(true)} className="w-full text-left text-sm text-gray-600 hover:text-gray-900">로그아웃</button>
+            </li>
+            <li>
+              <button onClick={() => setShowWithdrawModal(true)} className="text-xs text-gray-400 underline">회원탈퇴</button>
+            </li>
+          </ul>
+        </section>
       </main>
 
-      {/* 로그아웃 확인 모달 */}
+      {/* Logout Modal */}
       <Modal
         isOpen={showLogoutModal}
         onClose={() => setShowLogoutModal(false)}
-        showLogo={true}
-        message="로그아웃 하시겠습니까?"
+        title="로그아웃"
+        content="정말 로그아웃 하시겠습니까?"
         confirmText="로그아웃"
-        cancelText="취소"
         onConfirm={handleLogout}
         onCancel={() => setShowLogoutModal(false)}
       />
 
-      {/* 회원탈퇴 확인 모달 */}
+      {/* Withdraw Modal */}
       <Modal
         isOpen={showWithdrawModal}
         onClose={() => setShowWithdrawModal(false)}
-        showLogo={true}
         title="회원탈퇴"
-        message="탈퇴 시 모든 데이터가 삭제되며 복구할 수 없습니다."
-        showCheckbox={true}
-        checkboxLabel="위 내용을 확인했습니다"
-        confirmText="탈퇴"
-        cancelText="취소"
+        content="정말 탈퇴하시겠습니까? 탈퇴 시 모든 데이터가 삭제됩니다."
+        confirmText="탈퇴하기"
         onConfirm={handleWithdraw}
         onCancel={() => setShowWithdrawModal(false)}
       />

@@ -5,19 +5,20 @@ import type { BaseResponse } from '@/shared/types/auth.types';
 export const chatApi = {
   // 1. 채팅방 목록 조회
   getChatRooms: async (): Promise<ChatRoomListResponse> => {
-    const response = await apiClient.get<ChatRoomListResponse>('/chat/rooms');
+    const response = await apiClient.get<ChatRoomListResponse>('/api/chat/rooms');
     return response as unknown as ChatRoomListResponse;
   },
 
   // 2. 채팅 메시지 조회
   getMessages: async (meetingId: number): Promise<ChatMessageListResponse> => {
-    const response = await apiClient.get<ChatMessageListResponse>(`/chat/rooms/${meetingId}`);
+    // Backend: /api/chat/meetings/{meetingId}/messages
+    const response = await apiClient.get<ChatMessageListResponse>(`/api/chat/meetings/${meetingId}/messages`);
     return response as unknown as ChatMessageListResponse;
   },
 
   // 3. 메시지 읽음 처리
   markAsRead: async (meetingId: number): Promise<BaseResponse<null>> => {
-    const response = await apiClient.post<BaseResponse<null>>(`/chat/rooms/${meetingId}/read`);
+    const response = await apiClient.post<BaseResponse<null>>(`/api/chat/rooms/${meetingId}/read`);
     return response as unknown as BaseResponse<null>;
   }
 };

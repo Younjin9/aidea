@@ -16,8 +16,8 @@ export default defineConfig(({ mode }) => {
         name: 'html-transform',
         transformIndexHtml(html) {
           return html.replace(
-            /%VITE_KAKAO_JAVASCRIPT_KEY%/g,
-            env.VITE_KAKAO_JAVASCRIPT_KEY || ''
+            /%VITE_KAKAO_MAP_API_KEY%/g,
+            env.VITE_KAKAO_MAP_API_KEY || ''
           )
         },
       },
@@ -30,11 +30,14 @@ export default defineConfig(({ mode }) => {
     server: {
       proxy: {
         '/api': {
-          target: 'http://localhost:8080',
+          target: env.VITE_API_URL || 'http://localhost:8080',
           changeOrigin: true,
           secure: false,
         },
       },
+      port: 5173,
+      strictPort: true,
+
     },
   }
 })

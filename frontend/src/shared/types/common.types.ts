@@ -43,15 +43,15 @@ export type Gender = 'MALE' | 'FEMALE' | 'OTHER';
 // ============================================
 
 export interface Location {
-  lat: number;
-  lng: number;
+  latitude: number;
+  longitude: number;
   region?: string;
   accuracy?: number;
   updatedAt?: string;
 }
 
 export interface LocationUpdate {
-  lat: number;
-  lng: number;
+  latitude: number;
+  longitude: number;
   region: string;
 }

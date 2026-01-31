@@ -1,5 +1,5 @@
 import React from 'react';
-import { UsersRound, Crown } from 'lucide-react';
+import { Crown } from 'lucide-react';
 import ProfileImage from '@/shared/components/ui/ProfileImage';
 import Button from '@/shared/components/ui/Button';
 import Modal from '@/shared/components/ui/Modal';
@@ -32,7 +32,8 @@ const EventCard: React.FC<EventCardProps> = ({
   onJoin,
   onJoinMeetingFirst,
 }) => {
-  const formatDateTime = (dateString: string) => {
+  const formatDateTime = (dateString?: string) => {
+    if (!dateString) return '일시 미정';
     const date = new Date(dateString);
     const dateStr = date.toLocaleDateString('ko-KR', { month: '2-digit', day: '2-digit', weekday: 'short' });
     const timeStr = date.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
@@ -48,7 +49,7 @@ const EventCard: React.FC<EventCardProps> = ({
       )}
       <div className="space-y-2 text-sm mb-4">
         <div className="flex gap-3"><p className="text-gray-500 w-12">일시</p><p className="font-medium">{formatDateTime(event.scheduledAt)}</p></div>
-        <div className="flex gap-3"><p className="text-gray-500 w-12">위치</p><p className="font-medium">{event.location || meeting.location.region}</p></div>
+        <div className="flex gap-3"><p className="text-gray-500 w-12">위치</p><p className="font-medium">{event.placeName || meeting.region || '미정'}</p></div>
         <div className="flex gap-3"><p className="text-gray-500 w-12">비용</p><p className="font-medium">{event.cost || '무료'}</p></div>
         <div className="flex gap-3"><p className="text-gray-500 w-12">참석</p><p className="font-medium">{event.participantCount}명 ({event.participantCount}/{event.maxParticipants || meeting.maxMembers})</p></div>
       </div>
@@ -59,7 +60,7 @@ const EventCard: React.FC<EventCardProps> = ({
           {event.participants.slice(0, 3).map((p) => (
             <div key={p.userId} className="relative">
               <ProfileImage src={p.profileImage} alt={p.nickname} size="sm" className="border-2 border-white" />
-              {p.isHost && (
+              {'role' in p && p.role === 'HOST' && (
                 <div className="absolute -bottom-1 -right-1 bg-yellow-400 rounded-full p-0.5 border border-white">
                   <Crown size={12} className="text-white fill-white" />
                 </div>
@@ -75,16 +76,33 @@ const EventCard: React.FC<EventCardProps> = ({
       )}
 
       {/* Buttons */}
-      <div className="flex gap-2">
+      <div className="flex gap-2 items-center">
         <Button variant="outline" size="md" className="flex-1">공유</Button>
-        {isHost || isMember ? (
-          isParticipating ? (
-            <Button variant="primary" size="md" className="flex-1" onClick={onCancelParticipation}>취소</Button>
-          ) : (
-            <Button variant="primary" size="md" className="flex-1" onClick={onJoin}>참석</Button>
-          )
+        {isHost ? (
+          <div className="flex-1 flex items-center justify-center gap-1 text-green-600 font-medium py-2 bg-green-50 rounded-md border border-green-200">
+            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+            </svg>
+            필참 (모임장)
+          </div>
         ) : (
-          <Button variant="primary" size="md" className="flex-1" onClick={onJoinMeetingFirst}>참석</Button>
+          isMember ? (
+            isParticipating ? (
+              <Button variant="primary" size="md" className="flex-1 bg-gray-500 hover:bg-gray-600 border-gray-500" onClick={onCancelParticipation}>취소</Button>
+            ) : (
+              <Button
+                variant="primary"
+                size="md"
+                className="flex-1"
+                onClick={onJoin}
+                disabled={event.participantCount! >= (event.maxParticipants || meeting.maxMembers)}
+              >
+                {event.participantCount! >= (event.maxParticipants || meeting.maxMembers) ? '마감' : '참석'}
+              </Button>
+            )
+          ) : (
+            <Button variant="primary" size="md" className="flex-1" onClick={onJoinMeetingFirst}>참석</Button>
+          )
         )}
       </div>
     </div>
@@ -118,7 +136,7 @@ export interface EventSectionProps {
 }
 
 const EventSection: React.FC<EventSectionProps> = ({
-  events,
+  events = [],
   meeting,
   isHost,
   isMember,
@@ -151,15 +169,14 @@ const EventSection: React.FC<EventSectionProps> = ({
               isMember={isMember}
               isParticipating={isParticipating}
               onTitleClick={() => onEventTitleClick(event)}
-              onCancelParticipation={() => onEventAction(event.eventId, event.title, 'cancelParticipation')}
-              onJoin={() => onEventAction(event.eventId, event.title, 'join')}
+              onCancelParticipation={() => onEventAction(String(event.eventId), event.title, 'cancelParticipation')}
+              onJoin={() => onEventAction(String(event.eventId), event.title, 'join')}
               onJoinMeetingFirst={() => onJoinMeetingFirst()}
             />
           );
         })
       ) : (
         <div className="flex flex-col items-center justify-center py-8">
-          <UsersRound size={40} className="text-gray-300 mb-2" />
           <p className="text-gray-500 text-sm">예정된 정모가 없습니다.</p>
         </div>
       )}
