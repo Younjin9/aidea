@@ -4,7 +4,10 @@
 export const getWebSocketUrl = () => {
     // 1. 환경 변수가 설정되어 있으면 최우선 사용
     const envWsUrl = import.meta.env.VITE_WS_URL;
-    if (envWsUrl) return envWsUrl;
+    if (envWsUrl) {
+        // 도메인만 있는 경우 (e.g. wss://aimo.ai.kr) 기본 경로 보정
+        return envWsUrl.endsWith('/') ? `${envWsUrl}api/ws` : (envWsUrl.includes('/api/') || envWsUrl.endsWith('/ws') ? envWsUrl : `${envWsUrl}/api/ws`);
+    }
 
     const { protocol, hostname } = window.location;
 
