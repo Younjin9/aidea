@@ -19,10 +19,9 @@ import type { MeetingUI } from '@/shared/types/Meeting.types';
 const MyPageView: React.FC<{ onUnlike?: (id: number) => void }> = ({ onUnlike }) => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { myMeetings, likedMeetings, isLoading, refetchLikedMeetings } = useMyPage();
+  const { likedMeetings, isLoading, refetchLikedMeetings } = useMyPage();
   const user = useAuthStore((state) => state.user);
   const clearUser = useMyPageStore((state) => state.clearUser);
-  const initializeMeetingMockData = useMeetingStore((state) => state.initializeMockData);
   const logoutAuth = useAuthStore((state) => state.logout);
   const { toggleLikeMeeting } = useMeetings();
 
@@ -142,7 +141,7 @@ const MyPageView: React.FC<{ onUnlike?: (id: number) => void }> = ({ onUnlike })
                 </button>
               </h1>
               <p className="text-sm text-gray-500">
-                {user?.introduction || '자기소개가 없습니다.'}
+                {user?.bio || '자기소개가 없습니다.'}
               </p>
             </div>
           </div>
