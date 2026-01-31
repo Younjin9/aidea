@@ -16,10 +16,20 @@ export const useLogin = () => {
         const { user, accessToken, refreshToken } = response.data;
         localStorage.setItem('refreshToken', refreshToken);
         setAuth(user, accessToken);
-        if (!user?.interests || user.interests.length === 0) {
-          navigate('/onboarding/interest', { replace: true });
-          return;
+        
+        // 2. 성별/지역 누락 확인
+        if (!user.gender || !user.location) {
+            navigate('/onboarding/required-info', { replace: true });
+            return;
         }
+
+        // 3. 관심사 설정 확인
+        if (!user.interests || user.interests.length === 0) {
+            navigate('/onboarding/interest', { replace: true });
+            return;
+        }
+
+        // 4. 메인으로 이동
         navigate('/shorts', { replace: true });
       }
     },
