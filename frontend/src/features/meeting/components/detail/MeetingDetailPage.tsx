@@ -502,7 +502,7 @@ const MeetingDetailPage: React.FC = () => {
             }}
             className={isPending ? 'bg-orange-500 hover:bg-orange-600' : ''}
           >
-            {isPending ? '참가 신청 취소' : '참석하기'}
+            {isPending ? '참가 신청 취소' : '가입하기'}
           </Button>
         </div>
       )}

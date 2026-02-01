@@ -273,6 +273,8 @@ const EventEditPage: React.FC = () => {
         isOpen={showMapModal}
         onClose={() => setShowMapModal(false)}
         onSelect={handleLocationSelect}
+        currentLocation={selectedLocation ? { latitude: selectedLocation.lat, longitude: selectedLocation.lng } : undefined}
+        initialAddress={eventLocation}
       />
 
       {/* Delete Confirmation Modal */}
