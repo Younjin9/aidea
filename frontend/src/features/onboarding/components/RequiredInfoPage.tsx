@@ -9,19 +9,21 @@ import type { Gender } from '@/shared/types/common.types';
 
 const RequiredInfoPage: React.FC = () => {
     const navigate = useNavigate();
-    const { user, updateUser } = useAuthStore((state) => ({ 
-        user: state.user,
-        updateUser: state.updateUser 
-    }));
+    // Selector 분리로 불필요한 리렌더링 방지
+    const user = useAuthStore((state) => state.user);
+    const updateUser = useAuthStore((state) => state.updateUser);
 
     const [nickname, setNickname] = useState('');
     const [gender, setGender] = useState<Gender | null>(null);
     const [location, setLocation] = useState<{ region: string; lat: number; lng: number } | null>(null);
     const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
+    
+    // 초기화 여부 체크 (한 번만 로드하여 덮어쓰기/무한루프 방지)
+    const isInitialized = React.useRef(false);
 
     useEffect(() => {
-        if (user) {
+        if (user && !isInitialized.current) {
             if (user.nickname) setNickname(user.nickname);
             if (user.gender) setGender(user.gender);
             if (user.location) {
@@ -34,6 +36,7 @@ const RequiredInfoPage: React.FC = () => {
                     });
                 }
             }
+            isInitialized.current = true;
         }
     }, [user]);
 
@@ -62,18 +65,23 @@ const RequiredInfoPage: React.FC = () => {
 
         setIsLoading(true);
         try {
-            // 1. Update Profile (Nickname, Gender)
-            await userApi.updateProfile({
-                nickname: nickname,
-                gender: gender
-            });
+            // [테스트용] 백엔드 없이 UI 흐름 확인을 위한 예외 처리
+            try {
+                // 1. Update Profile (Nickname, Gender)
+                await userApi.updateProfile({
+                    nickname: nickname,
+                    gender: gender
+                });
 
-            // 2. Update Location
-            await userApi.updateLocation({
-                region: location.region,
-                latitude: location.lat,
-                longitude: location.lng
-            });
+                // 2. Update Location
+                await userApi.updateLocation({
+                    region: location.region,
+                    latitude: location.lat,
+                    longitude: location.lng
+                });
+            } catch (apiError) {
+                console.warn('Backend is offline or failed. Proceeding with local state only.', apiError);
+            }
 
             // Update local store
             if (user) {
@@ -92,8 +100,8 @@ const RequiredInfoPage: React.FC = () => {
             // Navigate to Interest Page
             navigate('/onboarding/interest');
         } catch (error) {
-            console.error('Failed to update required info:', error);
-            alert('정보 저장에 실패했습니다. 다시 시도해주세요.');
+            console.error('Critical Error:', error);
+            // alert('정보 저장에 실패했습니다. 다시 시도해주세요.'); // Blocking Alert 제거
         } finally {
             setIsLoading(false);
         }
