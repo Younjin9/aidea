@@ -46,12 +46,11 @@ const RecommendedMeetingCard: React.FC<RecommendedMeetingCardProps> = ({ meeting
   }, [meeting.isLiked]);
 
   const handleLike = () => {
-    const currentLikedState = isLiked;
-    const newLikedState = !currentLikedState;
+    const newLikedState = !isLiked;
     setIsLiked(newLikedState);
     
     // useMeetings의 통합 toggleLikeMeeting 사용 (자동으로 모든 캐시 무효화)
-    toggleLikeMeeting(meeting.groupId, currentLikedState);
+    toggleLikeMeeting(meeting.groupId);
   };
 
   const handleGoToMeeting = () => {
