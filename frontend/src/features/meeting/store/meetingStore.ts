@@ -109,6 +109,9 @@ interface MeetingState {
   joinMeeting: (groupId: string, role?: 'HOST' | 'MEMBER') => void;
   leaveMeeting: (groupId: string) => void;
 
+  // 삭제
+  removeMeeting: (groupId: string) => void;
+
   // 그룹핑
   groupByCategory: () => Record<string, MeetingUI[]>;
 
@@ -191,6 +194,11 @@ export const useMeetingStore = create<MeetingState>((set, get) => ({
           ? { ...m, myStatus: undefined, myRole: undefined, members: Math.max(0, m.members - 1) }
           : m
       ),
+    })),
+
+  removeMeeting: (groupId) =>
+    set((state) => ({
+      meetings: state.meetings.filter((m) => m.groupId !== groupId),
     })),
 
   groupByCategory: () => {

@@ -107,4 +107,14 @@ public class Event {
         if (description != null)
             this.description = description;
     }
+
+    public void incrementParticipants() {
+        this.currentParticipants++;
+    }
+
+    public void decrementParticipants() {
+        if (this.currentParticipants > 0) {
+            this.currentParticipants--;
+        }
+    }
 }

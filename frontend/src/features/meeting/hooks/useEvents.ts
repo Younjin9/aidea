@@ -17,7 +17,7 @@ export const useCreateEvent = (groupId: string) => {
     },
     onSuccess: (data) => {
       // 쿼리 무효화
-      queryClient.invalidateQueries({ queryKey: ['meeting', 'detail', groupId] });
+      queryClient.invalidateQueries({ queryKey: ['meetings', 'detail', groupId] });
       queryClient.invalidateQueries({ queryKey: ['events', groupId] });
 
       // 상세 페이지로 이동 (새 이벤트 정보와 함께)
@@ -42,7 +42,7 @@ export const useUpdateEvent = (groupId: string, eventId: string) => {
       return response.data;
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['meeting', 'detail', groupId] });
+      queryClient.invalidateQueries({ queryKey: ['meetings', 'detail', groupId] });
       queryClient.invalidateQueries({ queryKey: ['events', groupId] });
 
       navigate(`/meetings/${groupId}`, { state: { updatedEvent: data } });
@@ -66,7 +66,7 @@ export const useDeleteEvent = (groupId: string) => {
       return eventId;
     },
     onSuccess: (eventId) => {
-      queryClient.invalidateQueries({ queryKey: ['meeting', 'detail', groupId] });
+      queryClient.invalidateQueries({ queryKey: ['meetings', 'detail', groupId] });
       queryClient.invalidateQueries({ queryKey: ['events', groupId] });
 
       navigate(`/meetings/${groupId}`, { state: { deletedEventId: eventId } });
@@ -89,21 +89,12 @@ export const useJoinEvent = (groupId: string) => {
       return response.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['meeting', 'detail', groupId] });
+      queryClient.invalidateQueries({ queryKey: ['meetings', 'detail', groupId] });
       queryClient.invalidateQueries({ queryKey: ['events', groupId] });
     },
     onError: (error: any) => {
       console.warn('정모 참석 API 실패:', error);
-      const message = error?.response?.data?.message || '';
-
-      // 이미 참석 중인 경우 (500 에러 내부 메시지 또는 400 에러)
-      if (message.includes('이미 참석') || message.includes('Already')) {
-        alert('이미 참석 중인 정모입니다. 정보를 갱신합니다.');
-        queryClient.invalidateQueries({ queryKey: ['meeting', 'detail', groupId] });
-        queryClient.invalidateQueries({ queryKey: ['events', groupId] });
-      } else {
-        alert(message || '정모 참석에 실패했습니다.');
-      }
+      alert(error?.response?.data?.message || '정모 참석에 실패했습니다.');
     },
   });
 };
@@ -120,7 +111,7 @@ export const useCancelEventParticipation = (groupId: string) => {
       return eventId;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['meeting', 'detail', groupId] });
+      queryClient.invalidateQueries({ queryKey: ['meetings', 'detail', groupId] });
       queryClient.invalidateQueries({ queryKey: ['events', groupId] });
     },
     onError: (error: any) => {

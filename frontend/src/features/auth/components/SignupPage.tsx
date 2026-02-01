@@ -219,7 +219,8 @@ const SignupPage: React.FC = () => {
       <KakaoMapModal 
         isOpen={isMapOpen} 
         onClose={() => setIsMapOpen(false)} 
-        onSelect={handleLocationSelect} 
+        onSelect={handleLocationSelect}
+        initialAddress={location}
       />
     </div>
   );

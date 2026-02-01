@@ -1,17 +1,13 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
 import { Search } from 'lucide-react';
 import BackButton from '@/shared/components/ui/BackButton';
 import MeetingCard from '@/shared/components/ui/MeetingCard';
-import meetingApi from '@/shared/api/meeting/meetingApi';
-import { useMeetings, transformMeetingsToUI } from '../hooks/useMeetings';
-import type { MeetingUI, Meeting } from '@/shared/types/Meeting.types';
-import type { PaginatedResponse } from '@/shared/types/common.types';
+import { useMeetings } from '../hooks/useMeetings';
 
 const MeetingSearchPage: React.FC = () => {
   const navigate = useNavigate();
-  const { meetings, toggleLike } = useMeetings();
+  const { meetings, toggleLikeMeeting, isLoading } = useMeetings();
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
 
@@ -23,39 +19,18 @@ const MeetingSearchPage: React.FC = () => {
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  // API 검색 호출
-  const { data: apiSearchResults, isLoading: isSearching, error: searchError } = useQuery({
-    queryKey: ['meetings', 'search', debouncedQuery],
-    queryFn: async () => {
-      const response = await meetingApi.search(debouncedQuery) as unknown as PaginatedResponse<Meeting>;
-      return transformMeetingsToUI(response.content || []);
-    },
-    enabled: debouncedQuery.trim().length > 0,
-    staleTime: 1000 * 60 * 3,
-    retry: 1,
-  });
-
-  // 로컬 필터링 (API 실패 시 fallback)
-  const localSearchResults = useMemo(() => {
+  // 로컬 필터링 (백엔드가 keyword 검색 미지원으로 프론트에서 처리)
+  const searchResults = useMemo(() => {
     if (!debouncedQuery.trim()) return [];
     const query = debouncedQuery.toLowerCase();
     return meetings.filter(
       (meeting) =>
         meeting.title.toLowerCase().includes(query) ||
         meeting.category.toLowerCase().includes(query) ||
-        meeting.location.toLowerCase().includes(query)
+        meeting.location.toLowerCase().includes(query) ||
+        meeting.description?.toLowerCase().includes(query)
     );
   }, [debouncedQuery, meetings]);
-
-  // API 성공 시 API 결과, 실패 시 로컬 결과 사용
-  const searchResults: MeetingUI[] = useMemo(() => {
-    if (!debouncedQuery.trim()) return [];
-    if (searchError) {
-      console.warn('검색 API 호출 실패, 로컬 필터링 사용:', searchError);
-      return localSearchResults;
-    }
-    return apiSearchResults || localSearchResults;
-  }, [debouncedQuery, apiSearchResults, searchError, localSearchResults]);
 
   return (
     <div className="flex flex-col h-full bg-white">
@@ -87,7 +62,7 @@ const MeetingSearchPage: React.FC = () => {
           <div className="flex items-center justify-center h-full">
             <p className="text-sm text-gray-400">검색 결과가 없습니다</p>
           </div>
-        ) : isSearching ? (
+        ) : isLoading ? (
           <div className="flex items-center justify-center h-full">
             <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary" />
           </div>
@@ -98,7 +73,7 @@ const MeetingSearchPage: React.FC = () => {
                 key={meeting.id}
                 meeting={meeting}
                 onClick={() => navigate(`/meetings/${meeting.groupId}`)}
-                onLike={() => toggleLike(meeting.groupId)}
+                onLike={() => toggleLikeMeeting(meeting.groupId)}
                 showLikeButton={true}
               />
             ))}

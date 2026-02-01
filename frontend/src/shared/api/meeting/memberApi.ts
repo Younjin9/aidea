@@ -17,16 +17,28 @@ import type {
  * 모임 멤버 목록 조회
  * GET /api/groups/{groupId}/members
  */
-export const getMembers = async (groupId: string): Promise<ApiResponse<Member[]>> => {
-  return apiClient.get(`/api/groups/${groupId}/members`);
+export const getMembers = async (groupId: string): Promise<Member[]> => {
+  const response = await apiClient.get(`/api/groups/${groupId}/members`);
+  // API 응답이 { data: [...] } 형식인 경우 처리
+  if (response && typeof response === 'object' && 'data' in response) {
+    return Array.isArray(response.data) ? response.data : [];
+  }
+  // 응답이 배열인 경우
+  return Array.isArray(response) ? response : [];
 };
 
 /**
  * 대기 중인 가입 요청 목록
  * GET /api/groups/{groupId}/members/pending
  */
-export const getPendingMembers = async (groupId: string): Promise<ApiResponse<Member[]>> => {
-  return apiClient.get(`/api/groups/${groupId}/join-requests`);
+export const getPendingMembers = async (groupId: string): Promise<Member[]> => {
+  const response = await apiClient.get(`/api/groups/${groupId}/join-requests`);
+  // API 응답이 { data: [...] } 형식인 경우 처리
+  if (response && typeof response === 'object' && 'data' in response) {
+    return Array.isArray(response.data) ? response.data : [];
+  }
+  // 응답이 배열인 경우
+  return Array.isArray(response) ? response : [];
 };
 
 /**

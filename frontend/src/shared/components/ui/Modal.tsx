@@ -20,6 +20,7 @@ interface ModalProps {
   onConfirm?: () => void;
   onCancel?: () => void;
   singleButton?: boolean; // OK 버튼만 표시
+  children?: ReactNode;
   actions?: Array<{ label: string; onClick: () => void; variant?: 'default' | 'danger' }>; // 바텀 시트 액션들
 }
 
@@ -43,6 +44,7 @@ const Modal: React.FC<ModalProps> = ({
   onCancel,
   singleButton = false,
   actions,
+  children,
 }) => {
   const [isChecked, setIsChecked] = React.useState(false);
 
@@ -68,7 +70,7 @@ const Modal: React.FC<ModalProps> = ({
   // 바텀 시트 스타일
   if (type === 'bottom') {
     return (
-      <div className="fixed inset-0 z-50 flex items-end justify-center px-4 pb-4">
+      <div className="fixed inset-0 z-[9999] flex items-end justify-center px-4 pb-4">
         {/* Backdrop */}
         <div className="absolute inset-0 bg-black/50" onClick={onClose} />
 
@@ -117,7 +119,7 @@ const Modal: React.FC<ModalProps> = ({
 
   // 센터 모달 스타일 (기존)
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center">
       {/* Backdrop */}
       <div className="absolute inset-0 bg-black/50" onClick={singleButton ? onClose : undefined} />
 
@@ -148,6 +150,13 @@ const Modal: React.FC<ModalProps> = ({
           <div className={`px-6 pb-6 ${!showLogo && !image && !title ? 'pt-8' : ''}`}>
             <p className="text-center text-sm text-gray-500">{message}</p>
           </div>
+        )}
+
+        {/* Children (Custom Content) */}
+        {children && (
+             <div className="px-6 pb-6">
+                 {children}
+             </div>
         )}
 
         {/* Input Field (optional) */}

@@ -1,9 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Heart } from 'lucide-react';
 import Button from '@/shared/components/ui/Button';
-import { useToggleLikeMeeting } from '@/features/meeting/hooks/useMeetings';
-import { useMeetingStore } from '@/features/meeting/store/meetingStore';
+import { useMeetings } from '@/features/meeting/hooks/useMeetings';
 import { INTEREST_CATEGORIES } from '@/shared/config/constants';
 import defaultLogo from '@/assets/images/logo.png';
 import type { MeetingUI } from '@/shared/types/Meeting.types';
@@ -39,28 +38,19 @@ const getCategoryEmoji = (category: string): string => {
 const RecommendedMeetingCard: React.FC<RecommendedMeetingCardProps> = ({ meeting }) => {
   const navigate = useNavigate();
   const [isLiked, setIsLiked] = useState(meeting.isLiked || false);
-  const { mutate: toggleLike } = useToggleLikeMeeting();
-  const toggleLikeByGroupId = useMeetingStore((state) => state.toggleLikeByGroupId);
+  const { toggleLikeMeeting } = useMeetings();
+
+  // meeting.isLiked 변경 시 로컬 상태 동기화
+  useEffect(() => {
+    setIsLiked(meeting.isLiked || false);
+  }, [meeting.isLiked]);
 
   const handleLike = () => {
-    const currentLikedState = isLiked;
-    const newLikedState = !currentLikedState;
+    const newLikedState = !isLiked;
     setIsLiked(newLikedState);
     
-    // 스토어 업데이트 (마이페이지 찜 목록 반영용)
-    toggleLikeByGroupId(meeting.groupId);
-    
-    // API 호출
-    toggleLike(
-      { groupId: meeting.groupId, isLiked: currentLikedState },
-      {
-        onError: () => {
-          // API 실패 시 상태 복원
-          setIsLiked(currentLikedState);
-          toggleLikeByGroupId(meeting.groupId);
-        },
-      }
-    );
+    // useMeetings의 통합 toggleLikeMeeting 사용 (자동으로 모든 캐시 무효화)
+    toggleLikeMeeting(meeting.groupId);
   };
 
   const handleGoToMeeting = () => {
@@ -132,7 +122,7 @@ const RecommendedMeetingCard: React.FC<RecommendedMeetingCardProps> = ({ meeting
         {/* Bottom Section: Description & CTA (Fixed Height) */}
         <div className="shrink-0 w-full flex flex-col gap-4">
           <p className="text-white text-[15px] font-medium text-center leading-relaxed drop-shadow-lg px-2 line-clamp-2 break-keep opacity-95">
-            "{meeting.description || '모임 설명이 없습니다.'}"
+            "{meeting.description?.trim() || '모임 설명이 없습니다.'}"
           </p>
 
           <Button 
