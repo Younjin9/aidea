@@ -3,6 +3,7 @@ import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import meetingApi from '@/shared/api/meeting/meetingApi';
 import { useMeetingStore } from '../store/meetingStore';
+import { useAuthStore } from '@/features/auth/store/authStore';
 import { myPageKeys } from '@/features/mypage/hooks/useMyPage';
 import type { Meeting, MeetingUI, MeetingListParams, CreateMeetingRequest, UpdateMeetingRequest } from '@/shared/types/Meeting.types';
 
@@ -57,9 +58,22 @@ export const useMeetings = (params: MeetingListParams = {}) => {
   const setMeetings = useMeetingStore((state) => state.setMeetings);
   const groupByCategoryFn = useMeetingStore((state) => state.groupByCategory);
   const toggleLikeByGroupId = useMeetingStore((state) => state.toggleLikeByGroupId);
+  const { user } = useAuthStore();
 
   // API 기반 좋아요 토글
   const { mutate: toggleLikeMeetingMutation } = useToggleLikeMeeting();
+
+  // 찜 목록 조회 (isLiked 상태 유지)
+  const { data: likedMeetingsData } = useQuery({
+    queryKey: ['liked-meetings-for-sync'],
+    queryFn: async () => {
+      const response = await meetingApi.getLiked();
+      return transformMeetingsToUI(response.data || []);
+    },
+    staleTime: 0,
+    retry: 1,
+    enabled: !!user,
+  });
 
   // API 호출
   const { data, isLoading, error, refetch } = useQuery({
@@ -73,12 +87,23 @@ export const useMeetings = (params: MeetingListParams = {}) => {
     retry: 1,
   });
 
-  // API 성공 시 store 업데이트 (Mock 데이터 사용 안 함)
+  // API 성공 시 store 업데이트 + 찜 목록과 병합
   useEffect(() => {
-    if (data) {
+    if (data && likedMeetingsData) {
+      // 찜 목록에 있는 모임들의 groupId 추출
+      const likedGroupIds = likedMeetingsData.map(m => m.groupId);
+      
+      // API 데이터에 isLiked 정보 추가
+      const mergedData = data.map(meeting => ({
+        ...meeting,
+        isLiked: likedGroupIds.includes(meeting.groupId)
+      }));
+      
+      setMeetings(mergedData);
+    } else if (data) {
       setMeetings(data);
     }
-  }, [data, setMeetings]);
+  }, [data, likedMeetingsData, setMeetings]);
 
   // toggleLikeMeeting wrapper - groupId만 전달
   const toggleLikeMeeting = (groupId: string) => {
@@ -120,6 +145,7 @@ export const useToggleLikeMeeting = () => {
       queryClient.invalidateQueries({ queryKey: meetingKeys.detail(groupId) });
       queryClient.invalidateQueries({ queryKey: myPageKeys.myMeetings() });
       queryClient.invalidateQueries({ queryKey: myPageKeys.likedMeetings() });
+        queryClient.invalidateQueries({ queryKey: ['liked-meetings-for-sync'] });
       queryClient.invalidateQueries({ queryKey: ['members', groupId] });
     },
     onError: (_, { groupId }) => {
