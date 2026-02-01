@@ -104,27 +104,24 @@
 *   **Build Status**: `npm run build` 성공 (TypeScript Check Pass).
 *   **Push**: 수정 사항 `frontend/youngsun` 브랜치에 푸시 완료.
 
-### 2026-02-01 (무한 스크롤 및 로컬 테스트 환경 구성)
+### 2026-02-01 (무한 스크롤 및 로컬 테스트 환경 구성, 최종 배포 준비)
 
 ### 21. 🎬 Shorts(모임 추천) 무한 스크롤 구현
 *   **기능**: `ShortsFeed`에서 스크롤을 내리면 자동으로 다음 목록을 불러오도록 개선.
 *   **구현**:
     *   `useInfiniteMeetings` Hook 추가 (TanStack `useInfiniteQuery` 활용).
     *   **Intersection Observer**를 도입하여 마지막 카드가 50% 정도 보일 때 `fetchNextPage` 트리거.
-    *   **Mock Data**: 백엔드 연결 없이도 테스트 가능하도록 `setTimeout`과 더미 데이터 생성 로직(랜덤 이미지 포함) 추가.
 
-### 22. 🛠️ 백엔드 연동 예외 처리 (Local Test Support)
-*   **배경**: 백엔드 서버가 꺼져 있을 때도 퍼블리싱/UI 로직을 테스트할 수 있어야 함.
-*   **InterestPage & RequiredInfoPage**:
-    *   API 호출 실패(`catch`) 시 `alert`로 차단하지 않고, `console.warn` 후 **로컬 상태(Zustand)만 업데이트**하고 넘어가도록 수정.
-    *   회원가입/로그인 후 필수 정보 입력 → 관심사 선택 → 메인(Shorts)으로 이어지는 플로우가 끊기지 않도록 개선.
+### 22. 🛠️ 백엔드 연동 예외 처리 (테스트 후 원복 완료)
+*   **배경**: 백엔드 서버가 꺼져 있을 때 퍼블리싱/UI 로직 테스트를 위해 임시로 Mock Data와 Bypass 로직을 추가했었음.
+*   **조치**: `frontend/youngsun` 브랜치 푸시 및 백엔드 통합을 위해 테스트용 코드(Mock Data, Exception Bypass)를 모두 제거하고 **실제 API 호출 코드(`meetingApi`, `authApi`)로 원복**함.
 
 ### 23. 🐛 화이트 스크린 이슈 해결 (RequiredInfoPage)
 *   **원인**: `useEffect` 내에서 `user` 상태 변경 시 무한 리렌더링 발생 (Zustand Selector 사용 미숙).
 *   **해결**: `useRef`(`isInitialized`)를 도입하여 초기 데이터 로딩을 **최초 1회**로 제한하고, Selector를 분리하여 최적화함.
 
 ### 24. 🔄 최신 코드 병합 (Sync)
-*   `origin/develop` 및 `origin/frontend-integration` 브랜치 병합 완료 (Fast-forward & Merge).
+*   `origin/develop` 및 `origin/frontend-integration` 브랜치 병합 완료.
 *   충돌 없이 최신 로직(좋아요 동기화, 모임 상세 등)과 나의 작업물(Shorts, Onboarding Fix) 통합.
 
 ---

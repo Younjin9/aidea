@@ -65,23 +65,18 @@ const RequiredInfoPage: React.FC = () => {
 
         setIsLoading(true);
         try {
-            // [테스트용] 백엔드 없이 UI 흐름 확인을 위한 예외 처리
-            try {
-                // 1. Update Profile (Nickname, Gender)
-                await userApi.updateProfile({
-                    nickname: nickname,
-                    gender: gender
-                });
+            // 1. Update Profile (Nickname, Gender)
+            await userApi.updateProfile({
+                nickname: nickname,
+                gender: gender
+            });
 
-                // 2. Update Location
-                await userApi.updateLocation({
-                    region: location.region,
-                    latitude: location.lat,
-                    longitude: location.lng
-                });
-            } catch (apiError) {
-                console.warn('Backend is offline or failed. Proceeding with local state only.', apiError);
-            }
+            // 2. Update Location
+            await userApi.updateLocation({
+                region: location.region,
+                latitude: location.lat,
+                longitude: location.lng
+            });
 
             // Update local store
             if (user) {
@@ -100,8 +95,8 @@ const RequiredInfoPage: React.FC = () => {
             // Navigate to Interest Page
             navigate('/onboarding/interest');
         } catch (error) {
-            console.error('Critical Error:', error);
-            // alert('정보 저장에 실패했습니다. 다시 시도해주세요.'); // Blocking Alert 제거
+            console.error('Failed to update required info:', error);
+            alert('정보 저장에 실패했습니다. 다시 시도해주세요.');
         } finally {
             setIsLoading(false);
         }
