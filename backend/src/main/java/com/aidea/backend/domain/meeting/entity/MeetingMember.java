@@ -51,18 +51,13 @@ public class MeetingMember {
   @Column(nullable = false, updatable = false)
   private LocalDateTime joinedAt; // 참여 시간
 
-  // ========== 신청 메시지 ==========
-  @Column(length = 500)
-  private String requestMessage; // 가입 신청 메시지 (가입 인사)
-
   // ========== 생성자 ==========
   @Builder
-  public MeetingMember(Meeting meeting, User user, MemberRole role, MemberStatus status, String requestMessage) {
+  public MeetingMember(Meeting meeting, User user, MemberRole role, MemberStatus status) {
     this.meeting = meeting;
     this.user = user;
     this.role = role != null ? role : MemberRole.MEMBER;
     this.status = status != null ? status : MemberStatus.APPROVED;
-    this.requestMessage = requestMessage;
   }
 
   /**
@@ -80,14 +75,12 @@ public class MeetingMember {
   /**
    * 일반 멤버로 생성 (참가 신청용)
    */
-  public static MeetingMember createMember(Meeting meeting, User user, boolean isApprovalRequired,
-      String requestMessage) {
+  public static MeetingMember createMember(Meeting meeting, User user, boolean isApprovalRequired) {
     return MeetingMember.builder()
         .meeting(meeting)
         .user(user)
         .role(MemberRole.MEMBER)
         .status(isApprovalRequired ? MemberStatus.PENDING : MemberStatus.APPROVED)
-        .requestMessage(requestMessage)
         .build();
   }
 
@@ -117,24 +110,9 @@ public class MeetingMember {
   /**
    * 재가입 처리 (LEFT 상태에서 재활성화)
    */
-  public void reactivate(boolean isApprovalRequired, String requestMessage) {
+  public void reactivate(boolean isApprovalRequired) {
     this.status = isApprovalRequired ? MemberStatus.PENDING : MemberStatus.APPROVED;
-    this.requestMessage = requestMessage;
     this.joinedAt = LocalDateTime.now();
-  }
-
-  /**
-   * 모임장으로 승격
-   */
-  public void assignHost() {
-    this.role = MemberRole.HOST;
-  }
-
-  /**
-   * 일반 멤버로 변경
-   */
-  public void assignMember() {
-    this.role = MemberRole.MEMBER;
   }
 
   // ========== DTO 변환 메서드 ==========
@@ -151,7 +129,6 @@ public class MeetingMember {
         .role(this.role)
         .status(this.status)
         .joinedAt(this.joinedAt)
-        .requestMessage(this.requestMessage)
         .build();
   }
 
@@ -166,7 +143,6 @@ public class MeetingMember {
         .profileImage(this.user.getProfileImage())
         .status(this.status)
         .requestedAt(this.joinedAt)
-        .requestMessage(this.requestMessage)
         .build();
   }
 }
