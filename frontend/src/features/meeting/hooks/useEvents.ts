@@ -94,7 +94,16 @@ export const useJoinEvent = (groupId: string) => {
     },
     onError: (error: any) => {
       console.warn('정모 참석 API 실패:', error);
-      alert(error?.response?.data?.message || '정모 참석에 실패했습니다.');
+      const message = error?.response?.data?.message || '';
+
+      // 이미 참석 중인 경우 (500 에러 내부 메시지 또는 400 에러)
+      if (message.includes('이미 참석') || message.includes('Already')) {
+        alert('이미 참석 중인 정모입니다. 정보를 갱신합니다.');
+        queryClient.invalidateQueries({ queryKey: ['meeting', 'detail', groupId] });
+        queryClient.invalidateQueries({ queryKey: ['events', groupId] });
+      } else {
+        alert(message || '정모 참석에 실패했습니다.');
+      }
     },
   });
 };

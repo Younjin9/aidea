@@ -150,9 +150,11 @@ public class MeetingController {
     @Operation(summary = "모임 참가 신청", description = "모임에 참가 신청을 합니다")
     @PostMapping("/{id}/join")
     public ResponseEntity<com.aidea.backend.global.common.dto.ApiResponse<com.aidea.backend.domain.meeting.dto.response.MemberResponse>> joinMeeting(
-            @PathVariable Long id) {
+            @PathVariable Long id,
+            @RequestBody(required = false) com.aidea.backend.domain.meeting.dto.request.JoinMeetingRequest request) {
+        String requestMessage = request != null ? request.getRequestMessage() : null;
         com.aidea.backend.domain.meeting.dto.response.MemberResponse response = meetingService.joinMeeting(id,
-                getAuthenticatedUser().getUserId());
+                getAuthenticatedUser().getUserId(), requestMessage);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(com.aidea.backend.global.common.dto.ApiResponse.success(response));
     }
@@ -261,5 +263,17 @@ public class MeetingController {
             @RequestParam("image") MultipartFile image) {
         String imageUrl = meetingService.uploadMeetingImage(image);
         return ResponseEntity.ok(new com.aidea.backend.domain.user.dto.UpdateProfileImageResponse(imageUrl));
+    }
+
+    /**
+     * 모임장 권한 위임
+     */
+    @Operation(summary = "모임장 권한 위임", description = "모임장 권한을 다른 멤버에게 위임합니다")
+    @PostMapping("/{id}/transfer-host")
+    public ResponseEntity<com.aidea.backend.global.common.dto.ApiResponse<Void>> transferHost(
+            @PathVariable Long id,
+            @RequestBody com.aidea.backend.domain.meeting.dto.request.TransferHostRequest request) {
+        meetingService.transferHost(id, request.getNewHostUserId(), getAuthenticatedUser().getUserId());
+        return ResponseEntity.ok(com.aidea.backend.global.common.dto.ApiResponse.success(null));
     }
 }

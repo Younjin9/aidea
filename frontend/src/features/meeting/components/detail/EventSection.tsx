@@ -75,11 +75,11 @@ const EventCard: React.FC<EventCardProps> = ({
         </div>
       )}
 
-      {/* Buttons */}
-      <div className="flex gap-2 items-center">
-        <Button variant="outline" size="md" className="flex-1">공유</Button>
-        {isMember || isHost ? (
-          isParticipating ? (
+      {/* Buttons - 모임 멤버(HOST 또는 APPROVED)에게만 표시 */}
+      {(isHost || (isMember && meeting.myStatus === 'APPROVED')) && (
+        <div className="flex gap-2 items-center">
+          <Button variant="outline" size="md" className="flex-1">공유</Button>
+          {isParticipating ? (
             <Button variant="primary" size="md" className="flex-1 bg-gray-500 hover:bg-gray-600 border-gray-500" onClick={onCancelParticipation}>취소</Button>
           ) : (
             <Button
@@ -91,11 +91,9 @@ const EventCard: React.FC<EventCardProps> = ({
             >
               {event.participantCount! >= (event.maxParticipants || meeting.maxMembers) ? '마감' : '참가'}
             </Button>
-          )
-        ) : (
-          <Button variant="primary" size="md" className="flex-1" onClick={onJoinMeetingFirst}>참가</Button>
-        )}
-      </div>
+          )}
+        </div>
+      )}
     </div>
   );
 };
