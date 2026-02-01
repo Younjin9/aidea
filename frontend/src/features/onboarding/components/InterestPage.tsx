@@ -26,28 +26,17 @@ const InterestPage: React.FC = () => {
 
     try {
       setIsSubmitting(true);
-      
-      // [테스트용 코드] 백엔드 연결 실패해도 무조건 넘어갑니다.
-      try {
-        const response = await authApi.updateInterests(selectedItems);
-        if (!response.success) {
-           console.warn('Backend returned fail, but proceeding for UI test', response.message);
-        }
-      } catch (e) {
-        console.warn('Backend is offline. Proceeding with local state only.');
+      const response = await authApi.updateInterests(selectedItems);
+      if (!response.success) {
+        throw new Error(response.message || '관심사 저장 실패');
       }
-
-      // Local Store 업데이트 (UI에 반영)
       if (user) {
         updateUser({ ...user, interests: selectedItems });
       }
-      
-      // 다음 페이지(쇼츠)로 이동
       navigate('/shorts', { replace: true });
-
     } catch (error) {
-      console.error('Critical Error:', error);
-      // alert('관심사 저장에 실패했습니다. 잠시 후 다시 시도해주세요.'); // Blocking Alert 제거
+      console.error('관심사 저장 실패:', error);
+      alert('관심사 저장에 실패했습니다. 잠시 후 다시 시도해주세요.');
     } finally {
       setIsSubmitting(false);
     }
