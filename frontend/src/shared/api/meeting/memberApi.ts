@@ -18,7 +18,13 @@ import type {
  * GET /api/groups/{groupId}/members
  */
 export const getMembers = async (groupId: string): Promise<Member[]> => {
-  return apiClient.get(`/api/groups/${groupId}/members`);
+  const response = await apiClient.get(`/api/groups/${groupId}/members`);
+  // API 응답이 { data: [...] } 형식인 경우 처리
+  if (response && typeof response === 'object' && 'data' in response) {
+    return Array.isArray(response.data) ? response.data : [];
+  }
+  // 응답이 배열인 경우
+  return Array.isArray(response) ? response : [];
 };
 
 /**
@@ -26,7 +32,13 @@ export const getMembers = async (groupId: string): Promise<Member[]> => {
  * GET /api/groups/{groupId}/members/pending
  */
 export const getPendingMembers = async (groupId: string): Promise<Member[]> => {
-  return apiClient.get(`/api/groups/${groupId}/join-requests`);
+  const response = await apiClient.get(`/api/groups/${groupId}/join-requests`);
+  // API 응답이 { data: [...] } 형식인 경우 처리
+  if (response && typeof response === 'object' && 'data' in response) {
+    return Array.isArray(response.data) ? response.data : [];
+  }
+  // 응답이 배열인 경우
+  return Array.isArray(response) ? response : [];
 };
 
 /**

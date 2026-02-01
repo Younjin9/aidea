@@ -279,7 +279,7 @@ const MeetingDetailPage: React.FC = () => {
     if (meetingId) {
       toggleLikeByGroupId(meetingId);
       toggleLikeApi(
-        { groupId: meetingId, isLiked: newLikeState },
+        { groupId: meetingId },
         {
           onError: () => {
             setIsLiked(!newLikeState);
