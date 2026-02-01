@@ -70,9 +70,10 @@ interface KakaoMapModalProps {
   onClose: () => void;
   onSelect: (place: SelectedPlace) => void;
   currentLocation?: { latitude: number; longitude: number };
+  initialAddress?: string;
 }
 
-const KakaoMapModal: React.FC<KakaoMapModalProps> = ({ isOpen, onClose, onSelect, currentLocation }) => {
+const KakaoMapModal: React.FC<KakaoMapModalProps> = ({ isOpen, onClose, onSelect, currentLocation, initialAddress }) => {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<KakaoMap | null>(null);
   const markerRef = useRef<Marker | null>(null);
@@ -156,6 +157,32 @@ const KakaoMapModal: React.FC<KakaoMapModalProps> = ({ isOpen, onClose, onSelect
       setIsMapLoaded(true);
     });
   }, [isOpen, currentLocation]);
+
+  // 입력된 위치가 있으면 해당 위치로 지도 이동
+  useEffect(() => {
+    if (!isOpen) return;
+    if (!isMapLoaded) return;
+    if (!initialAddress || !initialAddress.trim()) return;
+    if (!placesRef.current || !mapRef.current || !markerRef.current) return;
+    if (selectedPlace) return;
+
+    const query = initialAddress.trim();
+    setSearchQuery(query);
+
+    placesRef.current.keywordSearch(query, (result, status) => {
+      if (status === window.kakao.maps.services.Status.OK && result.length > 0) {
+        const first = result[0];
+        setSearchResults(result.slice(0, 5));
+        setSelectedPlace(first);
+
+        const position = new window.kakao.maps.LatLng(parseFloat(first.y), parseFloat(first.x));
+        mapRef.current?.setCenter(position);
+        markerRef.current?.setPosition(position);
+      } else {
+        setSearchResults([]);
+      }
+    });
+  }, [isOpen, isMapLoaded, initialAddress, selectedPlace]);
 
   // 모달 닫힐 때 상태 초기화
   useEffect(() => {
