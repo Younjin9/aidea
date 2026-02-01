@@ -67,11 +67,6 @@ const MyPageView: React.FC<{ onUnlike?: (id: number) => void }> = ({ onUnlike })
     }, 1000);
   };
 
-  const handleSetting = () => {
-    // navigate('/settings'); // 설정 페이지가 있다면
-    alert('설정 기능 준비 중입니다.');
-  };
-
   // 로그아웃 핸들러
   const handleLogout = async () => {
     try {
