@@ -19,6 +19,7 @@ import MeetingSearchPage from '@/features/meeting/components/MeetingSearchPage';
 import MemberManagePage from '@/features/meeting/components/MemberManagePage';
 import EventCreatePage from '@/features/meeting/components/EventCreatePage';
 import EventEditPage from '@/features/meeting/components/EventEditPage';
+import EventLinkExpiredPage from '@/features/meeting/components/EventLinkExpiredPage';
 import ChatRoomPage from '@/features/chat/components/ChatRoomPage';
 import MyPageView from '@/features/mypage/components/MyPageView';
 import ProfileEditPage from '@/features/mypage/components/ProfileEditPage';
@@ -94,6 +95,9 @@ const AppRoutes: React.FC = () => {
           {/* Onboarding Routes */}
           <Route path="/onboarding/required-info" element={<RequiredInfoPage />} />
           <Route path="/onboarding/interest" element={<InterestPage />} />
+
+          {/* Share Routes */}
+          <Route path="/events/expired" element={<EventLinkExpiredPage />} />
           
           <Route path="/chat" element={<ChatRoomPage />} />
         </Route>
