@@ -110,6 +110,9 @@ public class SecurityConfig {
                                                                 "/api/groups/search", "/api/groups/{id}/members")
                                                 .permitAll()
 
+                                                // Share
+                                                .requestMatchers(HttpMethod.GET, "/api/share/**").permitAll()
+
                                                 // Chat (For Testing)
                                                 .requestMatchers("/api/chat/**").permitAll()
 
