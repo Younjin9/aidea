@@ -99,8 +99,15 @@ public class ChatService {
          * 채팅방의 최근 메시지 조회
          */
         @Transactional
-        public List<ChatMessageResponse> getRecentMessages(Long meetingId, int limit) {
-                // 1. ChatRoom 조회 (없으면 생성 시도)
+        public List<ChatMessageResponse> getRecentMessages(Long meetingId, Long userId, int limit) {
+                // 1. 멤버십 확인 (보안)
+                if (!meetingMemberRepository.existsByMeetingIdAndUser_UserIdAndStatus(meetingId, userId,
+                                MemberStatus.APPROVED)) {
+                        throw new RuntimeException("모임 멤버만 채팅을 볼 수 있습니다."); // Global Exception Handler should map this
+                                                                            // or specific exception
+                }
+
+                // 2. ChatRoom 조회 (없으면 생성 시도)
                 ChatRoom chatRoom = chatRoomRepository.findByMeetingId(meetingId)
                                 .orElseGet(() -> {
                                         // ChatRoom이 없으면 Meeting 존재 여부 확인 후 생성

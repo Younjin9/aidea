@@ -32,7 +32,7 @@ public class ChatController {
             @Payload ChatMessageRequest request,
             @DestinationVariable Long meetingId,
             Principal principal) {
-        
+
         if (principal == null) {
             throw new RuntimeException("인증되지 않은 사용자입니다.");
         }
@@ -76,8 +76,12 @@ public class ChatController {
     public ResponseEntity<List<ChatMessageResponse>> getMessages(
             @PathVariable Long meetingId,
             @RequestParam(defaultValue = "50") int limit) {
-
-        List<ChatMessageResponse> messages = chatService.getRecentMessages(meetingId, limit);
+        
+        String email = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication().getName();
+        com.aidea.backend.domain.user.entity.User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
+                
+        List<ChatMessageResponse> messages = chatService.getRecentMessages(meetingId, user.getUserId(), limit);
         return ResponseEntity.ok(messages);
     }
 
