@@ -80,9 +80,9 @@ export const useMeetings = (params: MeetingListParams = {}) => {
     }
   }, [data, setMeetings]);
 
-  // toggleLikeMeeting wrapper - 두 개의 인자를 객체로 변환
-  const toggleLikeMeeting = (groupId: string, isLiked: boolean) => {
-    toggleLikeMeetingMutation({ groupId, isLiked });
+  // toggleLikeMeeting wrapper - groupId만 전달
+  const toggleLikeMeeting = (groupId: string) => {
+    toggleLikeMeetingMutation({ groupId });
   };
 
   return {
@@ -106,12 +106,9 @@ export const useToggleLikeMeeting = () => {
   const toggleLikeByGroupId = useMeetingStore((state) => state.toggleLikeByGroupId);
 
   return useMutation({
-    mutationFn: async ({ groupId, isLiked }: { groupId: string; isLiked: boolean }) => {
-      if (isLiked) {
-        await meetingApi.unlike(groupId);
-      } else {
-        await meetingApi.like(groupId);
-      }
+    mutationFn: async ({ groupId }: { groupId: string }) => {
+      // API 호출: 토글 방식이므로 isLiked 상태 확인 불필요
+      await meetingApi.toggleLike(groupId);
       return { groupId };
     },
     onMutate: async ({ groupId }) => {
@@ -120,6 +117,7 @@ export const useToggleLikeMeeting = () => {
     },
     onSuccess: (_, { groupId }) => {
       queryClient.invalidateQueries({ queryKey: meetingKeys.all });
+      queryClient.invalidateQueries({ queryKey: meetingKeys.detail(groupId) });
       queryClient.invalidateQueries({ queryKey: myPageKeys.myMeetings() });
       queryClient.invalidateQueries({ queryKey: myPageKeys.likedMeetings() });
       queryClient.invalidateQueries({ queryKey: ['members', groupId] });
