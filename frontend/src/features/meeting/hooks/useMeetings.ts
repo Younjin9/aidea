@@ -1,5 +1,5 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useEffect } from 'react';
+import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from '@tanstack/react-query';
+import { useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import meetingApi from '@/shared/api/meeting/meetingApi';
 import { useMeetingStore } from '../store/meetingStore';
@@ -119,6 +119,87 @@ export const useMeetings = (params: MeetingListParams = {}) => {
     toggleLike: toggleLikeByGroupId,
     toggleLikeMeeting,
     refetch,
+  };
+};
+
+/**
+ * 무한 스크롤 모임 목록 조회 Hook (Shorts 전용)
+ */
+export const useInfiniteMeetings = (params: MeetingListParams = {}) => {
+  const {
+    data,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    status,
+    error
+  } = useInfiniteQuery({
+    queryKey: [...meetingKeys.list(), 'infinite', params],
+    queryFn: async ({ pageParam = 0 }) => {
+      // ---------------------------------------------------------
+      // [테스트용 Mock Data] 백엔드 없이 무한 스크롤 확인하기
+      // ---------------------------------------------------------
+      await new Promise(resolve => setTimeout(resolve, 1000)); // 1초 딜레이 심어둠 (로딩바 보려고)
+      
+      const currentPage = pageParam as number;
+      const isLastPage = currentPage >= 4; // 총 5페이지(0~4)까지만 있다고 가정
+
+      // 더미 데이터 생성 (페이지당 5개)
+      const mockContent = Array.from({ length: 5 }).map((_, idx) => ({
+        groupId: currentPage * 100 + idx,
+        title: `무한 스크롤 테스트 ${currentPage + 1}번째 페이지 - ${idx + 1}`,
+        description: '스크롤을 내리면 계속 나와요! 🚀',
+        imageUrl: `https://picsum.photos/400/800?random=${currentPage * 10 + idx}`, // 랜덤 세로 이미지
+        interestCategoryName: '운동/스포츠',
+        memberCount: 3 + idx,
+        maxMembers: 10,
+        location: '서울 강남구',
+        latitude: 37.5,
+        longitude: 127.0,
+        ownerUserId: 1,
+        isPublic: true,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      }));
+
+      return {
+        content: mockContent,
+        last: isLastPage,
+        number: currentPage,
+        totalPages: 5,
+        totalElements: 25,
+        size: 5,
+        first: currentPage === 0,
+        numberOfElements: 5,
+        empty: false
+      } as any; // 타입 강제 캐스팅 (테스트용)
+
+      // [실제 API 호출 코드] - 백엔드 연결 시 주석 해제하여 사용
+      // const response = await meetingApi.getList({ ...params, page: pageParam as number, size: 10 });
+      // return response.data; 
+    },
+    getNextPageParam: (lastPage) => {
+      // 마지막 페이지이면 undefined 반환 (종료)
+      if (!lastPage || lastPage.last) return undefined;
+      // 다음 페이지 번호 반환
+      return lastPage.number + 1;
+    },
+    initialPageParam: 0,
+  });
+
+  // Pages 데이터를 하나의 배열로 변환
+  const meetings = useMemo(() => {
+    if (!data) return [];
+    return transformMeetingsToUI(data.pages.flatMap((page) => page.content));
+  }, [data]);
+
+  return {
+    meetings,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    status,
+    error,
   };
 };
 
