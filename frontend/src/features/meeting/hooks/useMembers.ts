@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import memberApi from '@/shared/api/meeting/memberApi';
+import { meetingKeys } from './useMeetings';
 
 /**
  * 멤버 목록 조회 훅
@@ -108,7 +109,7 @@ export const useRemoveMember = (groupId: string) => {
  * 방장 권한 위임
  */
 export const useTransferHost = (groupId: string) => {
-  // const queryClient = useQueryClient();
+  const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async (newHostId: string) => {
@@ -116,7 +117,9 @@ export const useTransferHost = (groupId: string) => {
       return newHostId;
     },
     onSuccess: () => {
-      // queryClient.invalidateQueries({ queryKey: meetingKeys.detail(groupId) });
+      queryClient.invalidateQueries({ queryKey: meetingKeys.detail(groupId) });
+      queryClient.invalidateQueries({ queryKey: meetingKeys.list() }); // 목록에서도 방장 표시가 바뀔 수 있으므로 갱신
+      queryClient.invalidateQueries({ queryKey: ['members', groupId] }); // 멤버 목록도 갱신
     },
   });
 };
