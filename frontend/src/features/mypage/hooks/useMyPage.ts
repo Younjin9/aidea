@@ -56,7 +56,16 @@ export const useMyPage = () => {
       const response = await meetingApi.getLiked();
       const meetings = transformMeetingsToUI(response.data || []);
       // 찜 목록은 모두 isLiked = true로 설정
-      return meetings.map(meeting => ({ ...meeting, isLiked: true }));
+      const likedMeetingsWithFlag = meetings.map(meeting => ({ ...meeting, isLiked: true }));
+      
+      // ✅ meetingStore의 meetings를 업데이트 (다른 페이지와 동기화)
+      const updateMeetings = useMeetingStore.getState().meetings.map(m => {
+        const isInLikedList = likedMeetingsWithFlag.some(liked => liked.groupId === m.groupId);
+        return { ...m, isLiked: isInLikedList };
+      });
+      useMeetingStore.getState().setMeetings(updateMeetings);
+      
+      return likedMeetingsWithFlag;
     },
     staleTime: 0,
     retry: 1,

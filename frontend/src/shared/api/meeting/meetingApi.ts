@@ -126,18 +126,10 @@ export const leave = async (groupId: string): Promise<ApiResponse<void>> => {
 };
 
 /**
- * 모임 좋아요
- * POST /api/groups/{groupId}/like (토글: 찜하기/취소)
+ * 모임 찜하기/취소 (토글)
+ * POST /api/groups/{groupId}/like
  */
-export const like = async (groupId: string): Promise<ApiResponse<void>> => {
-  return apiClient.post(`/api/groups/${groupId}/like`);
-};
-
-/**
- * 모임 좋아요 취소
- * POST /api/groups/{groupId}/like (토글: unlike도 같은 POST 엔드포인트)
- */
-export const unlike = async (groupId: string): Promise<ApiResponse<void>> => {
+export const toggleLike = async (groupId: string): Promise<ApiResponse<void>> => {
   return apiClient.post(`/api/groups/${groupId}/like`);
 };
 
@@ -169,8 +161,7 @@ const meetingApi = {
   remove,
   join,
   leave,
-  like,
-  unlike,
+  toggleLike,
   getLiked,
   getStats,
 };
