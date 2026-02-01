@@ -22,6 +22,8 @@ public interface EventParticipantRepository extends JpaRepository<EventParticipa
 
     void deleteByEvent_Meeting_Id(Long meetingId);
 
+    void deleteByEvent_Meeting_IdAndUser_UserId(Long meetingId, Long userId);
+
     void deleteByUser_UserId(Long userId);
 
     long countByEvent_Id(Long eventId);
