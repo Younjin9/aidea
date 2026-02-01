@@ -31,7 +31,9 @@ const ChatRoomPage: React.FC = () => {
 
     // 시간 포맷팅 함수
     const formatTime = (dateString: string) => {
+        if (!dateString) return '';
         const date = new Date(dateString);
+        if (isNaN(date.getTime())) return '';
         let hours = date.getHours();
         const minutes = date.getMinutes();
         const ampm = hours >= 12 ? '오후' : '오전';
@@ -39,6 +41,44 @@ const ChatRoomPage: React.FC = () => {
         hours = hours ? hours : 12;
         const minutesStr = minutes < 10 ? '0' + minutes : minutes;
         return `${ampm} ${hours}:${minutesStr}`;
+    };
+
+    const scrollToBottom = () => {
+        setTimeout(() => {
+            messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        }, 100);
+    };
+
+    const handleSendMessage = () => {
+        if (!inputMessage.trim()) return;
+
+        // 전송할 메시지 객체 생성
+        const messagePayload = {
+            meetingId: parsedMeetingId,
+            senderId: String(myId), // 로그인 안했으면 게스트 ID
+            message: inputMessage,
+            messageType: 'TALK'
+        };
+
+        // STOMP 전송
+        if (stompClient.current && stompClient.current.connected) {
+            const destination = `/app/chat/send/${parsedMeetingId}`;
+            console.log(`Sending message to ${destination}`, messagePayload);
+            stompClient.current.publish({
+                destination: destination,
+                body: JSON.stringify(messagePayload),
+            });
+            setInputMessage('');
+        } else {
+            console.error('STOMP Client is not connected. Status:', stompClient.current?.state);
+            alert('채팅 서버와 연결되지 않았습니다.');
+        }
+    };
+
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === 'Enter' && !e.nativeEvent.isComposing) {
+            handleSendMessage();
+        }
     };
 
     // 1. 기존 메시지 불러오기
@@ -78,7 +118,8 @@ const ChatRoomPage: React.FC = () => {
     // 2. STOMP 연결
     useEffect(() => {
         const wsUrl = getWebSocketUrl();
-        console.log('Connecting to WebSocket:', wsUrl);
+        console.log('[DEBUG] Calculated WebSocket URL:', wsUrl);
+        console.log('[DEBUG] Current Base URL:', import.meta.env.VITE_API_BASE_URL);
 
         const client = new Client({
             brokerURL: wsUrl,
@@ -100,6 +141,7 @@ const ChatRoomPage: React.FC = () => {
             client.subscribe(`/topic/meeting/${parsedMeetingId}`, (message: any) => {
                 if (message.body) {
                     try {
+                        console.log('STOMP Message Received:', message.body);
                         const newMessage: ChatMessage = JSON.parse(message.body);
                         setMessages((prev) => [...prev, newMessage]);
                         scrollToBottom();
@@ -123,44 +165,6 @@ const ChatRoomPage: React.FC = () => {
         };
     }, [parsedMeetingId, token]);
 
-    // 3. 메시지 전송
-    const handleSendMessage = () => {
-        if (!inputMessage.trim()) return;
-
-        // 전송할 메시지 객체 생성
-        const messagePayload = {
-            meetingId: parsedMeetingId,
-            senderId: String(myId), // 로그인 안했으면 게스트 ID
-            message: inputMessage,
-            messageType: 'TALK'
-        };
-
-        // STOMP 전송
-        if (stompClient.current && stompClient.current.connected) {
-            const destination = `/app/chat.send/${parsedMeetingId}`;
-            console.log(`Sending message to ${destination}`, messagePayload);
-            stompClient.current.publish({
-                destination: destination,
-                body: JSON.stringify(messagePayload),
-            });
-            setInputMessage('');
-        } else {
-            console.error('STOMP Client is not connected. Status:', stompClient.current?.state);
-            alert('채팅 서버와 연결되지 않았습니다.');
-        }
-    };
-
-    const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-        if (e.key === 'Enter' && !e.nativeEvent.isComposing) {
-            handleSendMessage();
-        }
-    };
-
-    const scrollToBottom = () => {
-        setTimeout(() => {
-            messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-        }, 100);
-    };
 
     return (
         <div className="absolute inset-0 flex flex-col w-full bg-white">
@@ -189,14 +193,8 @@ const ChatRoomPage: React.FC = () => {
                     </div>
                 ) : (
                     messages.map((msg, idx) => {
-                        // 내 메시지 판별 로직
-                        const currentUserId = user?.userId ? String(user.userId) : null;
-                        const messageSenderId = String(msg.senderId);
-
-                        const isMe = messageSenderId === String(myId) || 
-                                     msg.senderName === '나' || 
-                                     messageSenderId === '999' ||
-                                     (currentUserId && messageSenderId === currentUserId);
+                        // 내 메시지 판별 로직 (로그인 ID 또는 게스트 ID 비교)
+                        const isMe = String(msg.senderId) === String(myId);
 
                         return (
                             <div key={idx} className={`flex w-full ${isMe ? 'justify-end' : 'justify-start'} items-end mb-4`}>
@@ -212,8 +210,11 @@ const ChatRoomPage: React.FC = () => {
                                     {!isMe && <span className="text-xs text-gray-600 mb-1 ml-1">{msg.senderName}</span>}
                                     <div className="flex items-end gap-1">
                                         {isMe && <span className="text-[10px] text-gray-400 min-w-fit mb-1">{formatTime(msg.createdAt)}</span>}
-                                        <div className={`p-3 text-sm whitespace-pre-wrap leading-relaxed ${isMe ? 'bg-primary text-white rounded-l-2xl rounded-tr-2xl' : 'bg-[#F3F4F6] text-black rounded-r-2xl rounded-tl-2xl'}`}>
-                                            {msg.message} 
+                                        <div className={`p-3 text-sm whitespace-pre-wrap leading-relaxed ${isMe
+                                            ? 'bg-[#FF206E] text-white rounded-[20px] rounded-tr-none'
+                                            : 'bg-[#BDBDBD] text-white rounded-[20px] rounded-tl-none'
+                                            }`}>
+                                            {msg.message}
                                         </div>
                                         {!isMe && <span className="text-[10px] text-gray-400 min-w-fit mb-1">{formatTime(msg.createdAt)}</span>}
                                     </div>

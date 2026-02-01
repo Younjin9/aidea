@@ -14,7 +14,7 @@ import { reportUser } from '@/shared/api/safety/safetyApi';
 import ChatRoomPage from '@/features/chat/components/ChatRoomPage';
 import meetingApi from '@/shared/api/meeting/meetingApi';
 import { useMeetingStore } from '../../store/meetingStore';
-import { useMyPageStore } from '@/features/mypage/store/myPageStore';
+import { useAuthStore } from '@/features/auth/store/authStore';
 import { useLeaveMeeting, useToggleLikeMeeting, useJoinMeeting } from '../../hooks/useMeetings';
 import { useJoinEvent, useCancelEventParticipation } from '../../hooks/useEvents';
 import type { MeetingDetail, MeetingEvent } from '@/shared/types/Meeting.types';
@@ -43,6 +43,7 @@ const MOCK_MEETING_DETAIL: MeetingDetail = {
   longitude: 126.978,
   distanceKm: 0,
   isPublic: true,
+  isLiked: false,
   ownerUserId: 1,
   createdAt: '2024-01-20',
   updatedAt: '2024-01-20',
@@ -70,9 +71,9 @@ const MOCK_MEETING_DETAIL: MeetingDetail = {
 
 // 스토어에서 가져온 meeting 데이터를 MeetingDetail 타입으로 변환하는 함수
 const createMeetingDetailFromStore = (
-  storedMeeting: { id: number; title: string; description?: string; image: string; category: string; members: number; maxMembers?: number; location: string; ownerUserId?: string | number; myStatus?: 'PENDING' | 'APPROVED'; myRole?: 'HOST' | 'MEMBER' },
+  storedMeeting: { id: number; title: string; description?: string; image: string; category: string; members: number; maxMembers?: number; location: string; ownerUserId?: string | number; myStatus?: 'PENDING' | 'APPROVED'; myRole?: 'HOST' | 'MEMBER'; isLiked?: boolean },
   isOwner: boolean,
-  user: { userId: string; nickname: string; profileImage?: string } | null,
+  user: { userId: string; nickname: string; profileImage?: string;[key: string]: any } | null,
   existingEvents: MeetingEvent[] = []
 ): MeetingDetail => {
   const hostUserId = String(storedMeeting.ownerUserId || 'user1');
@@ -103,6 +104,7 @@ const createMeetingDetailFromStore = (
     events: existingEvents,
     myRole: storedMeeting.myRole === 'MEMBER' ? 'MEMBER' : storedMeeting.myRole || (isOwner ? 'HOST' : undefined),
     myStatus: storedMeeting.myStatus,
+    isLiked: storedMeeting.isLiked || false,
   };
 };
 
@@ -129,7 +131,7 @@ const MeetingDetailPage: React.FC = () => {
 
   // 상태 관리 및 커스텀 훅 사용 (store, mutation 등)
   const { getMeetingByGroupId, toggleLikeByGroupId, leaveMeeting, getEventsByGroupId, addEvent, updateEvent: updateEventInStore, deleteEvent: deleteEventInStore, initializeMockData: initializeMeetingMockData, isInitialized: isMeetingInitialized } = useMeetingStore();
-  const { user, initializeMockData: initializeUserMockData, isInitialized: isUserInitialized } = useMyPageStore();
+  const { user } = useAuthStore();
   // 이벤트 참여/취소 등 API 호출을 위한 커스텀 훅
   const { mutate: leaveMeetingApi } = useLeaveMeeting();
   const { mutate: toggleLikeApi } = useToggleLikeMeeting();
@@ -137,24 +139,31 @@ const MeetingDetailPage: React.FC = () => {
   const { mutate: joinEventApi } = useJoinEvent(meetingId || '');
   const { mutate: cancelEventApi } = useCancelEventParticipation(meetingId || '');
 
+
   // 모임 상세 정보 API 호출 (react-query 사용)
   const { data: apiMeetingDetail, isLoading, error } = useQuery({
-    queryKey: ['meeting', 'detail', meetingId],
-    queryFn: async () => { const response = await meetingApi.getDetail(meetingId || ''); return response.data; },
-    enabled: !!meetingId, // meetingId가 있을 때만 호출
-    staleTime: 1000 * 60 * 3, // 3분간 캐싱
-    retry: 1, // 실패 시 1회 재시도
+    queryKey: ['meetings', 'detail', meetingId], // 'meeting' -> 'meetings' 표준화
+    queryFn: async () => {
+      console.log('Fetching meeting detail for:', meetingId);
+      const response = await meetingApi.getDetail(meetingId || '');
+      return response.data;
+    },
+    enabled: !!meetingId,
+    staleTime: 1000 * 60 * 3,
+    retry: 1,
   });
+
 
   // mock 데이터 초기화 (스토어가 초기화 안됐을 때)
   useEffect(() => {
     if (!isMeetingInitialized) initializeMeetingMockData();
-    if (!isUserInitialized) initializeUserMockData();
-  }, [isMeetingInitialized, isUserInitialized, initializeMeetingMockData, initializeUserMockData]);
+  }, [isMeetingInitialized, initializeMeetingMockData]);
+
 
   // 스토어에서 모임 정보 조회 및 소유자 여부 판단
   const storedMeeting = getMeetingByGroupId(meetingId || '');
-  const isOwner = storedMeeting?.myRole === 'HOST' || (storedMeeting?.myRole === undefined && storedMeeting?.ownerUserId === user?.userId);
+  const isOwner = !!(storedMeeting?.myRole === 'HOST' || (storedMeeting?.myRole === undefined && user?.userId && String(storedMeeting?.ownerUserId) === String(user.userId)));
+
 
   // 주요 상태값 정의
   const [activeTab, setActiveTab] = useState<'home' | 'chat'>('home'); // 탭 상태(홈/채팅)
@@ -217,21 +226,36 @@ const MeetingDetailPage: React.FC = () => {
     }
   }, [locationState, meetingId, getEventsByGroupId, addEvent, updateEventInStore, deleteEventInStore]);
 
-  // 스토어의 이벤트 정보가 바뀌면 meeting 상태도 동기화
-  useEffect(() => {
-    if (storedEvents.length > 0) {
-      setMeeting(prev => ({ ...prev, events: storedEvents }));
-    }
-  }, [storedEvents]);
-
-  // API에서 모임 상세 데이터가 오면 meeting 상태 갱신, 실패 시 mock 데이터 사용
+  // 2. API에서 모임 상세 데이터가 오면 meeting 상태 갱신, 실패 시 mock 데이터 사용
   useEffect(() => {
     if (apiMeetingDetail) {
-      setMeeting(apiMeetingDetail);
+      console.log('[DEBUG] Meeting Detail API Response:', apiMeetingDetail);
+
+      // queryFn에서 이미 response.data를 리턴했으므로 apiMeetingDetail은 MeetingDetail 객체여야 함
+      // 하지만 ApiResponse 객체가 그대로 실려오는 경우를 대비한 방어 로직
+      const actualData = (apiMeetingDetail as any).data || apiMeetingDetail;
+
+      // members나 events가 없는 경우 빈 배열로 처리하여 UI 깨짐 방지
+      // 백엔드 필드명(members, events)과 프론트엔드 타입이 일치하는지 확인하며 매핑
+      const sanitizedDetail: MeetingDetail = {
+        ...actualData,
+        members: Array.isArray(actualData.members) ? actualData.members : [],
+        events: Array.isArray(actualData.events) ? actualData.events : [],
+      };
+
+      console.log('[DEBUG] Sanitized Meeting Detail for State:', sanitizedDetail);
+      setMeeting(sanitizedDetail);
+
+      // 좋아요 상태도 동시 동기화
+      if (sanitizedDetail.isLiked !== undefined) {
+        setIsLiked(sanitizedDetail.isLiked);
+      }
     } else if (error) {
-      console.warn('모임 상세 API 호출 실패, Mock 데이터 사용:', error);
+      console.error('[ERROR] Meeting Detail API Failure:', error);
+      // API 실패 시 기존 meeting 상태(Mock/Store)가 유지되므로 별도 처리는 하지 않음
     }
   }, [apiMeetingDetail, error]);
+
 
   // 내 역할/상태 및 모달 오픈 함수
   const isHost = meeting.myRole === 'HOST';

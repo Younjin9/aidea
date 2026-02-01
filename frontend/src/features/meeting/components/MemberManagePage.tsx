@@ -50,7 +50,9 @@ const MemberManagePage: React.FC = () => {
   // API 데이터가 로드되면 state 업데이트 (안전하게 타입 단언 및 fallback)
   useEffect(() => {
     if (apiMembers) {
-      setMembers(apiMembers as Member[] || []);
+      // API 응답이 배열인지 확인 후 설정
+      const membersArray = Array.isArray(apiMembers) ? apiMembers : [];
+      setMembers(membersArray as Member[]);
     } else if (membersError) {
       console.warn('멤버 목록 API 호출 실패:', membersError);
     }
@@ -58,7 +60,9 @@ const MemberManagePage: React.FC = () => {
 
   useEffect(() => {
     if (apiPendingMembers) {
-      setPendingMembers(apiPendingMembers as Member[] || []);
+      // API 응답이 배열인지 확인 후 설정
+      const pendingArray = Array.isArray(apiPendingMembers) ? apiPendingMembers : [];
+      setPendingMembers(pendingArray as Member[]);
     } else if (pendingError) {
       console.warn('대기 멤버 목록 API 호출 실패:', pendingError);
     }
@@ -70,7 +74,7 @@ const MemberManagePage: React.FC = () => {
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
 
   // Derived State
-  const approvedMembers = members.filter(m => m.status === 'APPROVED');
+  const approvedMembers = Array.isArray(members) ? members.filter(m => m.status === 'APPROVED') : [];
   const hostMember = approvedMembers.find(m => m.role === 'HOST');
   const regularMembers = approvedMembers.filter(m => m.role !== 'HOST');
 

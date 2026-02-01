@@ -21,11 +21,11 @@ const transformMeetingToUI = (meeting: Meeting): MeetingUI => {
     title: meeting.title,
     category: meeting.interestCategoryName || '카테고리',
     location: meeting.region || meeting.location || '위치 정보',
-    members: meeting.memberCount,
+    members: meeting.memberCount || meeting.currentMembers || 0,
     maxMembers: meeting.maxMembers,
     description: meeting.description,
     isLiked: false,
-    ownerUserId: meeting.ownerUserId, // still keep this but relying on myRole is better
+    ownerUserId: meeting.ownerUserId,
     myStatus: meeting.myStatus as 'PENDING' | 'APPROVED' | undefined,
     myRole: meeting.myRole as 'HOST' | 'MEMBER' | undefined,
   };

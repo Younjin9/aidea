@@ -28,12 +28,12 @@ public class ChatController {
     private final UserRepository userRepository;
     private final org.springframework.messaging.simp.SimpMessagingTemplate messagingTemplate;
 
-    @MessageMapping("/chat.send/{meetingId}")
+    @MessageMapping("/chat/send/{meetingId}")
     public void sendMessage(
             @Payload ChatMessageRequest request,
             @DestinationVariable Long meetingId,
             Principal principal) {
-        
+
         if (principal == null) {
             throw new RuntimeException("인증되지 않은 사용자입니다.");
         }
@@ -60,11 +60,12 @@ public class ChatController {
         return ResponseEntity.ok().build();
     }
 
-    @Operation(summary = "내 채팅방 목록 조회", description = "참여 중인 모임의 채팅방 목록을 조회합니다")
-    @GetMapping("/rooms")
     public ResponseEntity<ApiResponse<List<ChatRoomResponse>>> getChatRooms() {
-        String email = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication()
-                .getName();
+        var auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || auth.getName().equals("anonymousUser")) {
+            throw new RuntimeException("로그인이 필요합니다.");
+        }
+        String email = auth.getName();
         com.aidea.backend.domain.user.entity.User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
 

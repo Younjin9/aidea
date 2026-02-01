@@ -55,7 +55,7 @@ export const useApproveMember = (groupId: string) => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['members', groupId] });
       queryClient.invalidateQueries({ queryKey: ['members', groupId, 'pending'] });
-      queryClient.invalidateQueries({ queryKey: ['meeting', 'detail', groupId] });
+      queryClient.invalidateQueries({ queryKey: ['meetings', 'detail', groupId] });
     },
     onError: (error) => {
       console.error('멤버 승인 실패:', error);
@@ -96,7 +96,7 @@ export const useRemoveMember = (groupId: string) => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['members', groupId] });
-      queryClient.invalidateQueries({ queryKey: ['meeting', 'detail', groupId] });
+      queryClient.invalidateQueries({ queryKey: ['meetings', 'detail', groupId] });
     },
     onError: (error) => {
       console.error('멤버 강퇴 실패:', error);

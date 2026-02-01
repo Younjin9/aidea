@@ -27,6 +27,7 @@ export interface Meeting {
   region: string;
   distanceKm?: number;
   isPublic: boolean;
+  isLiked?: boolean;
   rules?: string[];
   ownerUserId: number; // Backend uses userId Long
   creator?: {
