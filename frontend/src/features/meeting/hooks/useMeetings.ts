@@ -23,8 +23,8 @@ const transformMeetingToUI = (meeting: Meeting): MeetingUI => {
     location: meeting.region || meeting.location || '위치 정보',
     members: meeting.memberCount || meeting.currentMembers || 0,
     maxMembers: meeting.maxMembers,
-    description: meeting.description,
-    isLiked: false,
+    description: meeting.description?.trim() || undefined, // 빈 문자열이면 undefined로 변환
+    isLiked: meeting.isLiked ?? false, // ← API 응답의 isLiked 필드 사용
     ownerUserId: meeting.ownerUserId,
     myStatus: meeting.myStatus as 'PENDING' | 'APPROVED' | undefined,
     myRole: meeting.myRole as 'HOST' | 'MEMBER' | undefined,
@@ -103,6 +103,7 @@ export const useMeetings = (params: MeetingListParams = {}) => {
 
 export const useToggleLikeMeeting = () => {
   const queryClient = useQueryClient();
+  const toggleLikeByGroupId = useMeetingStore((state) => state.toggleLikeByGroupId);
 
   return useMutation({
     mutationFn: async ({ groupId, isLiked }: { groupId: string; isLiked: boolean }) => {
@@ -113,11 +114,19 @@ export const useToggleLikeMeeting = () => {
       }
       return { groupId };
     },
+    onMutate: async ({ groupId }) => {
+      // Optimistic update: 즉시 UI 업데이트
+      toggleLikeByGroupId(groupId);
+    },
     onSuccess: (_, { groupId }) => {
       queryClient.invalidateQueries({ queryKey: meetingKeys.all });
       queryClient.invalidateQueries({ queryKey: myPageKeys.myMeetings() });
       queryClient.invalidateQueries({ queryKey: myPageKeys.likedMeetings() });
       queryClient.invalidateQueries({ queryKey: ['members', groupId] });
+    },
+    onError: (_, { groupId }) => {
+      // API 실패 시 되돌리기
+      toggleLikeByGroupId(groupId);
     },
   });
 };
