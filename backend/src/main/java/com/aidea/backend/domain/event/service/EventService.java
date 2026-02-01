@@ -101,6 +101,10 @@ public class EventService {
                 .build();
         eventParticipantRepository.save(participant);
 
+        // 메모리 상의 연관관계 및 카운트 업데이트 (Response 반영용)
+        event.getParticipants().add(participant);
+        event.incrementParticipants();
+
         return EventDetailResponse.from(event, userId);
     }
 

@@ -50,7 +50,7 @@ const MyMeetingsPage: React.FC = () => {
       const originalMeeting = likedMeetings.find(m => m.id === id);
       if (originalMeeting) {
         // useMeetings의 toggleLikeMeeting 사용 (자동으로 모든 캐시 무효화)
-        toggleLikeMeeting(originalMeeting.groupId, true);
+        toggleLikeMeeting(originalMeeting.groupId);
         // 찜 목록 강제 재조회 (캐시 무효화와 함께)
         await refetchLikedMeetings();
       }

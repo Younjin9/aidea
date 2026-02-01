@@ -70,7 +70,7 @@ const MeetingListPage: React.FC = () => {
                     onClick={() => navigate(`/meetings/${meeting.groupId}`)}
                     onLike={() => {
                       console.log(`[MeetingListPage] Like clicked for ${meeting.groupId}`);
-                      toggleLikeMeeting(meeting.groupId, meeting.isLiked || false);
+                      toggleLikeMeeting(meeting.groupId);
                     }}
                     showLikeButton={true}
                   />

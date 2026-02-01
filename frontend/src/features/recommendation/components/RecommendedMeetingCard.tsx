@@ -46,12 +46,11 @@ const RecommendedMeetingCard: React.FC<RecommendedMeetingCardProps> = ({ meeting
   }, [meeting.isLiked]);
 
   const handleLike = () => {
-    const currentLikedState = isLiked;
-    const newLikedState = !currentLikedState;
+    const newLikedState = !isLiked;
     setIsLiked(newLikedState);
     
     // useMeetings의 통합 toggleLikeMeeting 사용 (자동으로 모든 캐시 무효화)
-    toggleLikeMeeting(meeting.groupId, currentLikedState);
+    toggleLikeMeeting(meeting.groupId);
   };
 
   const handleGoToMeeting = () => {
@@ -123,7 +122,7 @@ const RecommendedMeetingCard: React.FC<RecommendedMeetingCardProps> = ({ meeting
         {/* Bottom Section: Description & CTA (Fixed Height) */}
         <div className="shrink-0 w-full flex flex-col gap-4">
           <p className="text-white text-[15px] font-medium text-center leading-relaxed drop-shadow-lg px-2 line-clamp-2 break-keep opacity-95">
-            "{meeting.description || '모임 설명이 없습니다.'}"
+            "{meeting.description?.trim() || '모임 설명이 없습니다.'}"
           </p>
 
           <Button 

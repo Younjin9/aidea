@@ -616,7 +616,8 @@ public class MeetingService {
         }
 
         // 6. 현재 모임장 (멤버) 조회
-        MeetingMember currentHostMember = meetingMemberRepository.findByMeetingIdAndUser_UserId(meetingId, currentHostId)
+        MeetingMember currentHostMember = meetingMemberRepository
+                .findByMeetingIdAndUser_UserId(meetingId, currentHostId)
                 .orElseThrow(() -> new RuntimeException("현재 모임장 정보를 찾을 수 없습니다."));
 
         // 7. 권한 변경 (원자적 처리)
@@ -628,6 +629,10 @@ public class MeetingService {
 
         // 7-3. 모임 Creator 정보 업데이트
         meeting.changeCreator(newHostMember.getUser());
+
+        // ✅ 변경 사항 명시적 저장 (문제 방지)
+        meetingMemberRepository.saveAll(java.util.List.of(currentHostMember, newHostMember));
+        meetingRepository.save(meeting);
 
         log.info("모임장 권한 양도 완료: meetingId={}, oldHost={}, newHost={}", meetingId, currentHostId, newHostUserId);
     }

@@ -73,7 +73,7 @@ const MeetingSearchPage: React.FC = () => {
                 key={meeting.id}
                 meeting={meeting}
                 onClick={() => navigate(`/meetings/${meeting.groupId}`)}
-                onLike={() => toggleLikeMeeting(meeting.groupId, meeting.isLiked || false)}
+                onLike={() => toggleLikeMeeting(meeting.groupId)}
                 showLikeButton={true}
               />
             ))}
