@@ -20,4 +20,5 @@ public class MemberResponse {
     private MemberRole role; // 역할 (HOST/MEMBER)
     private MemberStatus status; // 상태 (PENDING/APPROVED/REJECTED/LEFT)
     private LocalDateTime joinedAt; // 참여 시간
+    private String requestMessage; // 가입 인사
 }
