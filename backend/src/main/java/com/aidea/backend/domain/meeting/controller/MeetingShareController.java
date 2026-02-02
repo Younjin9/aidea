@@ -1,6 +1,6 @@
 package com.aidea.backend.domain.meeting.controller;
 
-import com.aidea.backend.domain.meeting.dto.response.MeetingSummaryResponse;
+// import com.aidea.backend.domain.meeting.dto.response.MeetingSummaryResponse;
 import com.aidea.backend.domain.meeting.dto.response.ShareCreationResponse;
 import com.aidea.backend.domain.meeting.service.MeetingShareService;
 import com.aidea.backend.domain.user.repository.UserRepository;
@@ -58,18 +58,21 @@ public class MeetingShareController {
         }
     }
 
-    @Operation(summary = "공유된 모임 정보 조회 (Public)", description = "공유 토큰으로 모임 정보를 조회합니다. (로그인 불필요)")
-    @GetMapping("/api/share/{token}")
-    public ResponseEntity<ApiResponse<MeetingSummaryResponse>> getSharedMeeting(@PathVariable String token) {
+    @Operation(summary = "정모(일정) 공유 링크 생성", description = "정모(일정)을 공유하기 위한 링크를 생성합니다.")
+    @PostMapping("/api/groups/{meetingId}/events/{eventId}/share")
+    public ResponseEntity<ApiResponse<ShareCreationResponse>> createEventShareLink(@PathVariable Long meetingId,
+            @PathVariable Long eventId) {
+        Long userId = getCurrentUserId();
+        if (userId == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(ApiResponse.error("로그인이 필요합니다."));
+        }
+
         try {
-            MeetingSummaryResponse response = meetingShareService.getMeetingByToken(token);
-            return ResponseEntity.ok(ApiResponse.success(response));
+            ShareCreationResponse response = meetingShareService.createEventShareLink(meetingId, eventId, userId);
+            return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(response));
         } catch (IllegalArgumentException e) {
-            // "만료된..." 메시지가 포함되면 410, 아니면 404
-            if (e.getMessage().contains("만료")) {
-                return ResponseEntity.status(HttpStatus.GONE).body(ApiResponse.error(e.getMessage()));
-            }
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ApiResponse.error(e.getMessage()));
+            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
         }
     }
 }

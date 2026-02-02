@@ -19,6 +19,29 @@ const MeetingCard: React.FC<MeetingCardProps> = ({
 }) => {
   const navigate = useNavigate();
 
+  // D-day 계산 함수
+  const calculateDDay = (dateString?: string): string | null => {
+    if (!dateString) return null;
+    
+    try {
+      const targetDate = new Date(dateString);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      targetDate.setHours(0, 0, 0, 0);
+      
+      const diffTime = targetDate.getTime() - today.getTime();
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      
+      if (diffDays < 0) return null; // 지난 날짜는 표시 안 함
+      if (diffDays === 0) return 'D-day';
+      return `D-${diffDays}`;
+    } catch {
+      return null;
+    }
+  };
+
+  const dDay = calculateDDay(meeting.date);
+
   const handleClick = () => {
     if (onClick) {
       onClick();
@@ -44,8 +67,13 @@ const MeetingCard: React.FC<MeetingCardProps> = ({
 
       {/* 정보 */}
       <div className="flex-1 flex flex-col h-20">
-        {/* 제목 - 이미지 상단에 맞춤 */}
-        <div className="mb-2">
+        {/* 제목 - D-day 태그 */}
+        <div className="mb-2 flex items-center gap-2">
+          {dDay && (
+            <span className="text-xs font-bold bg-primary text-white px-2 py-0.5 rounded-full whitespace-nowrap">
+              {dDay}
+            </span>
+          )}
           <h3 className="text-sm font-bold text-gray-900 line-clamp-1">{meeting.title}</h3>
         </div>
 

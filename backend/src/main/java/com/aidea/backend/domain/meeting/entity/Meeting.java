@@ -185,14 +185,12 @@ public class Meeting {
             this.locationDetail = request.getLocationDetail();
         if (request.getMaxMembers() != null)
             this.maxMembers = request.getMaxMembers();
-        if (request.getMeetingDate() != null)
-            this.meetingDate = request.getMeetingDate();
         if (request.getIsApprovalRequired() != null)
             this.isApprovalRequired = request.getIsApprovalRequired();
     }
 
     /**
-     * 모임장(생성자) 변경
+     * 모임장(Creator) 변경
      */
     public void changeCreator(User newCreator) {
         this.creator = newCreator;
