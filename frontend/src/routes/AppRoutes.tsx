@@ -24,6 +24,7 @@ import ChatRoomPage from '@/features/chat/components/ChatRoomPage';
 import MyPageView from '@/features/mypage/components/MyPageView';
 import ProfileEditPage from '@/features/mypage/components/ProfileEditPage';
 import MyMeetingsPage from '@/features/mypage/components/MyMeetingsPage';
+import NotificationPage from '@/features/notification/components/NotificationPage';
 import { useAuthStore } from '@/features/auth/store/authStore';
 // BottomTab import removed as it causes error and PrivateRoute uses Outlet
 // import BottomTab from '@/shared/components/layout/BottomTab';
@@ -124,6 +125,7 @@ const AppRoutes: React.FC = () => {
             <Route path="/meetings/:meetingId/events/create" element={<EventCreatePage />} />
             <Route path="/meetings/:meetingId/events/:eventId/edit" element={<EventEditPage />} />
             
+            <Route path="/notifications" element={<NotificationPage />} />
             <Route path="/mypage/edit" element={<ProfileEditPage />} />
             <Route path="/my-meetings" element={<MyMeetingsPage />} />
           </Route>

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Search, Plus } from 'lucide-react';
 import logo from '@/assets/images/logo.png';
 import MeetingCard from '@/shared/components/ui/MeetingCard';
+import NotificationBell from '@/shared/components/ui/NotificationBell';
 import { useMeetings } from '../hooks/useMeetings';
 import { INTEREST_CATEGORIES } from '@/shared/config/constants';
 
@@ -40,9 +41,12 @@ const MeetingListPage: React.FC = () => {
         <div className="flex items-center gap-2">
           <img src={logo} alt="AIMO" className="w-8 h-8 object-contain" />
         </div>
-        <button onClick={() => navigate('/search')}>
-          <Search size={20} className="text-gray-600" />
-        </button>
+        <div className="flex items-center gap-2">
+          <NotificationBell />
+          <button onClick={() => navigate('/search')}>
+            <Search size={20} className="text-gray-600" />
+          </button>
+        </div>
       </header>
 
       {/* 모임 목록 */}
