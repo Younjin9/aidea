@@ -141,6 +141,7 @@ export interface MeetingListParams {
 export interface MeetingEvent {
   eventId: number | string;
   title: string;
+  summary?: string;
   date: string;
   scheduledAt?: string;
   placeName?: string;

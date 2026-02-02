@@ -18,14 +18,14 @@ export const useAuthStore = create<AuthState>()(
       isAuthenticated: false,
       accessToken: null,
       setAuth: (user, token) => {
-        // 새로운 사용자 정보로 업데이트
-        localStorage.setItem('accessToken', token);
-        set({
-          user: { ...user },
-          accessToken: token,
-          isAuthenticated: true,
-        });
-      },
+          // 새로운 사용자 정보로 업데이트
+          localStorage.setItem('accessToken', token);
+          set({
+            user: { ...user },
+            accessToken: token,
+            isAuthenticated: true,
+          });
+        },
       updateUser: (user) => set({ user }),
       logout: () => {
         // 1. 상태 초기화
