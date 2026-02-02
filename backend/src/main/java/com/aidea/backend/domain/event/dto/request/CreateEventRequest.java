@@ -30,6 +30,7 @@ public class CreateEventRequest {
 
     private String cost;
     private String notes;
+    private String imageUrl;
 
     @Getter
     @NoArgsConstructor
