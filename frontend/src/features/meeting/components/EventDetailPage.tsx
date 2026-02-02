@@ -1,7 +1,7 @@
 import React from 'react';
 import { useParams, useLocation } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { MapPin, Users, DollarSign, Clock, Share2 } from 'lucide-react';
+import { MapPin, Users, Clock, Share2 } from 'lucide-react';
 import BackButton from '@/shared/components/ui/BackButton';
 import Button from '@/shared/components/ui/Button';
 import ProfileImage from '@/shared/components/ui/ProfileImage';
@@ -47,8 +47,8 @@ const EventDetailPage: React.FC = () => {
   // API 응답에서 이벤트 데이터 추출
   const eventFromApi = eventDetailData?.data;
 
-  // location.state에서 받은 데이터 또는 API 데이터 사용
-  const event = state?.event || eventFromApi;
+  // API 데이터가 있으면 우선 사용하고, 없으면 location.state 사용
+  const event = eventFromApi ?? state?.event;
   const isMember = state?.isMember ?? true; // API에서 가져오면 멤버 여부 확인 필요
   const meetingMaxMembers = state?.meetingMaxMembers || 10;
 
@@ -245,7 +245,7 @@ const EventDetailPage: React.FC = () => {
             {/* 비용 */}
             {(event.cost !== undefined && event.cost !== null) && (
               <div className="flex gap-2 items-start">
-                <DollarSign size={14} className="text-gray-600 mt-0.5 flex-shrink-0" />
+                <span className="text-gray-600 mt-0.5 flex-shrink-0 text-sm">₩</span>
                 <div>
                   <p className="text-xs text-gray-500">비용</p>
                   <p className="text-xs font-medium text-gray-900">
