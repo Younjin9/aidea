@@ -95,6 +95,8 @@ const EventEditPage: React.FC = () => {
           ? { lat: Number(selectedLocation.lat), lng: Number(selectedLocation.lng) }
           : { lat: 0, lng: 0 },
         maxParticipants,
+        cost: cost || undefined,
+        imageUrl: eventImage || undefined,
       },
       {
         onError: () => {

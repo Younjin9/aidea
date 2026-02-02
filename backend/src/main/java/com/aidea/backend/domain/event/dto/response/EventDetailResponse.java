@@ -24,6 +24,7 @@ public class EventDetailResponse { // Maps to Frontend 'EventDetail'
     private Integer maxParticipants;
     private String notes;
     private String cost;
+    private String imageUrl;
     private LocalDateTime createdAt;
 
     // Extra fields expected by frontend
@@ -73,6 +74,7 @@ public class EventDetailResponse { // Maps to Frontend 'EventDetail'
                 .maxParticipants(event.getMaxParticipants())
                 .notes(event.getDescription())
                 .cost(event.getCost())
+                .imageUrl(event.getImageUrl())
                 .createdAt(event.getCreatedAt())
                 .participants(participantList)
                 .isParticipating(isParticipating)
