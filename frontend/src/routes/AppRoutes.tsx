@@ -18,6 +18,7 @@ import MeetingDetailPage from '@/features/meeting/components/detail';
 import MeetingSearchPage from '@/features/meeting/components/MeetingSearchPage';
 import MemberManagePage from '@/features/meeting/components/MemberManagePage';
 import EventCreatePage from '@/features/meeting/components/EventCreatePage';
+import EventDetailPage from '@/features/meeting/components/EventDetailPage';
 import EventEditPage from '@/features/meeting/components/EventEditPage';
 import EventLinkExpiredPage from '@/features/meeting/components/EventLinkExpiredPage';
 import ChatRoomPage from '@/features/chat/components/ChatRoomPage';
@@ -124,6 +125,7 @@ const AppRoutes: React.FC = () => {
             <Route path="/meetings/:meetingId/members" element={<MemberManagePage />} />
             <Route path="/meetings/:meetingId/events/create" element={<EventCreatePage />} />
             <Route path="/meetings/:meetingId/events/:eventId/edit" element={<EventEditPage />} />
+            <Route path="/meetings/:meetingId/events/:eventId" element={<EventDetailPage />} />
             
             <Route path="/notifications" element={<NotificationPage />} />
             <Route path="/mypage/edit" element={<ProfileEditPage />} />

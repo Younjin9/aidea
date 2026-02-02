@@ -19,6 +19,7 @@ import Toast from '@/shared/components/ui/Toast';
 import { useMeetingStore } from '../../store/meetingStore';
 import { useAuthStore } from '@/features/auth/store/authStore';
 import { useLeaveMeeting, useToggleLikeMeeting, useJoinMeeting } from '../../hooks/useMeetings';
+import type { User } from '@/shared/types/User.types';
 import { useJoinEvent, useCancelEventParticipation } from '../../hooks/useEvents';
 import type { MeetingDetail, MeetingEvent } from '@/shared/types/Meeting.types';
 
@@ -76,7 +77,7 @@ const MOCK_MEETING_DETAIL: MeetingDetail = {
 const createMeetingDetailFromStore = (
   storedMeeting: { id: number; title: string; description?: string; image: string; category: string; members: number; maxMembers?: number; location: string; ownerUserId?: string | number; myStatus?: 'PENDING' | 'APPROVED'; myRole?: 'HOST' | 'MEMBER'; isLiked?: boolean },
   isOwner: boolean,
-  user: { userId: string; nickname: string; profileImage?: string;[key: string]: any } | null,
+  user: User | null,
   existingEvents: MeetingEvent[] = []
 ): MeetingDetail => {
   const hostUserId = String(storedMeeting.ownerUserId || 'user1');
@@ -191,6 +192,60 @@ const MeetingDetailPage: React.FC = () => {
     return baseMeeting;
   });
 
+<<<<<<< HEAD
+=======
+  const showToastMessage = (message: string) => {
+    setToastMessage(message);
+    setShowToast(true);
+    setTimeout(() => setShowToast(false), 2000);
+  };
+
+  const copyToClipboard = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      showToastMessage('링크가 복사되었습니다.');
+    } catch {
+      const textarea = document.createElement('textarea');
+      textarea.value = text;
+      textarea.style.position = 'fixed';
+      textarea.style.opacity = '0';
+      document.body.appendChild(textarea);
+      textarea.select();
+      try {
+        document.execCommand('copy');
+        showToastMessage('링크가 복사되었습니다.');
+      } catch {
+        showToastMessage('복사에 실패했습니다.');
+      } finally {
+        document.body.removeChild(textarea);
+      }
+    }
+  };
+
+  const handleShareEvent = async (event?: MeetingEvent) => {
+    if (!meetingId) return;
+    try {
+      const response = await shareApi.createShare(meetingId);
+      const shareUrl = response.data?.shareUrl;
+      if (!shareUrl) {
+        showToastMessage('공유 링크 생성에 실패했습니다.');
+        return;
+      }
+      
+      // 이벤트가 전달되면 이벤트 상세페이지 링크 생성
+      let finalUrl = shareUrl;
+      if (event) {
+        // shareUrl이 token 기반이면 쿼리 파라미터로 eventId 추가
+        finalUrl = `${shareUrl}?eventId=${event.eventId}`;
+      }
+      
+      await copyToClipboard(finalUrl);
+    } catch (error) {
+      console.error('공유 링크 생성 실패:', error);
+      showToastMessage('공유 링크 생성에 실패했습니다.');
+    }
+  };
+
   // location state(페이지 이동 시 전달된 값) 기반으로 모임/이벤트/멤버 정보 동기화
   useEffect(() => {
     if (!locationState || !meetingId) return;
@@ -238,7 +293,7 @@ const MeetingDetailPage: React.FC = () => {
 
       // queryFn에서 이미 response.data를 리턴했으므로 apiMeetingDetail은 MeetingDetail 객체여야 함
       // 하지만 ApiResponse 객체가 그대로 실려오는 경우를 대비한 방어 로직
-      const actualData = (apiMeetingDetail as any).data || apiMeetingDetail;
+      const actualData = (apiMeetingDetail as { data?: MeetingDetail }).data || apiMeetingDetail;
 
       // members나 events가 없는 경우 빈 배열로 처리하여 UI 깨짐 방지
       // 백엔드 필드명(members, events)과 프론트엔드 타입이 일치하는지 확인하며 매핑
@@ -325,7 +380,7 @@ const MeetingDetailPage: React.FC = () => {
         ...prev,
         events: prev.events.map(e =>
           String(e.eventId) === String(selectedEvent.id)
-            ? { ...e, participantCount: (e.participantCount || 0) + 1, participants: [...(e.participants || []), { memberId: Date.now(), userId: user.userId, nickname: user.nickname, profileImage: user.profileImage, role: 'MEMBER', status: 'APPROVED' } as any] }
+            ? { ...e, participantCount: (e.participantCount || 0) + 1, participants: [...(e.participants || []), { memberId: Date.now(), userId: user.userId, nickname: user.nickname, profileImage: user.profileImage, role: 'MEMBER' as const, status: 'APPROVED' as const, joinedAt: new Date().toISOString() }] }
             : e
         ),
       }));
@@ -406,8 +461,23 @@ const MeetingDetailPage: React.FC = () => {
     }
   };
 
-  // 이벤트 제목 클릭 시 이벤트 수정 페이지로 이동
+  // 이벤트 제목 클릭 시 상세 페이지로 이동 (모두)
   const handleEventTitleClick = (event: MeetingEvent) => {
+    navigate(`/meetings/${meetingId}/events/${String(event.eventId)}`, {
+      state: {
+        event,
+        meetingId,
+        meetingTitle: meeting.title,
+        meetingMaxMembers: meeting.maxMembers,
+        isHost: isOwner,
+        isMember: isMember,
+        userId: user?.userId,
+      },
+    });
+  };
+
+  // 이벤트 편집 아이콘 클릭 시 수정 페이지로 이동 (모임장만)
+  const handleEditEvent = (event: MeetingEvent) => {
     navigate(`/meetings/${meetingId}/events/${String(event.eventId)}/edit`, { state: { event } });
   };
 
@@ -417,6 +487,7 @@ const MeetingDetailPage: React.FC = () => {
     openModal(action === 'cancelParticipation' ? 'cancelParticipation' : 'joinEvent');
   };
 
+<<<<<<< HEAD
   const showToastMessage = (message: string) => {
     setToastMessage(message);
     setShowToast(true);
@@ -455,6 +526,8 @@ const MeetingDetailPage: React.FC = () => {
 
 
 
+=======
+>>>>>>> 74261f27300a2d689100d448a9ba92202bc4b1c1
   // API 로딩 중일 때 로딩 UI 표시
   if (isLoading) {
     return (
@@ -474,6 +547,10 @@ const MeetingDetailPage: React.FC = () => {
         isLiked={isLiked}
         activeTab={activeTab}
         onLikeToggle={handleLikeToggle}
+<<<<<<< HEAD
+=======
+        onShare={() => handleShareEvent()}
+>>>>>>> 74261f27300a2d689100d448a9ba92202bc4b1c1
         onTabChange={setActiveTab}
         isHost={isHost}
         isMember={!!isMember}
@@ -496,6 +573,7 @@ const MeetingDetailPage: React.FC = () => {
               isMember={isMember}
               userId={user?.userId}
               onEventTitleClick={handleEventTitleClick}
+              onEditEvent={handleEditEvent}
               onEventAction={handleEventAction}
               onJoinMeetingFirst={() => openModal('joinMeetingFirst')}
               onCreateEvent={() => navigate(`/meetings/${meetingId}/events/create`)}

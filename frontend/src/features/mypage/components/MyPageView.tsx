@@ -1,4 +1,4 @@
-﻿// 마이페이지
+// 마이페이지
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Edit2 } from 'lucide-react';
@@ -9,6 +9,7 @@ import { useAuthStore } from '@/features/auth/store/authStore';
 import ProfileImage from '@/shared/components/ui/ProfileImage';
 import MeetingCard from '@/shared/components/ui/MeetingCard';
 import Modal from '@/shared/components/ui/Modal';
+import NotificationBell from '@/shared/components/ui/NotificationBell';
 import logo from '@/assets/images/logo.png';
 import { useMyPage, myPageKeys } from '../hooks/useMyPage';
 import { useMyPageStore } from '../store/myPageStore';
@@ -120,7 +121,11 @@ const MyPageView: React.FC<{ onUnlike?: (id: number) => void }> = ({ onUnlike })
       <header className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
         <img src={logo} alt="AIMO" className="w-8 h-8 object-contain" />
         <h1 className="text-lg font-bold text-gray-900">MyPage</h1>
-        <div className="w-8" />
+<<<<<<< HEAD
+        <NotificationBell />
+=======
+        <NotificationBell />
+>>>>>>> 74261f27300a2d689100d448a9ba92202bc4b1c1
       </header>
 
       <main className="flex-1 overflow-y-auto pb-32 no-scrollbar flex flex-col min-h-0">

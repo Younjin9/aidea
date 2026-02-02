@@ -17,6 +17,5 @@ public class JoinRequestResponse {
     private String nickname; // 닉네임
     private String profileImage; // 프로필 이미지
     private MemberStatus status; // 상태 (주로 PENDING)
-    private LocalDateTime requestedAt; // 신청 시간
-    private String requestMessage; // 가입 인사
+    private LocalDateTime requestedAt; // 신청 시간 (joinedAt)
 }

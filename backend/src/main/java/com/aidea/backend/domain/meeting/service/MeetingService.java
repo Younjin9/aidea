@@ -370,10 +370,7 @@ public class MeetingService {
      * 모임 참가 신청
      */
     @Transactional
-    public com.aidea.backend.domain.meeting.dto.response.MemberResponse joinMeeting(Long meetingId, Long userId,
-            String requestMessage) {
-        log.info("모임 참가 신청: userId={}, meetingId={}, message={}", userId, meetingId, requestMessage);
-
+    public com.aidea.backend.domain.meeting.dto.response.MemberResponse joinMeeting(Long meetingId, Long userId) {
         // 1. Meeting 조회
         Meeting meeting = meetingRepository.findById(meetingId)
                 .orElseThrow(() -> new RuntimeException("모임을 찾을 수 없습니다."));
@@ -382,14 +379,7 @@ public class MeetingService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
 
-        // 🆕 3. 프로필 사진 필수 검증 (임시 비활성화 - 추후 활성화 예정)
-        // if (user.getProfileImage() == null || user.getProfileImage().isBlank()) {
-        // log.warn("프로필 사진 없는 사용자 참여 시도 차단: userId={}, meetingId={}", userId,
-        // meetingId);
-        // throw new IllegalStateException("프로필 사진 등록 후 모임에 참여할 수 있습니다.");
-        // }
-
-        // 4. 기존 멤버십 확인 (재가입 처리 포함)
+        // 3. 기존 멤버십 확인 (재가입 처리 포함)
         Optional<MeetingMember> existingMember = meetingMemberRepository
                 .findByMeetingIdAndUser_UserId(meetingId, userId);
 
@@ -400,7 +390,7 @@ public class MeetingService {
             // LEFT 상태인 경우 재활성화 (UPDATE)
             if (currentStatus == MemberStatus.LEFT) {
                 log.info("재가입 처리: userId={}, meetingId={}", userId, meetingId);
-                member.reactivate(meeting.getIsApprovalRequired(), requestMessage);
+                member.reactivate(meeting.getIsApprovalRequired());
                 MeetingMember savedMember = meetingMemberRepository.save(member);
 
                 // 자동 승인인 경우 currentMembers 증가
@@ -422,7 +412,7 @@ public class MeetingService {
 
         // 5. MeetingMember 생성
         boolean approvalRequired = (meeting.getIsApprovalRequired() != null) ? meeting.getIsApprovalRequired() : true;
-        MeetingMember member = MeetingMember.createMember(meeting, user, approvalRequired, requestMessage);
+        MeetingMember member = MeetingMember.createMember(meeting, user, approvalRequired);
 
         MeetingMember savedMember = meetingMemberRepository.save(member);
 
@@ -544,10 +534,6 @@ public class MeetingService {
         member.leave();
         log.info("모임 탈퇴/참가 취소 처리: userId={}, meetingId={}, prevStatus={}", userId, meetingId, prevStatus);
 
-        // ✅ 4-1. 해당 모임의 모든 정모 참가 기록 삭제
-        eventParticipantRepository.deleteByEvent_Meeting_IdAndUser_UserId(meetingId, userId);
-        log.info("모임 관련 정모 참가 기록 삭제 완료: userId={}", userId);
-
         // 5. APPROVED 상태였을 때만 멤버 수 감소
         if (prevStatus == MemberStatus.APPROVED) {
             meeting.decrementMembers();
@@ -584,6 +570,7 @@ public class MeetingService {
         meeting.decrementMembers();
     }
 
+<<<<<<< HEAD
     /**
      * 모임장 권한 양도 (HOST 전용)
      */
