@@ -61,6 +61,7 @@ const EventCreatePage: React.FC = () => {
     const newEvent = {
       eventId: `event-${Date.now()}`,
       title: eventName,
+      summary: shortDescription,
       description,
       scheduledAt: `${date} ${time}`,
       location,
@@ -78,6 +79,7 @@ const EventCreatePage: React.FC = () => {
     createEvent(
       {
         title: eventName,
+        summary: shortDescription,
         notes: description,
         scheduledAt: `${date}T${time}:00`,
         placeName: location,

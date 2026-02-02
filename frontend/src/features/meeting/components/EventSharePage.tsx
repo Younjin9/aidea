@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import Button from '@/shared/components/ui/Button';
 
@@ -10,12 +10,12 @@ const EventSharePage: React.FC = () => {
   const eventId = searchParams.get('eventId');
   const expires = searchParams.get('expires');
 
-  const isExpired = useMemo(() => {
+  const [isExpired] = useState(() => {
     if (!expires) return true;
     const expiresAt = Number(expires);
     if (Number.isNaN(expiresAt)) return true;
     return Date.now() > expiresAt;
-  }, [expires]);
+  });
 
   useEffect(() => {
     if (!meetingId || !eventId || isExpired) return;

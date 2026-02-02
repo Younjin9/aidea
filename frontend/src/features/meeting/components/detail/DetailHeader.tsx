@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Heart, Ellipsis } from 'lucide-react';
+import { Heart, Share2, Ellipsis } from 'lucide-react';
 import BackButton from '@/shared/components/ui/BackButton';
 import Modal from '@/shared/components/ui/Modal';
 
@@ -12,6 +12,7 @@ export interface DetailHeaderProps {
   isLiked: boolean;
   activeTab: 'home' | 'chat';
   onLikeToggle: () => void;
+  onShare: () => void;
   onTabChange: (tab: 'home' | 'chat') => void;
   isHost: boolean;
   isMember: boolean;
@@ -25,6 +26,7 @@ const DetailHeader: React.FC<DetailHeaderProps> = ({
   isLiked,
   activeTab,
   onLikeToggle,
+  onShare,
   onTabChange,
   isHost,
   isMember,
@@ -60,6 +62,9 @@ const DetailHeader: React.FC<DetailHeaderProps> = ({
           <div className="flex items-center gap-1 ml-auto">
             <button onClick={onLikeToggle} className="p-2 hover:bg-gray-100 rounded-full transition">
               <Heart size={20} fill={isLiked ? '#e91e63' : 'none'} stroke={isLiked ? '#e91e63' : 'currentColor'} />
+            </button>
+            <button onClick={onShare} className="p-2 hover:bg-gray-100 rounded-full transition">
+              <Share2 size={20} className="text-black" />
             </button>
             <button onClick={() => setShowActionSheet(true)} className="p-2 hover:bg-gray-100 rounded-full transition">
               <Ellipsis size={20} />

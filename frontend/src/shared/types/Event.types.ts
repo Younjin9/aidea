@@ -40,6 +40,7 @@ export interface EventParticipant {
 
 export interface CreateEventRequest {
   title: string;
+  summary?: string;
   scheduledAt: string;
   placeName: string;
   location: {
