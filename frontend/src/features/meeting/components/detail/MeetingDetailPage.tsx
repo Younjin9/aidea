@@ -130,7 +130,7 @@ const MeetingDetailPage: React.FC = () => {
   const { meetingId } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
-  const locationState = location.state as { newEvent?: MeetingEvent; updatedEvent?: MeetingEvent; deletedEventId?: string; updatedMembers?: MeetingDetail['members'] } | null;
+  const locationState = location.state as { newEvent?: MeetingEvent; updatedEvent?: MeetingEvent; deletedEventId?: string; updatedMembers?: MeetingDetail['members']; initialTab?: 'home' | 'chat' } | null;
 
   // 상태 관리 및 커스텀 훅 사용 (store, mutation 등)
   const { getMeetingByGroupId, toggleLikeByGroupId, leaveMeeting, getEventsByGroupId, addEvent, updateEvent: updateEventInStore, deleteEvent: deleteEventInStore, initializeMockData: initializeMeetingMockData, isInitialized: isMeetingInitialized } = useMeetingStore();
@@ -169,7 +169,7 @@ const MeetingDetailPage: React.FC = () => {
 
 
   // 주요 상태값 정의
-  const [activeTab, setActiveTab] = useState<'home' | 'chat'>('home'); // 탭 상태(홈/채팅)
+  const [activeTab, setActiveTab] = useState<'home' | 'chat'>(locationState?.initialTab || 'home'); // 탭 상태(홈/채팅)
   const [isLiked, setIsLiked] = useState(storedMeeting?.isLiked || false); // 좋아요 상태
   const [activeModal, setActiveModal] = useState<ModalType>(null); // 현재 활성화된 모달
   const [selectedEvent, setSelectedEvent] = useState<{ id: string; title: string } | null>(null); // 선택된 이벤트
