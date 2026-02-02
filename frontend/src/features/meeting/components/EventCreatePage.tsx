@@ -61,6 +61,7 @@ const EventCreatePage: React.FC = () => {
     const newEvent = {
       eventId: `event-${Date.now()}`,
       title: eventName,
+      summary: shortDescription,
       description,
       scheduledAt: `${date} ${time}`,
       location,
@@ -78,6 +79,7 @@ const EventCreatePage: React.FC = () => {
     createEvent(
       {
         title: eventName,
+        summary: shortDescription,
         notes: description,
         scheduledAt: `${date}T${time}:00`,
         placeName: location,
@@ -103,6 +105,18 @@ const EventCreatePage: React.FC = () => {
   };
 
   const handleOpenMapModal = () => {
+    if (selectedLocation) {
+      setCurrentLocation({ latitude: selectedLocation.lat, longitude: selectedLocation.lng });
+      setShowMapModal(true);
+      return;
+    }
+
+    if (location.trim()) {
+      setCurrentLocation(undefined);
+      setShowMapModal(true);
+      return;
+    }
+
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
@@ -264,6 +278,7 @@ const EventCreatePage: React.FC = () => {
         onClose={() => setShowMapModal(false)}
         onSelect={handleLocationSelect}
         currentLocation={currentLocation} // 현재 위치 전달
+        initialAddress={location}
       />
 
       {/* Location Search Modal */}

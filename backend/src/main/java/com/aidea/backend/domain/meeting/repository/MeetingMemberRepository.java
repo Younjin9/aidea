@@ -14,6 +14,8 @@ public interface MeetingMemberRepository extends JpaRepository<MeetingMember, Lo
      */
     Optional<MeetingMember> findByMeetingIdAndUser_UserId(Long meetingId, Long userId);
 
+    boolean existsByMeetingIdAndUser_UserIdAndStatus(Long meetingId, Long userId, MemberStatus status);
+
     /**
      * 중복 참가 확인 (LEFT 상태 제외)
      */

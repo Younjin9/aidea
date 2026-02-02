@@ -8,7 +8,11 @@ import { useAuthStore } from '@/features/auth/store/authStore';
 import { getWebSocketUrl } from '@/shared/utils/websocket';
 import type { ChatMessage } from '@/shared/types/Chat.types';
 
-const ChatRoomPage: React.FC = () => {
+interface ChatRoomPageProps {
+    isEnabled?: boolean;
+}
+
+const ChatRoomPage: React.FC<ChatRoomPageProps> = ({ isEnabled = true }) => {
     const params = useParams<{ meetingId: string }>();
     const meetingId = params.meetingId;
     const navigate = useNavigate();
@@ -89,14 +93,10 @@ const ChatRoomPage: React.FC = () => {
                 const response = await chatApi.getMessages(parsedMeetingId);
                 return response.data ?? [];
             } catch {
-                // Fallback Dummy Data for UI Dev
-                return [
-                    { messageId: '1', senderId: '101', senderName: '김철수', message: '같이 가요!', createdAt: '2023-10-25T10:00:00', type: 'TALK' },
-                    { messageId: '2', senderId: '202', senderName: '김쩌고', message: '다른 사람이 말하는 버전 1줄 버전!', createdAt: '2023-10-25T10:05:00', type: 'TALK' },
-                ] as ChatMessage[];
+                return [] as ChatMessage[];
             }
         },
-        enabled: true,
+        enabled: isEnabled && !!meetingId, // isEnabled가 true일 때만 호출
     });
 
     // 메시지 읽음 처리 Mutation
@@ -109,14 +109,17 @@ const ChatRoomPage: React.FC = () => {
         if (initialMessages) {
             setMessages(initialMessages);
             scrollToBottom();
-            if (!isNaN(parsedMeetingId)) {
+            if (!isNaN(parsedMeetingId) && isEnabled) {
                 markAsRead(parsedMeetingId);
             }
         }
-    }, [initialMessages, parsedMeetingId, markAsRead]);
+    }, [initialMessages, parsedMeetingId, markAsRead, isEnabled]);
 
     // 2. STOMP 연결
     useEffect(() => {
+        // 비회원이거나 meetingId가 없으면 연결하지 않음
+        if (!isEnabled || !meetingId) return;
+
         const wsUrl = getWebSocketUrl();
         console.log('[DEBUG] Calculated WebSocket URL:', wsUrl);
         console.log('[DEBUG] Current Base URL:', import.meta.env.VITE_API_BASE_URL);
@@ -163,7 +166,7 @@ const ChatRoomPage: React.FC = () => {
         return () => {
             client.deactivate();
         };
-    }, [parsedMeetingId, token]);
+    }, [parsedMeetingId, token, isEnabled, meetingId]);
 
 
     return (

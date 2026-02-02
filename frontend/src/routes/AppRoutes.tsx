@@ -18,11 +18,14 @@ import MeetingDetailPage from '@/features/meeting/components/detail';
 import MeetingSearchPage from '@/features/meeting/components/MeetingSearchPage';
 import MemberManagePage from '@/features/meeting/components/MemberManagePage';
 import EventCreatePage from '@/features/meeting/components/EventCreatePage';
+import EventDetailPage from '@/features/meeting/components/EventDetailPage';
 import EventEditPage from '@/features/meeting/components/EventEditPage';
+import EventLinkExpiredPage from '@/features/meeting/components/EventLinkExpiredPage';
 import ChatRoomPage from '@/features/chat/components/ChatRoomPage';
 import MyPageView from '@/features/mypage/components/MyPageView';
 import ProfileEditPage from '@/features/mypage/components/ProfileEditPage';
 import MyMeetingsPage from '@/features/mypage/components/MyMeetingsPage';
+import NotificationPage from '@/features/notification/components/NotificationPage';
 import { useAuthStore } from '@/features/auth/store/authStore';
 // BottomTab import removed as it causes error and PrivateRoute uses Outlet
 // import BottomTab from '@/shared/components/layout/BottomTab';
@@ -86,15 +89,20 @@ const AppRoutes: React.FC = () => {
             <Route path="/login/email" element={<EmailLoginPage />} />
             <Route path="/signup" element={<SignupPage />} />
             <Route path="/signup/complete" element={<SignupCompletePage />} />
-            <Route path="/oauth/callback" element={<OAuthCallbackPage />} />
             <Route path="/find-id" element={<FindIdPage />} />
             <Route path="/find-pw" element={<FindPwPage />} />
           </Route>
-          
+
+          {/* OAuth Callback - Keep it outside PublicRoute to avoid redirect collision */}
+          <Route path="/oauth/callback" element={<OAuthCallbackPage />} />
+
           {/* Onboarding Routes */}
           <Route path="/onboarding/required-info" element={<RequiredInfoPage />} />
           <Route path="/onboarding/interest" element={<InterestPage />} />
-          
+
+          {/* Share Routes */}
+          <Route path="/events/expired" element={<EventLinkExpiredPage />} />
+
           <Route path="/chat" element={<ChatRoomPage />} />
         </Route>
 
@@ -112,22 +120,23 @@ const AppRoutes: React.FC = () => {
         {/* Meeting & MyPage Routes (No Bottom Navigation) */}
         <Route element={<PrivateRoute />}>
           <Route element={<MobileLayout />}>
-            <Route path="/onboarding/interest" element={<InterestPage />} />
             <Route path="/search" element={<MeetingSearchPage />} />
             <Route path="/meetings/create" element={<MeetingCreatePage />} />
             <Route path="/meetings/:meetingId" element={<MeetingDetailPage />} />
             <Route path="/meetings/:meetingId/members" element={<MemberManagePage />} />
             <Route path="/meetings/:meetingId/events/create" element={<EventCreatePage />} />
             <Route path="/meetings/:meetingId/events/:eventId/edit" element={<EventEditPage />} />
-            
+            <Route path="/meetings/:meetingId/events/:eventId" element={<EventDetailPage />} />
+
+            <Route path="/notifications" element={<NotificationPage />} />
             <Route path="/mypage/edit" element={<ProfileEditPage />} />
             <Route path="/my-meetings" element={<MyMeetingsPage />} />
           </Route>
         </Route>
-          
+
         {/* Default Redirect */}
         <Route path="/" element={<Navigate to="/login" replace />} />
-        
+
         {/* 404 - Catch all */}
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>

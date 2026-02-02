@@ -18,6 +18,7 @@ public class UpdateEventRequest {
     private Integer maxParticipants;
     private String cost;
     private String notes;
+    private String imageUrl;
 
     @Getter
     @NoArgsConstructor
