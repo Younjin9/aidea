@@ -6,15 +6,14 @@ import { useQuery } from '@tanstack/react-query';
 import Button from '@/shared/components/ui/Button';
 import Modal from '@/shared/components/ui/Modal';
 import ProfileImage from '@/shared/components/ui/ProfileImage';
-import Toast from '@/shared/components/ui/Toast';
 import DetailHeader from './DetailHeader';
 import MeetingInfoSection from './MeetingInfoSection';
 import EventSection from './EventSection';
 import MemberSection from './MemberSection';
 import { reportUser } from '@/shared/api/safety/safetyApi';
 import ChatRoomPage from '@/features/chat/components/ChatRoomPage';
+import ChatOverlay from '@/features/chat/components/ChatOverlay';
 import meetingApi from '@/shared/api/meeting/meetingApi';
-import shareApi from '@/shared/api/shareApi';
 import { useMeetingStore } from '../../store/meetingStore';
 import { useAuthStore } from '@/features/auth/store/authStore';
 import { useLeaveMeeting, useToggleLikeMeeting, useJoinMeeting } from '../../hooks/useMeetings';
@@ -173,8 +172,6 @@ const MeetingDetailPage: React.FC = () => {
   const [activeModal, setActiveModal] = useState<ModalType>(null); // 현재 활성화된 모달
   const [selectedEvent, setSelectedEvent] = useState<{ id: string; title: string } | null>(null); // 선택된 이벤트
   const [greeting, setGreeting] = useState(''); // 가입 인사 메시지
-  const [toastMessage, setToastMessage] = useState('');
-  const [showToast, setShowToast] = useState(false);
 
   // 이벤트 및 모임 정보 상태
   const storedEvents = getEventsByGroupId(meetingId || '');
@@ -189,51 +186,6 @@ const MeetingDetailPage: React.FC = () => {
     }
     return baseMeeting;
   });
-
-  const showToastMessage = (message: string) => {
-    setToastMessage(message);
-    setShowToast(true);
-    setTimeout(() => setShowToast(false), 2000);
-  };
-
-  const copyToClipboard = async (text: string) => {
-    try {
-      await navigator.clipboard.writeText(text);
-      showToastMessage('링크가 복사되었습니다.');
-    } catch {
-      const textarea = document.createElement('textarea');
-      textarea.value = text;
-      textarea.style.position = 'fixed';
-      textarea.style.opacity = '0';
-      document.body.appendChild(textarea);
-      textarea.select();
-      try {
-        document.execCommand('copy');
-        showToastMessage('링크가 복사되었습니다.');
-      } catch {
-        showToastMessage('복사에 실패했습니다.');
-      } finally {
-        document.body.removeChild(textarea);
-      }
-    }
-  };
-
-  const handleShareEvent = async (_event: MeetingEvent) => {
-    if (!meetingId) return;
-    try {
-      const response = await shareApi.createShare(meetingId);
-      const shareUrl = response.data?.shareUrl;
-      if (!shareUrl) {
-        showToastMessage('공유 링크 생성에 실패했습니다.');
-        return;
-      }
-      await copyToClipboard(shareUrl);
-      showToastMessage('링크가 복사되었습니다.');
-    } catch (error) {
-      console.error('공유 링크 생성 실패:', error);
-      showToastMessage('공유 링크 생성에 실패했습니다.');
-    }
-  };
 
   // location state(페이지 이동 시 전달된 값) 기반으로 모임/이벤트/멤버 정보 동기화
   useEffect(() => {
@@ -507,7 +459,6 @@ const MeetingDetailPage: React.FC = () => {
               onEventAction={handleEventAction}
               onJoinMeetingFirst={() => openModal('joinMeetingFirst')}
               onCreateEvent={() => navigate(`/meetings/${meetingId}/events/create`)}
-              onShareEvent={handleShareEvent}
               showCancelModal={activeModal === 'cancelParticipation'}
               showJoinEventModal={activeModal === 'joinEvent'}
               showJoinMeetingFirstModal={activeModal === 'joinMeetingFirst'}
@@ -526,7 +477,18 @@ const MeetingDetailPage: React.FC = () => {
             />
           </>
         ) : (
-          <ChatRoomPage />
+          <div className="relative h-full flex flex-col flex-1">
+            {(!isHost && !isApproved) && (
+              <ChatOverlay
+                onJoin={() => {
+                  if (isPending) openModal('leave');
+                  else handleJoinClick();
+                }}
+                isPending={isPending}
+              />
+            )}
+            <ChatRoomPage isEnabled={isHost || isApproved} />
+          </div>
         )}
       </main>
 
@@ -616,8 +578,6 @@ const MeetingDetailPage: React.FC = () => {
         onConfirm={handleLeaveMeeting}
         onCancel={closeModal}
       />
-
-      <Toast message={toastMessage} isOpen={showToast} />
     </div>
   );
 };
