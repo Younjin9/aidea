@@ -21,6 +21,7 @@ const EventCreatePage: React.FC = () => {
 
   // Form State
   const [eventImage, setEventImage] = useState<string>();
+  const [imageUrlInput, setImageUrlInput] = useState('');
   const [eventName, setEventName] = useState('');
   const [shortDescription, setShortDescription] = useState('');
   const [date, setDate] = useState('');
@@ -72,10 +73,14 @@ const EventCreatePage: React.FC = () => {
       maxParticipants,
       participantCount: hostParticipant ? 1 : 0,
       participants: hostParticipant ? [hostParticipant] : [],
-      imageUrl: eventImage,
+      imageUrl: imageUrlInput || eventImage,
     };
 
-    const imageUrlForApi = eventImage && eventImage.startsWith('data:') ? undefined : eventImage;
+    const imageUrlForApi = imageUrlInput
+      ? imageUrlInput
+      : eventImage && eventImage.startsWith('data:')
+        ? undefined
+        : eventImage;
 
     // API 호출 시도
     createEvent(
@@ -103,6 +108,8 @@ const EventCreatePage: React.FC = () => {
   };
 
   const isFormValid = eventName && shortDescription && date && time && location && description;
+
+  const previewImage = imageUrlInput || eventImage;
 
   const handleLocationInputClick = () => {
     setShowLocationSearchModal(true);
@@ -159,8 +166,8 @@ const EventCreatePage: React.FC = () => {
             onClick={() => fileInputRef.current?.click()}
             className="w-20 h-20 bg-gray-100 rounded-lg flex items-center justify-center cursor-pointer flex-shrink-0"
           >
-            {eventImage ? (
-              <img src={eventImage} alt="정모 이미지" className="w-full h-full object-cover rounded-lg" />
+            {previewImage ? (
+              <img src={previewImage} alt="정모 이미지" className="w-full h-full object-cover rounded-lg" />
             ) : (
               <Camera size={24} className="text-gray-400" />
             )}
@@ -174,6 +181,16 @@ const EventCreatePage: React.FC = () => {
               placeholder="정모 이름을 입력하세요"
             />
           </div>
+        </div>
+
+        {/* 이미지 URL */}
+        <div className="mb-6">
+          <Input
+            label="이미지 URL"
+            value={imageUrlInput}
+            onChange={(e) => setImageUrlInput(e.target.value)}
+            placeholder="https://..."
+          />
         </div>
 
         {/* 한줄 설명 */}
