@@ -156,3 +156,10 @@ export interface MeetingEvent {
   isHost?: boolean;
 }
 
+
+export interface ShareCreationResponse {
+  shareToken: string;
+  shareUrl: string;
+  expiresAt: string;
+  messages: string[];
+}

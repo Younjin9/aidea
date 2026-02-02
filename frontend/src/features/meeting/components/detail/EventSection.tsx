@@ -19,6 +19,7 @@ interface EventCardProps {
   onCancelParticipation: () => void;
   onJoin: () => void;
   onJoinMeetingFirst: () => void;
+  onShare: () => void;
 }
 
 const EventCard: React.FC<EventCardProps> = ({
@@ -31,6 +32,7 @@ const EventCard: React.FC<EventCardProps> = ({
   onCancelParticipation,
   onJoin,
   onJoinMeetingFirst,
+  onShare,
 }) => {
   const formatDateTime = (dateString?: string) => {
     if (!dateString) return '일시 미정';
@@ -77,7 +79,7 @@ const EventCard: React.FC<EventCardProps> = ({
 
       {/* Buttons */}
       <div className="flex gap-2 items-center">
-        <Button variant="outline" size="md" className="flex-1">공유</Button>
+        <Button variant="outline" size="md" className="flex-1" onClick={onShare}>공유</Button>
         {isMember || isHost ? (
           isParticipating ? (
             <Button variant="primary" size="md" className="flex-1 bg-gray-500 hover:bg-gray-600 border-gray-500" onClick={onCancelParticipation}>취소</Button>
@@ -113,6 +115,7 @@ export interface EventSectionProps {
   onEventTitleClick: (event: MeetingEvent) => void;
   onEventAction: (eventId: string, title: string, action: 'cancelParticipation' | 'join') => void;
   onJoinMeetingFirst: () => void;
+  onShare: () => void;
   onCreateEvent: () => void;
   // 모달 상태 props
   showCancelModal: boolean;
@@ -135,6 +138,7 @@ const EventSection: React.FC<EventSectionProps> = ({
   onEventTitleClick,
   onEventAction,
   onJoinMeetingFirst,
+  onShare,
   onCreateEvent,
   showCancelModal,
   showJoinEventModal,
@@ -163,6 +167,7 @@ const EventSection: React.FC<EventSectionProps> = ({
               onCancelParticipation={() => onEventAction(String(event.eventId), event.title, 'cancelParticipation')}
               onJoin={() => onEventAction(String(event.eventId), event.title, 'join')}
               onJoinMeetingFirst={() => onJoinMeetingFirst()}
+              onShare={onShare}
             />
           );
         })

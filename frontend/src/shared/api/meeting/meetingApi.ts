@@ -10,6 +10,7 @@ import type {
   JoinMeetingRequest,
   JoinMeetingResponse,
   MeetingStats,
+  ShareCreationResponse,
 } from '@/shared/types/Meeting.types';
 
 // ============================================
@@ -149,6 +150,14 @@ export const getStats = async (groupId: string): Promise<ApiResponse<MeetingStat
   return apiClient.get(`/api/groups/${groupId}/stats`);
 };
 
+/**
+ * 모임 공유 링크 생성
+ * POST /api/groups/{groupId}/share
+ */
+export const createShareLink = async (groupId: string): Promise<ApiResponse<ShareCreationResponse>> => {
+  return apiClient.post(`/api/groups/${groupId}/share`);
+};
+
 const meetingApi = {
   getList,
   getNearby,
@@ -164,6 +173,7 @@ const meetingApi = {
   toggleLike,
   getLiked,
   getStats,
+  createShareLink,
 };
 
 export default meetingApi;

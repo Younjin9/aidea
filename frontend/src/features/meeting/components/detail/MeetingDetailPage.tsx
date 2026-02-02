@@ -415,6 +415,23 @@ const MeetingDetailPage: React.FC = () => {
 
 
 
+  // 모임 공유 핸들러
+  const handleShare = async () => {
+    if (!meetingId) return;
+
+    try {
+      const response = await meetingApi.createShareLink(meetingId);
+      if (response.data) {
+        const { shareUrl } = response.data;
+        await navigator.clipboard.writeText(shareUrl);
+        alert('공유 링크가 클립보드에 복사되었습니다!');
+      }
+    } catch (error) {
+      console.error('Share failure:', error);
+      alert('공유 링크 생성에 실패했습니다.');
+    }
+  };
+
   // API 로딩 중일 때 로딩 UI 표시
   if (isLoading) {
     return (
@@ -458,6 +475,7 @@ const MeetingDetailPage: React.FC = () => {
               onEventTitleClick={handleEventTitleClick}
               onEventAction={handleEventAction}
               onJoinMeetingFirst={() => openModal('joinMeetingFirst')}
+              onShare={handleShare}
               onCreateEvent={() => navigate(`/meetings/${meetingId}/events/create`)}
               showCancelModal={activeModal === 'cancelParticipation'}
               showJoinEventModal={activeModal === 'joinEvent'}
