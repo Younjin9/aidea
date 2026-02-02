@@ -55,10 +55,23 @@ public class RecommendationService {
         topK = Math.max(1, Math.min(topK, 50));
         limit = Math.max(1, Math.min(limit, 30));
 
-        if ("vector".equalsIgnoreCase(mode)) {
+        // ✅ mode 정규화 + 기본값(vector)
+        String safeMode = (mode == null || mode.isBlank())
+                ? "vector"
+                : mode.trim().toLowerCase();
+
+        // ✅ 명시적 분기
+        if ("vector".equals(safeMode)) {
             return recommendVector(userId, topK, limit);
         }
-        return recommendMvp(userId, limit);
+
+        if ("basic".equals(safeMode) || "mvp".equals(safeMode)) {
+            return recommendMvp(userId, limit);
+        }
+
+        // ✅ 알 수 없는 mode면 vector로 fallback (안전)
+        log.warn("[RECO] unknown mode='{}' -> fallback to vector. userId={}", safeMode, userId);
+        return recommendVector(userId, topK, limit);
     }
 
     /**

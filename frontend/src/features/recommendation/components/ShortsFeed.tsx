@@ -12,14 +12,12 @@ type RecommendedMeetingCardResponse = {
 };
 
 type ShortsFeedProps = {
-  nickname: string;            // 로그인한 유저 닉네임 (부모에서 주입)
   topK?: number;               // 기본 10
   limit?: number;              // 기본 10
-  mode?: 'vector' | 'mvp';     // 기본 'vector' (AI 추천 탭이면 vector)
+  mode?: 'vector' | 'basic' | 'mvp'; // 기본 'vector'
 };
 
 const ShortsFeed: React.FC<ShortsFeedProps> = ({
-  nickname,
   topK = 10,
   limit = 10,
   mode = 'vector',
@@ -34,19 +32,20 @@ const ShortsFeed: React.FC<ShortsFeedProps> = ({
         setLoading(true);
         setError(null);
 
-        // 입력값 검증 (하드코딩 제거한 대신 안전장치)
-        if (!nickname || nickname.trim().length === 0) {
-          throw new Error('닉네임이 없습니다. (로그인 정보를 확인해주세요)');
+        // ✅ JWT 토큰 확인
+        const accessToken = localStorage.getItem('accessToken');
+        if (!accessToken) {
+          throw new Error('accessToken이 없습니다. (로그인/토큰 저장 로직을 확인해주세요)');
         }
 
-        // ✅ JWT 토큰 꺼내서 Authorization 헤더에 붙이기
-        const accessToken = localStorage.getItem('accessToken');
-
+        // ✅ nickname 제거, mode=vector 기반 추천
         const res = await fetch(
-          `/api/recommendations?nickname=${encodeURIComponent(nickname)}&topK=${topK}&limit=${limit}&mode=${mode}`,
+          `/api/recommendations?topK=${topK}&limit=${limit}&mode=${mode}`,
           {
             credentials: 'include',
-            headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined,
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+            },
           }
         );
 
@@ -65,7 +64,7 @@ const ShortsFeed: React.FC<ShortsFeedProps> = ({
     };
 
     fetchCards();
-  }, [nickname, topK, limit, mode]);
+  }, [topK, limit, mode]);
 
   if (loading) {
     return (
@@ -100,16 +99,22 @@ const ShortsFeed: React.FC<ShortsFeedProps> = ({
         >
           <div className="w-[90%] max-w-md rounded-2xl p-6 bg-zinc-900 text-white">
             <h2 className="text-xl font-bold mb-2">{card.title}</h2>
+
             <p className="text-sm text-gray-300 mb-2">
               {card.region} · {card.category}
             </p>
+
             <p className="text-sm text-gray-300 mb-2">
               인원: {card.currentMembers}/{card.maxMembers}
             </p>
+
             <p className="text-sm text-gray-300 mb-2">
               점수: {Number.isFinite(card.score) ? card.score.toFixed(2) : '0.00'}
             </p>
-            <p className="text-sm text-gray-200 mt-4">{card.reason}</p>
+
+            <p className="text-sm text-gray-200 mt-4">
+              {card.reason}
+            </p>
           </div>
         </div>
       ))}
