@@ -40,6 +40,7 @@ public class MeetingShareController {
         }
     }
 
+    // 배포 오류 주석 추가
     @Operation(summary = "모임 공유 링크 생성", description = "모임을 공유하기 위한 24시간 유효 랜덤 링크를 생성합니다.")
     @PostMapping("/api/groups/{meetingId}/share")
     public ResponseEntity<ApiResponse<ShareCreationResponse>> createShareLink(@PathVariable Long meetingId) {
