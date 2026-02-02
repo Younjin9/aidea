@@ -147,11 +147,12 @@ export interface MeetingEvent {
   placeName?: string;
   location?: string | { lat: number; lng: number };
   description?: string;
+  notes?: string;
   attendees?: number;
   participantCount?: number;
   participants?: Member[];
   maxParticipants?: number;
-  cost?: number;
+  cost?: number | string;
   imageUrl?: string;
   mapUrl?: string;
   isHost?: boolean;

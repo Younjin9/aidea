@@ -193,7 +193,7 @@ const EventDetailPage: React.FC = () => {
       {/* 스크롤 영역 */}
       <div className="flex-1 overflow-y-auto pb-20">
         {/* 이미지 */}
-        {'imageUrl' in event && event.imageUrl && (
+        {event.imageUrl && (
           <div className="w-full h-48 bg-gray-200 overflow-hidden flex items-center justify-center">
             <img src={event.imageUrl} alt={event.title} className="w-full h-full object-cover" />
           </div>
@@ -203,6 +203,13 @@ const EventDetailPage: React.FC = () => {
         <div className="p-6 space-y-6">
           {/* 제목 */}
           <h1 className="text-xl font-bold text-gray-900">{event.title}</h1>
+          
+          {/* 한줄 설명 (notes 첫 줄 활용) */}
+          {event.notes && (
+            <p className="text-sm text-gray-600 -mt-2">
+              {event.notes.split('\n')[0].slice(0, 50)}{event.notes.split('\n')[0].length > 50 ? '...' : ''}
+            </p>
+          )}
 
           {/* 기본 정보 */}
           <div className="space-y-1.5">
@@ -236,7 +243,7 @@ const EventDetailPage: React.FC = () => {
             </div>
 
             {/* 비용 */}
-            {'cost' in event && event.cost && (
+            {event.cost && (
               <div className="flex gap-2 items-start">
                 <DollarSign size={14} className="text-gray-600 mt-0.5 flex-shrink-0" />
                 <div>
@@ -253,12 +260,10 @@ const EventDetailPage: React.FC = () => {
           <div className="h-px bg-gray-100" />
 
           {/* 모임 설명 */}
-          {(('description' in event && event.description) || ('notes' in event && event.notes)) && (
+          {event.notes && (
             <div>
               <p className="text-xs text-gray-500 font-medium mb-2">모임 설명</p>
-              <p className="text-sm text-gray-700 whitespace-pre-wrap">
-                {'description' in event && event.description ? event.description : 'notes' in event ? event.notes : ''}
-              </p>
+              <p className="text-sm text-gray-700 whitespace-pre-wrap">{event.notes}</p>
             </div>
           )}
 
