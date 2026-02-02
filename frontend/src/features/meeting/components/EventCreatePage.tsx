@@ -75,6 +75,8 @@ const EventCreatePage: React.FC = () => {
       imageUrl: eventImage,
     };
 
+    const imageUrlForApi = eventImage && eventImage.startsWith('data:') ? undefined : eventImage;
+
     // API 호출 시도
     createEvent(
       {
@@ -88,7 +90,7 @@ const EventCreatePage: React.FC = () => {
           : { lat: 0, lng: 0 },
         maxParticipants,
         cost: cost || undefined,
-        imageUrl: eventImage || undefined,
+        imageUrl: imageUrlForApi,
       },
       {
         onError: () => {
