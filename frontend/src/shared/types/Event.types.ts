@@ -23,6 +23,9 @@ export interface Event {
 }
 
 export interface EventDetail extends Event {
+  summary?: string;
+  imageUrl?: string;
+  cost?: number | string;
   participants: EventParticipant[];
   isParticipating: boolean;
 }
