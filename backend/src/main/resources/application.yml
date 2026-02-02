@@ -11,16 +11,34 @@ spring:
     properties:
       hibernate:
         format_sql: true
+
   data:
     redis:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
 
   ai:
-    openai:
-      api-key: ${OPENAI_API_KEY}
-      model: gpt-3.5-turbo
+    model:
+      embedding: bedrock-titan
+    bedrock:
+      aws:
+        region: ap-northeast-2
+      titan:
+        embedding:
+          enabled: true
+          model: amazon.titan-embed-text-v2:0
 
 logging:
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+
+server:
+  servlet:
+    encoding:
+      charset: UTF-8
+      enabled: true
+      force: true
+
+app:
+  vector-seed:
+    enabled: true

@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.ArrayList;
 import java.util.Map;
 import java.util.HashMap;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -18,12 +19,22 @@ public class MySqlRecommendationRepository {
         this.jdbcTemplate = jdbcTemplate;
     }
 
+    // ✅ (기존) nickname 기반 조회 - 혹시 다른 곳에서 쓰면 유지
     public Long findUserIdByNickname(String nickname) {
         return jdbcTemplate.queryForObject(
                 "SELECT id FROM app_user WHERE nickname = ?",
                 Long.class,
                 nickname
         );
+    }
+
+    // ✅ (신규) email 기반 조회 - 정식 해결에서 사용
+    public Optional<Long> findUserIdByEmail(String email) {
+        String sql = "SELECT id FROM app_user WHERE email = ? LIMIT 1";
+        return jdbcTemplate.query(sql, rs -> {
+            if (rs.next()) return Optional.of(rs.getLong("id"));
+            return Optional.empty();
+        }, email);
     }
 
     public List<Long> findSelectedHobbyIdsByUserId(Long userId) {
@@ -35,7 +46,6 @@ public class MySqlRecommendationRepository {
     }
 
     public List<Long> findMeetingIdsByHobbyIds(List<Long> hobbyIds) {
-        // meeting_hobby(meeting_id, hobby_id) 가정
         String inSql = String.join(",", hobbyIds.stream().map(x -> "?").toList());
         String sql = "SELECT DISTINCT meeting_id FROM meeting_hobby WHERE hobby_id IN (" + inSql + ")";
         return jdbcTemplate.queryForList(sql, Long.class, hobbyIds.toArray());
@@ -81,5 +91,31 @@ public class MySqlRecommendationRepository {
             result.put(id, name);
         }
         return result;
+    }
+
+    public Map<Long, String> findAllHobbiesAsMap() {
+        String sql = "SELECT id, hobby_name FROM hobby";
+        return jdbcTemplate.query(sql, rs -> {
+            Map<Long, String> map = new java.util.HashMap<>();
+            while (rs.next()) {
+                map.put(rs.getLong("id"), rs.getString("hobby_name"));
+            }
+            return map;
+        });
+    }
+
+    public String findHobbyNameById(Long hobbyId) {
+        return jdbcTemplate.queryForObject(
+                "SELECT hobby_name FROM hobby WHERE id = ?",
+                String.class,
+                hobbyId
+        );
+    }
+
+    public List<Long> findAllHobbyIds() {
+        return jdbcTemplate.queryForList(
+                "SELECT id FROM hobby",
+                Long.class
+        );
     }
 }
