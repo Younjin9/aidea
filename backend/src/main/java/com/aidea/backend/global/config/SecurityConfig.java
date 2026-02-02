@@ -116,6 +116,9 @@ public class SecurityConfig {
                                                 // Chat (For Testing)
                                                 .requestMatchers("/api/chat/**").permitAll()
 
+                                                // Cleanup Implementation (For Testing)
+                                                .requestMatchers("/api/test/**").permitAll()
+
                                                 .anyRequest().authenticated())
                                 .oauth2Login(oauth2 -> oauth2
                                                 .userInfoEndpoint(userInfo -> userInfo

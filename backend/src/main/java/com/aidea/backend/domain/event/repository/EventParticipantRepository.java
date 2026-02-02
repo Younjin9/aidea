@@ -3,6 +3,9 @@ package com.aidea.backend.domain.event.repository;
 import com.aidea.backend.domain.event.entity.EventParticipant;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import java.util.List;
 
 public interface EventParticipantRepository extends JpaRepository<EventParticipant, Long> {
@@ -27,4 +30,18 @@ public interface EventParticipantRepository extends JpaRepository<EventParticipa
     void deleteByUser_UserId(Long userId);
 
     long countByEvent_Id(Long eventId);
+
+    /**
+     * 여러 모임의 정모 참여자 전체 일괄 삭제
+     */
+    @Modifying
+    @Query("DELETE FROM EventParticipant ep WHERE ep.event.meeting.id IN :meetingIds")
+    void deleteByMeetingIdIn(@Param("meetingIds") List<Long> meetingIds);
+
+    /**
+     * 여러 정모의 참여자 전체 일괄 삭제
+     */
+    @Modifying
+    @Query("DELETE FROM EventParticipant ep WHERE ep.event.id IN :eventIds")
+    void deleteByEventIdIn(@Param("eventIds") List<Long> eventIds);
 }

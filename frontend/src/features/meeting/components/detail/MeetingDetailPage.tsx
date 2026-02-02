@@ -14,6 +14,8 @@ import { reportUser } from '@/shared/api/safety/safetyApi';
 import ChatRoomPage from '@/features/chat/components/ChatRoomPage';
 import ChatOverlay from '@/features/chat/components/ChatOverlay';
 import meetingApi from '@/shared/api/meeting/meetingApi';
+import shareApi from '@/shared/api/shareApi';
+import Toast from '@/shared/components/ui/Toast';
 import { useMeetingStore } from '../../store/meetingStore';
 import { useAuthStore } from '@/features/auth/store/authStore';
 import { useLeaveMeeting, useToggleLikeMeeting, useJoinMeeting } from '../../hooks/useMeetings';
@@ -128,7 +130,7 @@ const MeetingDetailPage: React.FC = () => {
   const { meetingId } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
-  const locationState = location.state as { newEvent?: MeetingEvent; updatedEvent?: MeetingEvent; deletedEventId?: string; updatedMembers?: MeetingDetail['members'] } | null;
+  const locationState = location.state as { newEvent?: MeetingEvent; updatedEvent?: MeetingEvent; deletedEventId?: string; updatedMembers?: MeetingDetail['members']; initialTab?: 'home' | 'chat' } | null;
 
   // 상태 관리 및 커스텀 훅 사용 (store, mutation 등)
   const { getMeetingByGroupId, toggleLikeByGroupId, leaveMeeting, getEventsByGroupId, addEvent, updateEvent: updateEventInStore, deleteEvent: deleteEventInStore, initializeMockData: initializeMeetingMockData, isInitialized: isMeetingInitialized } = useMeetingStore();
@@ -167,11 +169,13 @@ const MeetingDetailPage: React.FC = () => {
 
 
   // 주요 상태값 정의
-  const [activeTab, setActiveTab] = useState<'home' | 'chat'>('home'); // 탭 상태(홈/채팅)
+  const [activeTab, setActiveTab] = useState<'home' | 'chat'>(locationState?.initialTab || 'home'); // 탭 상태(홈/채팅)
   const [isLiked, setIsLiked] = useState(storedMeeting?.isLiked || false); // 좋아요 상태
   const [activeModal, setActiveModal] = useState<ModalType>(null); // 현재 활성화된 모달
   const [selectedEvent, setSelectedEvent] = useState<{ id: string; title: string } | null>(null); // 선택된 이벤트
   const [greeting, setGreeting] = useState(''); // 가입 인사 메시지
+  const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
 
   // 이벤트 및 모임 정보 상태
   const storedEvents = getEventsByGroupId(meetingId || '');
@@ -413,6 +417,42 @@ const MeetingDetailPage: React.FC = () => {
     openModal(action === 'cancelParticipation' ? 'cancelParticipation' : 'joinEvent');
   };
 
+  const showToastMessage = (message: string) => {
+    setToastMessage(message);
+    setShowToast(true);
+    setTimeout(() => setShowToast(false), 2000);
+  };
+
+  const copyToClipboard = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
+  const handleShareEvent = async (_event: MeetingEvent) => {
+    if (!meetingId) return;
+    try {
+      const response = await shareApi.createShare(meetingId);
+      const shareUrl = response.data?.shareUrl;
+      if (!shareUrl) {
+        showToastMessage('공유 링크 생성에 실패했습니다.');
+        return;
+      }
+      const success = await copyToClipboard(shareUrl);
+      if (success) {
+        showToastMessage('링크가 복사되었습니다.');
+      } else {
+        showToastMessage('복사에 실패했습니다.');
+      }
+    } catch (error) {
+      console.error('Share failure:', error);
+      showToastMessage('공유 링크 생성에 실패했습니다.');
+    }
+  };
+
 
 
   // API 로딩 중일 때 로딩 UI 표시
@@ -459,6 +499,7 @@ const MeetingDetailPage: React.FC = () => {
               onEventAction={handleEventAction}
               onJoinMeetingFirst={() => openModal('joinMeetingFirst')}
               onCreateEvent={() => navigate(`/meetings/${meetingId}/events/create`)}
+              onShareEvent={handleShareEvent}
               showCancelModal={activeModal === 'cancelParticipation'}
               showJoinEventModal={activeModal === 'joinEvent'}
               showJoinMeetingFirstModal={activeModal === 'joinMeetingFirst'}
@@ -578,6 +619,8 @@ const MeetingDetailPage: React.FC = () => {
         onConfirm={handleLeaveMeeting}
         onCancel={closeModal}
       />
+
+      <Toast message={toastMessage} isOpen={showToast} />
     </div>
   );
 };

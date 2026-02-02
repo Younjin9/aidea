@@ -62,6 +62,13 @@ public class Event {
     @OneToMany(mappedBy = "event", cascade = CascadeType.ALL, orphanRemoval = true)
     private java.util.List<EventParticipant> participants = new java.util.ArrayList<>();
 
+    // ========== Soft Delete ==========
+    @Column(nullable = false)
+    private Boolean isDeleted = false;
+
+    @Column
+    private LocalDateTime deletedAt;
+
     @CreatedDate
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
