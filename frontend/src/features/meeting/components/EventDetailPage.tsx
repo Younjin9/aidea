@@ -243,13 +243,17 @@ const EventDetailPage: React.FC = () => {
             </div>
 
             {/* 비용 */}
-            {event.cost && (
+            {(event.cost !== undefined && event.cost !== null) && (
               <div className="flex gap-2 items-start">
                 <DollarSign size={14} className="text-gray-600 mt-0.5 flex-shrink-0" />
                 <div>
                   <p className="text-xs text-gray-500">비용</p>
                   <p className="text-xs font-medium text-gray-900">
-                    {typeof event.cost === 'number' ? `${event.cost.toLocaleString()}원` : event.cost}
+                    {event.cost === '' || event.cost === '0' || event.cost === 0 
+                      ? '무료' 
+                      : typeof event.cost === 'number' 
+                        ? `${event.cost.toLocaleString()}원` 
+                        : event.cost}
                   </p>
                 </div>
               </div>
