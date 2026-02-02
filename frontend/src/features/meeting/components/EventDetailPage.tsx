@@ -203,14 +203,6 @@ const EventDetailPage: React.FC = () => {
         <div className="p-6 space-y-6">
           {/* 제목 */}
           <h1 className="text-xl font-bold text-gray-900">{event.title}</h1>
-          
-          {/* 한줄 설명 (notes 첫 줄 활용) */}
-          {event.notes && (
-            <p className="text-sm text-gray-600 -mt-2">
-              {event.notes.split('\n')[0].slice(0, 50)}{event.notes.split('\n')[0].length > 50 ? '...' : ''}
-            </p>
-          )}
-
           {/* 기본 정보 */}
           <div className="space-y-1.5">
             {/* 날짜 & 시간 */}
