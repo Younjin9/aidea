@@ -81,6 +81,49 @@
 *   백엔드 CORS 설정 및 프론트엔드 API 수정 사항 커밋 (`Fix nickname check API errors`).
 *   `frontend/youngsun` 브랜치 푸시 완료.
 
+### 2026-01-31 (통합 브랜치 병합 및 빌드 안정화)
+
+### 18. 🔄 통합 브랜치(frontend-integration) 병합 (Integration)
+*   **작업 내용**: 기능 통합 브랜치인 `frontend-integration`을 로컬 `frontend/youngsun`으로 병합.
+*   **충돌 해결 (Conflict Resolution)**:
+    *   `src/features/auth/components/OAuthCallbackPage.tsx`: 필수 정보 입력(`RequiredInfoPage`) 플로우 통합.
+    *   `src/features/auth/hooks/useLogin.ts`: `useAuthStore` 훅과의 연동 로직 병합.
+    *   `src/features/chat/components/ChatRoomPage.tsx`: UI 수정 사항 병합.
+    *   `src/features/mypage/components/MyPageView.tsx`: 프로필 이미지 처리 로직 병합.
+    *   `src/routes/AppRoutes.tsx`: 신규 라우트(`RequiredInfoPage`) 추가 및 기존 라우트 유지.
+
+### 19. 🛠️ 빌드 오류 및 환경 변수 수정 (Bug Fixes)
+*   **Build Error Fixes**:
+    *   `ChatRoomPage.tsx`: 닫는 중괄호(`}`) 누락 등 문법 오류 수정.
+    *   `RequiredInfoPage.tsx`: `gender` 등 누락된 Props 타입 에러 해결.
+    *   `Modal` 컴포넌트: `isOpen` -> `open` 등 Props 네이밍 불일치 수정.
+*   **Environment Config**: `.env`의 `VITE_KAKAO_APP_KEY`를 `VITE_KAKAO_MAP_API_KEY`로 수정하여 `vite.config.ts` 설정과 통일.
+*   **Module Resolution**: `AppRoutes.tsx`에서 `@/features/...` Alias 경로 인식 실패 문제 → `../features/...` 상대 경로로 수정하여 해결.
+
+### 20. 🚀 최종 배포 준비 (Final Check)
+*   **Build Status**: `npm run build` 성공 (TypeScript Check Pass).
+*   **Push**: 수정 사항 `frontend/youngsun` 브랜치에 푸시 완료.
+
+### 2026-02-01 (무한 스크롤 및 로컬 테스트 환경 구성, 최종 배포 준비)
+
+### 21. 🎬 Shorts(모임 추천) 무한 스크롤 구현
+*   **기능**: `ShortsFeed`에서 스크롤을 내리면 자동으로 다음 목록을 불러오도록 개선.
+*   **구현**:
+    *   `useInfiniteMeetings` Hook 추가 (TanStack `useInfiniteQuery` 활용).
+    *   **Intersection Observer**를 도입하여 마지막 카드가 50% 정도 보일 때 `fetchNextPage` 트리거.
+
+### 22. 🛠️ 백엔드 연동 예외 처리 (테스트 후 원복 완료)
+*   **배경**: 백엔드 서버가 꺼져 있을 때 퍼블리싱/UI 로직 테스트를 위해 임시로 Mock Data와 Bypass 로직을 추가했었음.
+*   **조치**: `frontend/youngsun` 브랜치 푸시 및 백엔드 통합을 위해 테스트용 코드(Mock Data, Exception Bypass)를 모두 제거하고 **실제 API 호출 코드(`meetingApi`, `authApi`)로 원복**함.
+
+### 23. 🐛 화이트 스크린 이슈 해결 (RequiredInfoPage)
+*   **원인**: `useEffect` 내에서 `user` 상태 변경 시 무한 리렌더링 발생 (Zustand Selector 사용 미숙).
+*   **해결**: `useRef`(`isInitialized`)를 도입하여 초기 데이터 로딩을 **최초 1회**로 제한하고, Selector를 분리하여 최적화함.
+
+### 24. 🔄 최신 코드 병합 (Sync)
+*   `origin/develop` 및 `origin/frontend-integration` 브랜치 병합 완료.
+*   충돌 없이 최신 로직(좋아요 동기화, 모임 상세 등)과 나의 작업물(Shorts, Onboarding Fix) 통합.
+
 ---
 
 ## 5. 🔜 향후 계획 (Next Steps)

@@ -1,5 +1,5 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useEffect } from 'react';
+import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from '@tanstack/react-query';
+import { useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import meetingApi from '@/shared/api/meeting/meetingApi';
 import { useMeetingStore } from '../store/meetingStore';
@@ -119,6 +119,50 @@ export const useMeetings = (params: MeetingListParams = {}) => {
     toggleLike: toggleLikeByGroupId,
     toggleLikeMeeting,
     refetch,
+  };
+};
+
+/**
+ * 무한 스크롤 모임 목록 조회 Hook (Shorts 전용)
+ */
+export const useInfiniteMeetings = (params: MeetingListParams = {}) => {
+  const {
+    data,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    status,
+    error
+  } = useInfiniteQuery({
+    queryKey: [...meetingKeys.list(), 'infinite', params],
+    queryFn: async ({ pageParam = 0 }) => {
+      // 실제 API 호출 (백엔드 연동)
+      // size: 10으로 설정하여 한 번에 10개씩 로드
+      const response = await meetingApi.getList({ ...params, page: pageParam as number, size: 10 });
+      return response.data; 
+    },
+    getNextPageParam: (lastPage) => {
+      // 마지막 페이지이면 undefined 반환 (종료)
+      if (!lastPage || lastPage.last) return undefined;
+      // 다음 페이지 번호 반환
+      return lastPage.number + 1;
+    },
+    initialPageParam: 0,
+  });
+
+  // Pages 데이터를 하나의 배열로 변환
+  const meetings = useMemo(() => {
+    if (!data) return [];
+    return transformMeetingsToUI(data.pages.flatMap((page) => page.content));
+  }, [data]);
+
+  return {
+    meetings,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    status,
+    error,
   };
 };
 

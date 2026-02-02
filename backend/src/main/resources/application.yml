@@ -24,3 +24,8 @@ spring:
 logging:
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+
+jwt:
+  secret: ${JWT_SECRET:ThisIsASecretKeyForLocalDevelopmentAndTestingPurposesOnly123456}
+  expiration: 86400000
+// Deployment trigger

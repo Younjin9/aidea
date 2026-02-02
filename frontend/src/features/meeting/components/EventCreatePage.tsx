@@ -103,6 +103,18 @@ const EventCreatePage: React.FC = () => {
   };
 
   const handleOpenMapModal = () => {
+    if (selectedLocation) {
+      setCurrentLocation({ latitude: selectedLocation.lat, longitude: selectedLocation.lng });
+      setShowMapModal(true);
+      return;
+    }
+
+    if (location.trim()) {
+      setCurrentLocation(undefined);
+      setShowMapModal(true);
+      return;
+    }
+
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
@@ -264,6 +276,7 @@ const EventCreatePage: React.FC = () => {
         onClose={() => setShowMapModal(false)}
         onSelect={handleLocationSelect}
         currentLocation={currentLocation} // 현재 위치 전달
+        initialAddress={location}
       />
 
       {/* Location Search Modal */}

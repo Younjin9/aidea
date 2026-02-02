@@ -12,6 +12,7 @@ import EventSection from './EventSection';
 import MemberSection from './MemberSection';
 import { reportUser } from '@/shared/api/safety/safetyApi';
 import ChatRoomPage from '@/features/chat/components/ChatRoomPage';
+import ChatOverlay from '@/features/chat/components/ChatOverlay';
 import meetingApi from '@/shared/api/meeting/meetingApi';
 import { useMeetingStore } from '../../store/meetingStore';
 import { useAuthStore } from '@/features/auth/store/authStore';
@@ -476,7 +477,18 @@ const MeetingDetailPage: React.FC = () => {
             />
           </>
         ) : (
-          <ChatRoomPage />
+          <div className="relative h-full flex flex-col flex-1">
+            {(!isHost && !isApproved) && (
+              <ChatOverlay
+                onJoin={() => {
+                  if (isPending) openModal('leave');
+                  else handleJoinClick();
+                }}
+                isPending={isPending}
+              />
+            )}
+            <ChatRoomPage isEnabled={isHost || isApproved} />
+          </div>
         )}
       </main>
 
@@ -502,7 +514,7 @@ const MeetingDetailPage: React.FC = () => {
             }}
             className={isPending ? 'bg-orange-500 hover:bg-orange-600' : ''}
           >
-            {isPending ? '참가 신청 취소' : '참석하기'}
+            {isPending ? '참가 신청 취소' : '가입하기'}
           </Button>
         </div>
       )}
