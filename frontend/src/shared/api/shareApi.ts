@@ -17,6 +17,9 @@ export const createShare = async (groupId: string): Promise<ApiResponse<ShareCre
 
 const shareApi = {
   createShare,
+  createEventShare: async (groupId: string, eventId: string): Promise<ApiResponse<ShareCreateResponse>> => {
+    return apiClient.post(`/api/groups/${groupId}/events/${eventId}/share`);
+  },
 };
 
 export default shareApi;

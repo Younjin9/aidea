@@ -88,6 +88,7 @@ public class EventService {
                 .maxParticipants(request.getMaxParticipants())
                 .cost(request.getCost())
                 .description(request.getNotes())
+                .imageUrl(request.getImageUrl())
                 .build();
 
         eventRepository.save(event);
@@ -127,7 +128,8 @@ public class EventService {
                 request.getLocation() != null ? request.getLocation().getLng() : null,
                 request.getMaxParticipants(),
                 request.getCost(),
-                request.getNotes());
+                request.getNotes(),
+                request.getImageUrl());
 
         return EventDetailResponse.from(event, userId);
     }

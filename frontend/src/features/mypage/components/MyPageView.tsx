@@ -122,10 +122,14 @@ const MyPageView: React.FC<{ onUnlike?: (id: number) => void }> = ({ onUnlike })
         <img src={logo} alt="AIMO" className="w-8 h-8 object-contain" />
         <h1 className="text-lg font-bold text-gray-900">MyPage</h1>
 <<<<<<< HEAD
+<<<<<<< HEAD
         <NotificationBell />
 =======
         <NotificationBell />
 >>>>>>> 74261f27300a2d689100d448a9ba92202bc4b1c1
+=======
+        <NotificationBell />
+>>>>>>> d954858af74f5928a60e0586f41638ba44e720fe
       </header>
 
       <main className="flex-1 overflow-y-auto pb-32 no-scrollbar flex flex-col min-h-0">

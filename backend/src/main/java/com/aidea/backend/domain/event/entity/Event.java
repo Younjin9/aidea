@@ -59,6 +59,9 @@ public class Event {
     @Column(columnDefinition = "TEXT")
     private String description; // notes
 
+    @Column(length = 500)
+    private String imageUrl; // 정모 대표 이미지
+
     @OneToMany(mappedBy = "event", cascade = CascadeType.ALL, orphanRemoval = true)
     private java.util.List<EventParticipant> participants = new java.util.ArrayList<>();
 
@@ -80,7 +83,7 @@ public class Event {
     @Builder
     public Event(Meeting meeting, User creator, String title, LocalDateTime date,
             String locationName, Double latitude, Double longitude,
-            Integer maxParticipants, String cost, String description) {
+            Integer maxParticipants, String cost, String description, String imageUrl) {
         this.meeting = meeting;
         this.creator = creator;
         this.title = title;
@@ -91,12 +94,13 @@ public class Event {
         this.maxParticipants = maxParticipants;
         this.cost = cost;
         this.description = description;
+        this.imageUrl = imageUrl;
         this.currentParticipants = 0;
     }
 
     public void update(String title, LocalDateTime date, String locationName,
             Double latitude, Double longitude, Integer maxParticipants,
-            String cost, String description) {
+            String cost, String description, String imageUrl) {
         if (title != null)
             this.title = title;
         if (date != null)
@@ -113,6 +117,8 @@ public class Event {
             this.cost = cost;
         if (description != null)
             this.description = description;
+        if (imageUrl != null)
+            this.imageUrl = imageUrl;
     }
 
     public void incrementParticipants() {

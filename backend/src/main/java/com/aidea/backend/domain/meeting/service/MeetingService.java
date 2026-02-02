@@ -570,7 +570,6 @@ public class MeetingService {
         meeting.decrementMembers();
     }
 
-<<<<<<< HEAD
     /**
      * 모임장 권한 양도 (HOST 전용)
      */

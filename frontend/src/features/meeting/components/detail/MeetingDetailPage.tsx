@@ -193,7 +193,10 @@ const MeetingDetailPage: React.FC = () => {
   });
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
+=======
+>>>>>>> d954858af74f5928a60e0586f41638ba44e720fe
   const showToastMessage = (message: string) => {
     setToastMessage(message);
     setShowToast(true);
@@ -225,21 +228,20 @@ const MeetingDetailPage: React.FC = () => {
   const handleShareEvent = async (event?: MeetingEvent) => {
     if (!meetingId) return;
     try {
-      const response = await shareApi.createShare(meetingId);
+      let response;
+      if (event) {
+        response = await shareApi.createEventShare(meetingId, String(event.eventId));
+      } else {
+        response = await shareApi.createShare(meetingId);
+      }
+
       const shareUrl = response.data?.shareUrl;
       if (!shareUrl) {
         showToastMessage('공유 링크 생성에 실패했습니다.');
         return;
       }
-      
-      // 이벤트가 전달되면 이벤트 상세페이지 링크 생성
-      let finalUrl = shareUrl;
-      if (event) {
-        // shareUrl이 token 기반이면 쿼리 파라미터로 eventId 추가
-        finalUrl = `${shareUrl}?eventId=${event.eventId}`;
-      }
-      
-      await copyToClipboard(finalUrl);
+
+      await copyToClipboard(shareUrl);
     } catch (error) {
       console.error('공유 링크 생성 실패:', error);
       showToastMessage('공유 링크 생성에 실패했습니다.');
@@ -548,9 +550,13 @@ const MeetingDetailPage: React.FC = () => {
         activeTab={activeTab}
         onLikeToggle={handleLikeToggle}
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
         onShare={() => handleShareEvent()}
 >>>>>>> 74261f27300a2d689100d448a9ba92202bc4b1c1
+=======
+        onShare={() => handleShareEvent()}
+>>>>>>> d954858af74f5928a60e0586f41638ba44e720fe
         onTabChange={setActiveTab}
         isHost={isHost}
         isMember={!!isMember}
