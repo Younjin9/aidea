@@ -41,7 +41,7 @@ const MeetingListPage: React.FC = () => {
         <div className="flex items-center gap-2">
           <img src={logo} alt="AIMO" className="w-8 h-8 object-contain" />
         </div>
-        <div className="flex items-center gap-6">
+        <div className="flex items-center gap-4">
           <NotificationBell />
           <button onClick={() => navigate('/search')}>
             <Search size={20} className="text-gray-600" />

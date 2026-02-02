@@ -6,15 +6,16 @@ import { useQuery } from '@tanstack/react-query';
 import Button from '@/shared/components/ui/Button';
 import Modal from '@/shared/components/ui/Modal';
 import ProfileImage from '@/shared/components/ui/ProfileImage';
-import Toast from '@/shared/components/ui/Toast';
 import DetailHeader from './DetailHeader';
 import MeetingInfoSection from './MeetingInfoSection';
 import EventSection from './EventSection';
 import MemberSection from './MemberSection';
 import { reportUser } from '@/shared/api/safety/safetyApi';
 import ChatRoomPage from '@/features/chat/components/ChatRoomPage';
+import ChatOverlay from '@/features/chat/components/ChatOverlay';
 import meetingApi from '@/shared/api/meeting/meetingApi';
 import shareApi from '@/shared/api/shareApi';
+import Toast from '@/shared/components/ui/Toast';
 import { useMeetingStore } from '../../store/meetingStore';
 import { useAuthStore } from '@/features/auth/store/authStore';
 import { useLeaveMeeting, useToggleLikeMeeting, useJoinMeeting } from '../../hooks/useMeetings';
@@ -174,8 +175,8 @@ const MeetingDetailPage: React.FC = () => {
   const [activeModal, setActiveModal] = useState<ModalType>(null); // 현재 활성화된 모달
   const [selectedEvent, setSelectedEvent] = useState<{ id: string; title: string } | null>(null); // 선택된 이벤트
   const [greeting, setGreeting] = useState(''); // 가입 인사 메시지
-  const [toastMessage, setToastMessage] = useState('');
   const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
 
   // 이벤트 및 모임 정보 상태
   const storedEvents = getEventsByGroupId(meetingId || '');
@@ -484,8 +485,6 @@ const MeetingDetailPage: React.FC = () => {
     openModal(action === 'cancelParticipation' ? 'cancelParticipation' : 'joinEvent');
   };
 
-
-
   // API 로딩 중일 때 로딩 UI 표시
   if (isLoading) {
     return (
@@ -551,7 +550,18 @@ const MeetingDetailPage: React.FC = () => {
             />
           </>
         ) : (
-          <ChatRoomPage />
+          <div className="relative h-full flex flex-col flex-1">
+            {(!isHost && !isApproved) && (
+              <ChatOverlay
+                onJoin={() => {
+                  if (isPending) openModal('leave');
+                  else handleJoinClick();
+                }}
+                isPending={isPending}
+              />
+            )}
+            <ChatRoomPage isEnabled={isHost || isApproved} />
+          </div>
         )}
       </main>
 
