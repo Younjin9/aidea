@@ -223,21 +223,20 @@ const MeetingDetailPage: React.FC = () => {
   const handleShareEvent = async (event?: MeetingEvent) => {
     if (!meetingId) return;
     try {
-      const response = await shareApi.createShare(meetingId);
+      let response;
+      if (event) {
+        response = await shareApi.createEventShare(meetingId, String(event.eventId));
+      } else {
+        response = await shareApi.createShare(meetingId);
+      }
+
       const shareUrl = response.data?.shareUrl;
       if (!shareUrl) {
         showToastMessage('공유 링크 생성에 실패했습니다.');
         return;
       }
 
-      // 이벤트가 전달되면 이벤트 상세페이지 링크 생성
-      let finalUrl = shareUrl;
-      if (event) {
-        // shareUrl이 token 기반이면 쿼리 파라미터로 eventId 추가
-        finalUrl = `${shareUrl}?eventId=${event.eventId}`;
-      }
-
-      await copyToClipboard(finalUrl);
+      await copyToClipboard(shareUrl);
     } catch (error) {
       console.error('공유 링크 생성 실패:', error);
       showToastMessage('공유 링크 생성에 실패했습니다.');
@@ -530,7 +529,7 @@ const MeetingDetailPage: React.FC = () => {
               onEditEvent={handleEditEvent}
               onEventAction={handleEventAction}
               onJoinMeetingFirst={() => openModal('joinMeetingFirst')}
-              onShare={handleShare}
+              onShare={() => handleShareEvent()}
               onCreateEvent={() => navigate(`/meetings/${meetingId}/events/create`)}
               onShareEvent={handleShareEvent}
               showCancelModal={activeModal === 'cancelParticipation'}

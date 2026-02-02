@@ -115,6 +115,20 @@ public class MeetingMember {
     this.joinedAt = LocalDateTime.now();
   }
 
+  /**
+   * 멤버로 역할 변경 (호스트 -> 멤버)
+   */
+  public void assignMember() {
+    this.role = MemberRole.MEMBER;
+  }
+
+  /**
+   * 호스트로 역할 변경 (멤버 -> 호스트)
+   */
+  public void assignHost() {
+    this.role = MemberRole.HOST;
+  }
+
   // ========== DTO 변환 메서드 ==========
 
   /**
