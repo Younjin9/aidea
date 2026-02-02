@@ -529,7 +529,6 @@ const MeetingDetailPage: React.FC = () => {
               onEditEvent={handleEditEvent}
               onEventAction={handleEventAction}
               onJoinMeetingFirst={() => openModal('joinMeetingFirst')}
-              onShare={() => handleShareEvent()}
               onCreateEvent={() => navigate(`/meetings/${meetingId}/events/create`)}
               onShareEvent={handleShareEvent}
               showCancelModal={activeModal === 'cancelParticipation'}

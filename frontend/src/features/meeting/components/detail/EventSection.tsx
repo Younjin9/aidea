@@ -153,7 +153,7 @@ export interface EventSectionProps {
   onEditEvent: (event: MeetingEvent) => void;
   onEventAction: (eventId: string, title: string, action: 'cancelParticipation' | 'join') => void;
   onJoinMeetingFirst: () => void;
-  onShare: () => void;
+  // onShare removed as it is unused
   onCreateEvent: () => void;
   onShareEvent: (event: MeetingEvent) => void;
   // 모달 상태 props
@@ -178,7 +178,6 @@ const EventSection: React.FC<EventSectionProps> = ({
   onEditEvent,
   onEventAction,
   onJoinMeetingFirst,
-  onShare,
   onCreateEvent,
   onShareEvent,
   showCancelModal,
