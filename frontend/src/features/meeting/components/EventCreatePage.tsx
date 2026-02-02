@@ -8,6 +8,7 @@ import Input from '@/shared/components/ui/Input';
 import KakaoMapModal, { type SelectedPlace } from './KakaoMapModal';
 import { useAuthStore } from '@/features/auth/store/authStore';
 import { useCreateEvent } from '../hooks/useEvents';
+import { uploadImage } from '@/shared/api';
 import LocationSearchModal from '../../meeting/components/LocationSearchModal';
 
 const EventCreatePage: React.FC = () => {
@@ -21,7 +22,6 @@ const EventCreatePage: React.FC = () => {
 
   // Form State
   const [eventImage, setEventImage] = useState<string>();
-  const [imageUrlInput, setImageUrlInput] = useState('');
   const [eventName, setEventName] = useState('');
   const [shortDescription, setShortDescription] = useState('');
   const [date, setDate] = useState('');
@@ -36,12 +36,16 @@ const EventCreatePage: React.FC = () => {
   const [showMapModal, setShowMapModal] = useState(false);
   const [showLocationSearchModal, setShowLocationSearchModal] = useState(false);
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => setEventImage(reader.result as string);
-      reader.readAsDataURL(file);
+      try {
+        const response = await uploadImage(file);
+        const imageUrl = response.profileImage;
+        setEventImage(imageUrl);
+      } catch (error) {
+        console.error('이미지 업로드 실패:', error);
+      }
     }
   };
 
@@ -73,14 +77,10 @@ const EventCreatePage: React.FC = () => {
       maxParticipants,
       participantCount: hostParticipant ? 1 : 0,
       participants: hostParticipant ? [hostParticipant] : [],
-      imageUrl: imageUrlInput || eventImage,
+      imageUrl: eventImage,
     };
 
-    const imageUrlForApi = imageUrlInput
-      ? imageUrlInput
-      : eventImage && eventImage.startsWith('data:')
-        ? undefined
-        : eventImage;
+    const imageUrlForApi = eventImage;
 
     // API 호출 시도
     createEvent(
@@ -108,8 +108,6 @@ const EventCreatePage: React.FC = () => {
   };
 
   const isFormValid = eventName && shortDescription && date && time && location && description;
-
-  const previewImage = imageUrlInput || eventImage;
 
   const handleLocationInputClick = () => {
     setShowLocationSearchModal(true);
@@ -166,8 +164,8 @@ const EventCreatePage: React.FC = () => {
             onClick={() => fileInputRef.current?.click()}
             className="w-20 h-20 bg-gray-100 rounded-lg flex items-center justify-center cursor-pointer flex-shrink-0"
           >
-            {previewImage ? (
-              <img src={previewImage} alt="정모 이미지" className="w-full h-full object-cover rounded-lg" />
+            {eventImage ? (
+              <img src={eventImage} alt="정모 이미지" className="w-full h-full object-cover rounded-lg" />
             ) : (
               <Camera size={24} className="text-gray-400" />
             )}
@@ -181,16 +179,6 @@ const EventCreatePage: React.FC = () => {
               placeholder="정모 이름을 입력하세요"
             />
           </div>
-        </div>
-
-        {/* 이미지 URL */}
-        <div className="mb-6">
-          <Input
-            label="이미지 URL"
-            value={imageUrlInput}
-            onChange={(e) => setImageUrlInput(e.target.value)}
-            placeholder="https://..."
-          />
         </div>
 
         {/* 한줄 설명 */}
