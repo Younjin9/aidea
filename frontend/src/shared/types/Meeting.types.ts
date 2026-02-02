@@ -141,16 +141,18 @@ export interface MeetingListParams {
 export interface MeetingEvent {
   eventId: number | string;
   title: string;
+  summary?: string;
   date: string;
   scheduledAt?: string;
   placeName?: string;
   location?: string | { lat: number; lng: number };
   description?: string;
+  notes?: string;
   attendees?: number;
   participantCount?: number;
   participants?: Member[];
   maxParticipants?: number;
-  cost?: number;
+  cost?: number | string;
   imageUrl?: string;
   mapUrl?: string;
   isHost?: boolean;

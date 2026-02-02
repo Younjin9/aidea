@@ -191,13 +191,6 @@ public class Meeting {
             this.isApprovalRequired = request.getIsApprovalRequired();
     }
 
-    /**
-     * 모임장(생성자) 변경
-     */
-    public void changeCreator(User newCreator) {
-        this.creator = newCreator;
-    }
-
     // ========== DTO 변환 메서드 ==========
 
     /**

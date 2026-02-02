@@ -1,5 +1,5 @@
 import React from 'react';
-import { Crown } from 'lucide-react';
+import { Crown, ChevronRight } from 'lucide-react';
 import ProfileImage from '@/shared/components/ui/ProfileImage';
 import Button from '@/shared/components/ui/Button';
 import Modal from '@/shared/components/ui/Modal';
@@ -16,6 +16,7 @@ interface EventCardProps {
   isMember: boolean;
   isParticipating: boolean;
   onTitleClick: () => void;
+  onEditClick?: () => void;
   onCancelParticipation: () => void;
   onJoin: () => void;
   onJoinMeetingFirst: () => void;
@@ -29,6 +30,7 @@ const EventCard: React.FC<EventCardProps> = ({
   isMember,
   isParticipating,
   onTitleClick,
+  onEditClick,
   onCancelParticipation,
   onJoin,
   onJoinMeetingFirst,
@@ -42,12 +44,47 @@ const EventCard: React.FC<EventCardProps> = ({
     return `${dateStr} ${timeStr}`;
   };
 
+  // D-day 계산 함수
+  const calculateDDay = (dateString?: string): string | null => {
+    if (!dateString) return null;
+
+    try {
+      const targetDate = new Date(dateString);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      targetDate.setHours(0, 0, 0, 0);
+
+      const diffTime = targetDate.getTime() - today.getTime();
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+      if (diffDays < 0) return null; // 지난 날짜는 표시 안 함
+      if (diffDays === 0) return 'D-day';
+      return `D-${diffDays}`;
+    } catch {
+      return null;
+    }
+  };
+
+  const dDay = calculateDDay(event.date || event.scheduledAt);
+
   return (
     <div className="border-b border-gray-100 pb-4 last:border-b-0">
-      {isHost ? (
-        <h3 className="font-semibold text-sm mb-3 cursor-pointer hover:opacity-60 transition" onClick={onTitleClick}>{event.title}</h3>
-      ) : (
-        <h3 className="font-semibold text-sm mb-3">{event.title}</h3>
+      <div className="flex items-center justify-between gap-2 mb-3">
+        <div className="flex items-center gap-2 flex-1 cursor-pointer hover:opacity-60 transition" onClick={onTitleClick}>
+          {dDay && (
+            <span className="text-xs font-bold bg-primary text-white px-2 py-0.5 rounded-full whitespace-nowrap">
+              {dDay}
+            </span>
+          )}
+          <h3 className="font-semibold text-sm line-clamp-1">{event.title}</h3>
+        </div>
+        {isHost && onEditClick && (
+          <ChevronRight size={18} className="text-gray-400 flex-shrink-0 cursor-pointer hover:text-gray-600 transition" onClick={onEditClick} />
+        )}
+      </div>
+      {/* 한줄 설명 */}
+      {event.summary && (
+        <p className="text-xs text-gray-500 mb-3 line-clamp-1">{event.summary}</p>
       )}
       <div className="space-y-2 text-sm mb-4">
         <div className="flex gap-3"><p className="text-gray-500 w-12">일시</p><p className="font-medium">{formatDateTime(event.scheduledAt)}</p></div>
@@ -113,10 +150,12 @@ export interface EventSectionProps {
   isMember: boolean;
   userId?: string;
   onEventTitleClick: (event: MeetingEvent) => void;
+  onEditEvent: (event: MeetingEvent) => void;
   onEventAction: (eventId: string, title: string, action: 'cancelParticipation' | 'join') => void;
   onJoinMeetingFirst: () => void;
   onShare: () => void;
   onCreateEvent: () => void;
+  onShareEvent: (event: MeetingEvent) => void;
   // 모달 상태 props
   showCancelModal: boolean;
   showJoinEventModal: boolean;
@@ -136,10 +175,12 @@ const EventSection: React.FC<EventSectionProps> = ({
   isMember,
   userId,
   onEventTitleClick,
+  onEditEvent,
   onEventAction,
   onJoinMeetingFirst,
   onShare,
   onCreateEvent,
+  onShareEvent,
   showCancelModal,
   showJoinEventModal,
   showJoinMeetingFirstModal,
@@ -164,10 +205,11 @@ const EventSection: React.FC<EventSectionProps> = ({
               isMember={isMember}
               isParticipating={isParticipating}
               onTitleClick={() => onEventTitleClick(event)}
+              onEditClick={isHost ? () => onEditEvent(event) : undefined}
               onCancelParticipation={() => onEventAction(String(event.eventId), event.title, 'cancelParticipation')}
               onJoin={() => onEventAction(String(event.eventId), event.title, 'join')}
               onJoinMeetingFirst={() => onJoinMeetingFirst()}
-              onShare={onShare}
+              onShare={() => onShareEvent(event)}
             />
           );
         })

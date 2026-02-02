@@ -23,6 +23,9 @@ export interface Event {
 }
 
 export interface EventDetail extends Event {
+  summary?: string;
+  imageUrl?: string;
+  cost?: number | string;
   participants: EventParticipant[];
   isParticipating: boolean;
 }
@@ -40,6 +43,7 @@ export interface EventParticipant {
 
 export interface CreateEventRequest {
   title: string;
+  summary?: string;
   scheduledAt: string;
   placeName: string;
   location: {
