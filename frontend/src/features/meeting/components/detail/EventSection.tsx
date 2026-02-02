@@ -47,16 +47,16 @@ const EventCard: React.FC<EventCardProps> = ({
   // D-day 계산 함수
   const calculateDDay = (dateString?: string): string | null => {
     if (!dateString) return null;
-    
+
     try {
       const targetDate = new Date(dateString);
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       targetDate.setHours(0, 0, 0, 0);
-      
+
       const diffTime = targetDate.getTime() - today.getTime();
       const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-      
+
       if (diffDays < 0) return null; // 지난 날짜는 표시 안 함
       if (diffDays === 0) return 'D-day';
       return `D-${diffDays}`;
@@ -153,6 +153,7 @@ export interface EventSectionProps {
   onEditEvent: (event: MeetingEvent) => void;
   onEventAction: (eventId: string, title: string, action: 'cancelParticipation' | 'join') => void;
   onJoinMeetingFirst: () => void;
+  // onShare removed as it is unused
   onCreateEvent: () => void;
   onShareEvent: (event: MeetingEvent) => void;
   // 모달 상태 props

@@ -88,6 +88,7 @@ public class EventService {
                 .maxParticipants(request.getMaxParticipants())
                 .cost(request.getCost())
                 .description(request.getNotes())
+                .imageUrl(request.getImageUrl())
                 .build();
 
         eventRepository.save(event);
@@ -99,6 +100,10 @@ public class EventService {
                 .user(user)
                 .build();
         eventParticipantRepository.save(participant);
+
+        // 메모리 상의 연관관계 및 카운트 업데이트 (Response 반영용)
+        event.getParticipants().add(participant);
+        event.incrementParticipants();
 
         return EventDetailResponse.from(event, userId);
     }
@@ -123,7 +128,8 @@ public class EventService {
                 request.getLocation() != null ? request.getLocation().getLng() : null,
                 request.getMaxParticipants(),
                 request.getCost(),
-                request.getNotes());
+                request.getNotes(),
+                request.getImageUrl());
 
         return EventDetailResponse.from(event, userId);
     }

@@ -60,6 +60,8 @@ public class ChatController {
         return ResponseEntity.ok().build();
     }
 
+    @Operation(summary = "내 채팅방 목록", description = "사용자의 채팅방 목록을 조회합니다")
+    @GetMapping("/rooms")  
     public ResponseEntity<ApiResponse<List<ChatRoomResponse>>> getChatRooms() {
         var auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
         if (auth == null || auth.getName().equals("anonymousUser")) {
@@ -78,9 +80,13 @@ public class ChatController {
     public ResponseEntity<ApiResponse<List<ChatMessageResponse>>> getMessages(
             @PathVariable Long meetingId,
             @RequestParam(defaultValue = "50") int limit) {
-
-        List<ChatMessageResponse> messages = chatService.getRecentMessages(meetingId, limit);
-        return ResponseEntity.ok(ApiResponse.success(messages));
+        
+        String email = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication().getName();
+        com.aidea.backend.domain.user.entity.User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
+                
+        List<ChatMessageResponse> messages = chatService.getRecentMessages(meetingId, user.getUserId(), limit);
+        return ResponseEntity.ok(ApiResponse.success(messages));  
     }
 
     @Operation(summary = "메시지 읽음 처리", description = "채팅방 메시지를 읽음으로 처리합니다")
