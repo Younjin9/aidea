@@ -24,9 +24,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import com.aidea.backend.domain.chat.repository.ChatRoomRepository;
-import com.aidea.backend.domain.chat.service.ChatService; // Added import
+import com.aidea.backend.domain.chat.service.ChatService;
 import com.aidea.backend.domain.meeting.repository.MeetingHobbyRepository;
 import com.aidea.backend.domain.meeting.entity.MeetingHobby;
+import com.aidea.backend.domain.notification.service.NotificationService;
+import com.aidea.backend.domain.notification.entity.enums.NotificationType;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -53,6 +55,7 @@ public class MeetingService {
     private final ChatService chatService;
     private final MeetingHobbyRepository meetingHobbyRepository;
     private final org.springframework.messaging.simp.SimpMessagingTemplate messagingTemplate;
+    private final NotificationService notificationService;
 
     /**
      * 모임 생성
@@ -475,6 +478,28 @@ public class MeetingService {
                         .save(welcomeMessage);
                 messagingTemplate.convertAndSend("/topic/meeting/" + meeting.getId(), savedMessage.toResponse());
             });
+
+            // 3. 모임장에게 알림 저장
+            if (!meeting.getCreator().getUserId().equals(user.getUserId())) {
+                notificationService.createNotification(
+                        meeting.getCreator().getUserId(),
+                        NotificationType.JOIN_APPROVED,
+                        "모임 멤버 참여",
+                        "'" + meeting.getTitle() + "' 모임에 " + user.getNickname() + "님이 참여했습니다.",
+                        meeting.getId(),
+                        user.getUserId(),
+                        null);
+            }
+        } else {
+            // 승인 대기인 경우 모임장에게 참여 신청 알림 저장
+            notificationService.createNotification(
+                    meeting.getCreator().getUserId(),
+                    NotificationType.JOIN_REQUEST,
+                    "모임 참여 신청",
+                    "'" + meeting.getTitle() + "' 모임에 " + user.getNickname() + "님이 참여 신청을 했습니다.",
+                    meeting.getId(),
+                    user.getUserId(),
+                    null);
         }
     }
 
@@ -538,6 +563,16 @@ public class MeetingService {
         member.approve();
         meeting.incrementMembers();
 
+        // 6. 알림 전송
+        notificationService.createNotification(
+                member.getUser().getUserId(),
+                NotificationType.JOIN_APPROVED,
+                "모임 가입 승인",
+                "'" + meeting.getTitle() + "' 모임 가입이 승인되었습니다! 🎉",
+                meeting.getId(),
+                null,
+                null);
+
         return member.toMemberResponse();
     }
 
@@ -562,6 +597,16 @@ public class MeetingService {
 
         // 4. 거절 처리
         member.reject();
+
+        // 5. 알림 전송
+        notificationService.createNotification(
+                member.getUser().getUserId(),
+                NotificationType.JOIN_REJECTED,
+                "모임 가입 거절",
+                "'" + meeting.getTitle() + "' 모임 가입 신청이 거절되었습니다.",
+                meeting.getId(),
+                null,
+                null);
     }
 
     /**
@@ -591,6 +636,16 @@ public class MeetingService {
         if (prevStatus == MemberStatus.APPROVED) {
             meeting.decrementMembers();
             log.info("모임 인원 감소 처리: meetingId={}", meetingId);
+
+            // ✅ 모임장에게 탈퇴 알림 전송
+            notificationService.createNotification(
+                    meeting.getCreator().getUserId(),
+                    NotificationType.MEMBER_LEFT,
+                    "모임 멤버 탈퇴",
+                    member.getUser().getNickname() + "님이 '" + meeting.getTitle() + "' 모임에서 탈퇴했습니다.",
+                    meeting.getId(),
+                    userId,
+                    null);
         }
     }
 
@@ -712,6 +767,18 @@ public class MeetingService {
                     .meeting(meeting)
                     .build();
             meetingLikeRepository.save(meetingLike);
+
+            // ⚠️ 알림 생성 (모임장에게)
+            if (!meeting.getCreator().getUserId().equals(userId)) {
+                notificationService.createNotification(
+                        meeting.getCreator().getUserId(),
+                        NotificationType.LIKE,
+                        "새로운 좋아요",
+                        user.getNickname() + "님이 '" + meeting.getTitle() + "' 모임을 좋아합니다. ❤️",
+                        meeting.getId(),
+                        userId,
+                        null);
+            }
 
             return MeetingLikeResponse.builder()
                     .isLiked(true)

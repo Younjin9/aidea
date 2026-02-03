@@ -86,7 +86,7 @@ public class NotificationService {
         log.info("전체 알림 읽음 처리: userId={}", userId);
 
         int updated = notificationRepository.markAllAsRead(userId);
-        
+
         return NotificationReadResponse.builder()
                 .success(true)
                 .message(String.format("%d개의 알림을 읽음 처리했습니다.", updated))
@@ -111,7 +111,7 @@ public class NotificationService {
      */
     @Transactional
     public Notification createNotification(Long userId, NotificationType type, String title, String message,
-                                       Long relatedGroupId, Long relatedUserId, Long relatedEventId) {
+            Long relatedGroupId, Long relatedUserId, Long relatedEventId) {
         log.info("알림 생성: userId={}, type={}", userId, type);
 
         User user = userRepository.findById(userId)
@@ -138,7 +138,7 @@ public class NotificationService {
                 .type(notification.getType())
                 .title(notification.getTitle())
                 .message(notification.getMessage())
-                .isRead(notification.getIsRead())
+                .isRead(notification.isRead()) // Use the method that correctly handles nulls
                 .createdAt(notification.getCreatedAt())
                 .relatedGroupId(notification.getRelatedGroupId())
                 .relatedUserId(notification.getRelatedUserId())

@@ -19,8 +19,14 @@ export const useNotifications = () => {
  * 안읽은 알림 개수 조회 훅
  */
 export const useUnreadCount = () => {
-  const { data } = useNotifications();
-  return data?.unreadCount ?? 0;
+  const { data } = useQuery({
+    queryKey: ['notifications', 'unread-count'],
+    queryFn: notificationApi.getUnreadCount,
+    staleTime: 1000 * 30, // 30초
+    refetchInterval: 1000 * 30, // 30초마다 자동 갱신
+  });
+
+  return data ?? 0;
 };
 
 /**
