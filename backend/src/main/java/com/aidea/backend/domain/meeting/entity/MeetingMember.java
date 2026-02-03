@@ -79,7 +79,8 @@ public class MeetingMember {
   /**
    * 일반 멤버로 생성 (참가 신청용)
    */
-  public static MeetingMember createMember(Meeting meeting, User user, boolean isApprovalRequired, String requestMessage) {
+  public static MeetingMember createMember(Meeting meeting, User user, boolean isApprovalRequired,
+      String requestMessage) {
     return MeetingMember.builder()
         .meeting(meeting)
         .user(user)
@@ -114,9 +115,13 @@ public class MeetingMember {
 
   /**
    * 재가입 처리 (LEFT 상태에서 재활성화)
+   * 
+   * @param requestMessage 재가입 시 새로운 요청 메시지 (null 허용)
+   * @param autoApprove    자동 승인 여부
    */
-  public void reactivate(boolean isApprovalRequired) {
-    this.status = isApprovalRequired ? MemberStatus.PENDING : MemberStatus.APPROVED;
+  public void reactivate(String requestMessage, boolean autoApprove) {
+    this.status = autoApprove ? MemberStatus.APPROVED : MemberStatus.PENDING;
+    this.requestMessage = requestMessage != null ? requestMessage : "";
     this.joinedAt = LocalDateTime.now();
   }
 

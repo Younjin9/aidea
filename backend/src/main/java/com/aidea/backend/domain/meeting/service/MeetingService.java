@@ -45,14 +45,14 @@ public class MeetingService {
     private final MeetingMemberRepository meetingMemberRepository;
     private final UserRepository userRepository;
     private final MeetingLikeRepository meetingLikeRepository;
-    private final ChatRoomRepository chatRoomRepository; // Inject ChatRoomRepository
-    private final com.aidea.backend.domain.chat.repository.ChatMessageRepository chatMessageRepository; // Inject
-                                                                                                        // ChatMessageRepository
-    private final com.aidea.backend.domain.event.repository.EventRepository eventRepository; // Inject EventRepository
-    private final com.aidea.backend.domain.event.repository.EventParticipantRepository eventParticipantRepository; // Inject
+    private final ChatRoomRepository chatRoomRepository;
+    private final com.aidea.backend.domain.chat.repository.ChatMessageRepository chatMessageRepository;
+    private final com.aidea.backend.domain.event.repository.EventRepository eventRepository;
+    private final com.aidea.backend.domain.event.repository.EventParticipantRepository eventParticipantRepository;
     private final S3Service s3Service;
-    private final ChatService chatService; // Inject ChatService
+    private final ChatService chatService;
     private final MeetingHobbyRepository meetingHobbyRepository;
+    private final org.springframework.messaging.simp.SimpMessagingTemplate messagingTemplate;
 
     /**
      * 모임 생성
@@ -75,9 +75,9 @@ public class MeetingService {
         meetingRepository.save(meeting);
 
         // 2-1. meeting_hobby 저장 (카테고리 1개만 매핑)
-        String categoryIdStr = request.getInterestCategoryId();  // ✅ String으로 받기
+        String categoryIdStr = request.getInterestCategoryId(); // ✅ String으로 받기
         if (categoryIdStr != null && !categoryIdStr.isBlank()) {
-            Long categoryId = Long.parseLong(categoryIdStr);      // ✅ Long 변환
+            Long categoryId = Long.parseLong(categoryIdStr); // ✅ Long 변환
             meetingHobbyRepository.save(new MeetingHobby(meeting.getId(), categoryId));
         }
 
@@ -380,7 +380,8 @@ public class MeetingService {
      * 모임 참가 신청
      */
     @Transactional
-    public com.aidea.backend.domain.meeting.dto.response.MemberResponse joinMeeting(Long meetingId, Long userId) {
+    public com.aidea.backend.domain.meeting.dto.response.MemberResponse joinMeeting(Long meetingId, Long userId,
+            String requestMessage) {
         // 1. Meeting 조회
         Meeting meeting = meetingRepository.findById(meetingId)
                 .orElseThrow(() -> new RuntimeException("모임을 찾을 수 없습니다."));
@@ -400,13 +401,17 @@ public class MeetingService {
             // LEFT 상태인 경우 재활성화 (UPDATE)
             if (currentStatus == MemberStatus.LEFT) {
                 log.info("재가입 처리: userId={}, meetingId={}", userId, meetingId);
-                member.reactivate(meeting.getIsApprovalRequired());
+                boolean autoApprove = meeting.isAutoApprove();
+                member.reactivate(requestMessage, autoApprove);
                 MeetingMember savedMember = meetingMemberRepository.save(member);
 
                 // 자동 승인인 경우 currentMembers 증가
-                if (!meeting.getIsApprovalRequired()) {
+                if (autoApprove) {
                     meeting.incrementMembers();
                 }
+
+                // 가입 알림 전송
+                sendMemberJoinedNotification(meeting, user, true);
 
                 return savedMember.toMemberResponse();
             } else {
@@ -421,18 +426,56 @@ public class MeetingService {
         }
 
         // 5. MeetingMember 생성
-        boolean approvalRequired = (meeting.getIsApprovalRequired() != null) ? meeting.getIsApprovalRequired() : true;
-        MeetingMember member = MeetingMember.createMember(meeting, user, approvalRequired, requestMessage);
+        boolean autoApprove = meeting.isAutoApprove();
+        MeetingMember member = MeetingMember.createMember(meeting, user, !autoApprove, requestMessage);
 
         MeetingMember savedMember = meetingMemberRepository.save(member);
 
         // 6. 자동 승인인 경우 currentMembers 증가
-        if (!approvalRequired) {
+        if (autoApprove) {
             meeting.incrementMembers();
         }
 
         log.info("참가 신청 완료: userId={}, meetingId={}, status={}", userId, meetingId, savedMember.getStatus());
+
+        // 가입 알림 전송
+        sendMemberJoinedNotification(meeting, user, false);
+
         return savedMember.toMemberResponse();
+    }
+
+    /**
+     * 멤버 가입 알림 전송 (WebSocket 및 시스템 메시지)
+     */
+    private void sendMemberJoinedNotification(Meeting meeting, User user, boolean isRejoin) {
+        // 승인된 멤버인 경우에만 알림 전송 (자동 승인 정책 기준)
+        if (meeting.isAutoApprove()) {
+            // 1. WebSocket 알림 (Meeting 채널)
+            java.util.Map<String, Object> notification = new java.util.HashMap<>();
+            notification.put("type", "MEMBER_JOINED");
+            notification.put("meetingId", meeting.getId());
+            notification.put("userId", user.getUserId());
+            notification.put("username", user.getNickname());
+            notification.put("message", user.getNickname() + "님이 모임에 " + (isRejoin ? "재" : "") + "참여했습니다.");
+            notification.put("timestamp", java.time.LocalDateTime.now());
+
+            messagingTemplate.convertAndSend("/topic/meeting/" + meeting.getId(), notification);
+
+            // 2. 채팅방 시스템 메시지 저장 및 전송
+            chatRoomRepository.findByMeetingId(meeting.getId()).ifPresent(chatRoom -> {
+                com.aidea.backend.domain.chat.entity.ChatMessage welcomeMessage = com.aidea.backend.domain.chat.entity.ChatMessage
+                        .builder()
+                        .chatRoom(chatRoom)
+                        .sender(user) // 시스템 메시지여도 일단 발신자를 해당 사용자로 하거나 별도 시스템 유저 정의 필요
+                        .message(user.getNickname() + "님이 모임에 참여했습니다. 환영합니다! 👋")
+                        .messageType(com.aidea.backend.domain.chat.entity.ChatMessage.MessageType.ENTER)
+                        .build();
+
+                com.aidea.backend.domain.chat.entity.ChatMessage savedMessage = chatMessageRepository
+                        .save(welcomeMessage);
+                messagingTemplate.convertAndSend("/topic/meeting/" + meeting.getId(), savedMessage.toResponse());
+            });
+        }
     }
 
     /**
@@ -724,6 +767,5 @@ public class MeetingService {
     public String uploadMeetingImage(MultipartFile image) {
         return s3Service.uploadFile(image, "meeting-images");
     }
-
 
 }
