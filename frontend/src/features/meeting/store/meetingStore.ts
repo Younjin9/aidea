@@ -7,29 +7,29 @@ export const MOCK_EVENTS: Record<string, MeetingEvent[]> = {
   1: [{
     eventId: 1,
     title: '성수 맛집 탐방',
-    date: '2025-02-15',
-    scheduledAt: '2025-02-15 14:00',
+    date: '2026-02-15',
+    scheduledAt: '2026-02-15 14:00',
     location: '성수역 2번 출구',
     cost: 0,
     maxParticipants: 10,
     participantCount: 2,
     participants: [
-      { userId: 1, nickname: '김구름', profileImage: undefined, role: 'HOST', status: 'APPROVED', joinedAt: '2024-01-20' },
-      { userId: 2, nickname: '김구름2', profileImage: undefined, role: 'MEMBER', status: 'APPROVED', joinedAt: '2024-01-20' },
+      { memberId: 1, userId: 1, nickname: '김구름', profileImage: undefined, role: 'HOST', status: 'APPROVED', joinedAt: '2024-01-20' },
+      { memberId: 2, userId: 2, nickname: '김구름2', profileImage: undefined, role: 'MEMBER', status: 'APPROVED', joinedAt: '2024-01-20' },
     ],
   }],
   2: [],
   3: [{
     eventId: 2,
     title: '이번 달 독서 모임',
-    date: '2025-02-20',
-    scheduledAt: '2025-02-20 19:00',
+    date: '2026-02-20',
+    scheduledAt: '2026-02-20 19:00',
     location: '홍대 카페',
     cost: 0,
     maxParticipants: 8,
     participantCount: 1,
     participants: [
-      { userId: 1, nickname: '김구름', profileImage: undefined, role: 'HOST', status: 'APPROVED', joinedAt: '2024-01-20' },
+      { memberId: 3, userId: 1, nickname: '김구름', profileImage: undefined, role: 'HOST', status: 'APPROVED', joinedAt: '2024-01-20' },
     ],
   }],
 };
@@ -45,6 +45,7 @@ const MOCK_MEETINGS: MeetingUI[] = [
     members: 5,
     maxMembers: 10,
     description: '우리와 함께 맛집을 탐방해보세요.',
+    date: '2026-02-15',
     isLiked: false,
     ownerUserId: 1,
     myStatus: 'APPROVED',
@@ -60,6 +61,7 @@ const MOCK_MEETINGS: MeetingUI[] = [
     members: 12,
     maxMembers: 20,
     description: '함께 달려요!',
+    date: '2026-02-05',
     isLiked: true,
     ownerUserId: 2,
     myStatus: undefined, // 미가입
@@ -75,6 +77,7 @@ const MOCK_MEETINGS: MeetingUI[] = [
     members: 8,
     maxMembers: 15,
     description: '함께 책을 읽어요.',
+    date: '2026-02-20',
     isLiked: false,
     ownerUserId: 1,
     myStatus: 'APPROVED',
@@ -108,6 +111,9 @@ interface MeetingState {
   // 가입/탈퇴
   joinMeeting: (groupId: string, role?: 'HOST' | 'MEMBER') => void;
   leaveMeeting: (groupId: string) => void;
+
+  // 삭제
+  removeMeeting: (groupId: string) => void;
 
   // 그룹핑
   groupByCategory: () => Record<string, MeetingUI[]>;
@@ -191,6 +197,11 @@ export const useMeetingStore = create<MeetingState>((set, get) => ({
           ? { ...m, myStatus: undefined, myRole: undefined, members: Math.max(0, m.members - 1) }
           : m
       ),
+    })),
+
+  removeMeeting: (groupId) =>
+    set((state) => ({
+      meetings: state.meetings.filter((m) => m.groupId !== groupId),
     })),
 
   groupByCategory: () => {

@@ -87,7 +87,8 @@ public class SecurityConfig {
                                                 .permitAll()
 
                                                 // WebSocket
-                                                .requestMatchers("/ws/**", "/app/**", "/topic/**").permitAll()
+                                                .requestMatchers("/ws/**", "/api/ws/**", "/app/**", "/topic/**")
+                                                .permitAll()
 
                                                 // Health Check
                                                 .requestMatchers("/actuator/**", "/health").permitAll()
@@ -108,6 +109,9 @@ public class SecurityConfig {
                                                 .requestMatchers(HttpMethod.GET, "/api/groups", "/api/groups/{id}",
                                                                 "/api/groups/search", "/api/groups/{id}/members")
                                                 .permitAll()
+
+                                                // Share
+                                                .requestMatchers(HttpMethod.GET, "/api/share/**").permitAll()
 
                                                 // Chat (For Testing)
                                                 .requestMatchers("/api/chat/**").permitAll()

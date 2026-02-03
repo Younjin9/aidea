@@ -12,9 +12,9 @@ type RecommendedMeetingCardResponse = {
 };
 
 type ShortsFeedProps = {
-  topK?: number;               // 기본 10
-  limit?: number;              // 기본 10
-  mode?: 'vector' | 'basic' | 'mvp'; // 기본 'vector'
+  topK?: number;
+  limit?: number;
+  mode?: 'vector' | 'basic' | 'mvp';
 };
 
 const ShortsFeed: React.FC<ShortsFeedProps> = ({
@@ -112,9 +112,7 @@ const ShortsFeed: React.FC<ShortsFeedProps> = ({
               점수: {Number.isFinite(card.score) ? card.score.toFixed(2) : '0.00'}
             </p>
 
-            <p className="text-sm text-gray-200 mt-4">
-              {card.reason}
-            </p>
+            <p className="text-sm text-gray-200 mt-4">{card.reason}</p>
           </div>
         </div>
       ))}

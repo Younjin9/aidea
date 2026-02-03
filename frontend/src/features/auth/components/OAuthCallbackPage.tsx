@@ -8,29 +8,44 @@ const OAuthCallbackPage: React.FC = () => {
   const navigate = useNavigate();
   const setAuth = useAuthStore((state) => state.setAuth);
 
+  const authProcessed = React.useRef(false);
+
   useEffect(() => {
+    if (authProcessed.current) return;
+    authProcessed.current = true;
+
     const processLogin = async () => {
       const accessToken = searchParams.get('accessToken');
       const refreshToken = searchParams.get('refreshToken');
 
       if (accessToken && refreshToken) {
         try {
-          // 1. 토큰 저장 (임시로 user는 null 로 설정하거나, 간단한 객체로 설정 후 getMe로 갱신)
-           localStorage.setItem('accessToken', accessToken);
-           localStorage.setItem('refreshToken', refreshToken);
+          // 1. 토큰 저장
+          localStorage.setItem('accessToken', accessToken);
+          localStorage.setItem('refreshToken', refreshToken);
 
           // 2. 사용자 정보 가져오기
           const meResponse = await authApi.getMe();
-          
+
           if (meResponse.success) {
-            setAuth(meResponse.data, accessToken); // refreshToken은 store에서 관리 안하거나 따로 관리한다면 수정 필요
-            // 여기서는 useAuthStore가 (user, accessToken)만 받으므로 이렇게 처리.
-            // refreshToken 저장이 필요하다면 authStore 수정 필요.
-            
-            navigate('/shorts', { replace: true });
+            const user = meResponse.data;
+            setAuth(user, accessToken);
+
+            // 2. 가입 시 성별/지역 정보가 누락된 경우 -> 필수 정보 입력 페이지
+            if (!user.gender || !user.location) {
+              navigate('/onboarding/required-info', { replace: true });
+            }
+            // 3. 관심사가 없는 경우 -> 관심사 설정 페이지
+            else if (!user.interests || user.interests.length === 0) {
+              navigate('/onboarding/interest', { replace: true });
+            }
+            // 4. 모두 완료된 경우 -> 메인으로
+            else {
+              navigate('/shorts', { replace: true });
+            }
           } else {
-             console.error('Failed to fetch user info:', meResponse.message);
-             navigate('/login', { replace: true });
+            console.error('Failed to fetch user info:', meResponse.message);
+            navigate('/login', { replace: true });
           }
         } catch (error) {
           console.error('OAuth login processing error:', error);
@@ -43,7 +58,7 @@ const OAuthCallbackPage: React.FC = () => {
     };
 
     processLogin();
-  }, [searchParams, navigate, setAuth]);
+  }, [navigate, setAuth]); // Removed searchParams to avoid loop if it changes unexpectedly
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-white">

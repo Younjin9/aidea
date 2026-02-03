@@ -7,16 +7,17 @@ import java.util.List;
 
 public interface EventParticipantRepository extends JpaRepository<EventParticipant, Long> {
 
-    List<EventParticipant> findByEventId(Long eventId);
+    List<EventParticipant> findByEvent_Id(Long eventId);
 
-    boolean existsByEventIdAndUser_UserId(Long eventId, Long userId);
+    boolean existsByEvent_IdAndUser_UserId(Long eventId, Long userId);
 
-    void deleteByEventId(Long eventId);
+    void deleteByEvent_Id(Long eventId);
 
-    void deleteByEventIdAndUser_UserId(Long eventId, Long userId);
+    void deleteByEvent_IdAndUser_UserId(Long eventId, Long userId);
 
-    // For deleting all participants of all events in a meeting
     void deleteByEvent_Meeting_Id(Long meetingId);
 
-    long countByEventId(Long eventId);
+    void deleteByUser_UserId(Long userId);
+
+    long countByEvent_Id(Long eventId);
 }

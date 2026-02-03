@@ -3,21 +3,35 @@ import { useNavigate } from 'react-router-dom';
 import { Search, Plus } from 'lucide-react';
 import logo from '@/assets/images/logo.png';
 import MeetingCard from '@/shared/components/ui/MeetingCard';
+import NotificationBell from '@/shared/components/ui/NotificationBell';
 import { useMeetings } from '../hooks/useMeetings';
 import { INTEREST_CATEGORIES } from '@/shared/config/constants';
 
 const MeetingListPage: React.FC = () => {
   const navigate = useNavigate();
-  const { meetings, isLoading, groupByCategory, toggleLike } = useMeetings();
+  const { meetings, isLoading, groupByCategory, toggleLikeMeeting } = useMeetings();
 
   const groupedMeetings = groupByCategory();
 
-  // 카테고리 이모지 찾기
+  // 카테고리별 이모티콘 찾기
   const getCategoryIcon = (categoryName: string) => {
-    const category = INTEREST_CATEGORIES.find(
-      (cat) => cat.label === categoryName || cat.items.some((item) => item === categoryName)
+    // 1. 대분류 label과 정확 일치
+    const exactMatch = INTEREST_CATEGORIES.find((cat) => cat.label === categoryName);
+    if (exactMatch) return exactMatch.icon;
+    
+    // 2. 세부 카테고리 items에 포함
+    const itemMatch = INTEREST_CATEGORIES.find((cat) => 
+      cat.items.some((item) => item === categoryName)
     );
-    return category?.icon || '📌';
+    if (itemMatch) return itemMatch.icon;
+    
+    // 3. 부분 문자열 매칭
+    const partialMatch = INTEREST_CATEGORIES.find((cat) => {
+      const mainKeyword = cat.label.split(' /')[0].trim();
+      return categoryName.includes(mainKeyword);
+    });
+    
+    return partialMatch?.icon || '';
   };
 
   return (
@@ -27,9 +41,12 @@ const MeetingListPage: React.FC = () => {
         <div className="flex items-center gap-2">
           <img src={logo} alt="AIMO" className="w-8 h-8 object-contain" />
         </div>
-        <button onClick={() => navigate('/search')}>
-          <Search size={20} className="text-gray-600" />
-        </button>
+        <div className="flex items-center gap-4">
+          <NotificationBell />
+          <button onClick={() => navigate('/search')}>
+            <Search size={20} className="text-gray-600" />
+          </button>
+        </div>
       </header>
 
       {/* 모임 목록 */}
@@ -55,7 +72,10 @@ const MeetingListPage: React.FC = () => {
                     key={meeting.id}
                     meeting={meeting}
                     onClick={() => navigate(`/meetings/${meeting.groupId}`)}
-                    onLike={() => toggleLike(meeting.groupId)}
+                    onLike={() => {
+                      console.log(`[MeetingListPage] Like clicked for ${meeting.groupId}`);
+                      toggleLikeMeeting(meeting.groupId);
+                    }}
                     showLikeButton={true}
                   />
                 ))}

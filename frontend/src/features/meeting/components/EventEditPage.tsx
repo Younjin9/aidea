@@ -38,7 +38,9 @@ const EventEditPage: React.FC = () => {
   const [shortDescription, setShortDescription] = useState(eventData?.description || '');
   const [date, setDate] = useState(initialDateTime.date);
   const [time, setTime] = useState(initialDateTime.time);
-  const [eventLocation, setEventLocation] = useState(eventData?.location || '');
+  const [eventLocation, setEventLocation] = useState(
+    typeof eventData?.location === 'string' ? eventData.location : ''
+  );
   const [description, setDescription] = useState(eventData?.description || '');
   const [cost, setCost] = useState(eventData?.cost || '');
   const [maxParticipants, setMaxParticipants] = useState<number>(typeof eventData?.maxParticipants === 'number' ? eventData.maxParticipants : 10);
@@ -271,6 +273,8 @@ const EventEditPage: React.FC = () => {
         isOpen={showMapModal}
         onClose={() => setShowMapModal(false)}
         onSelect={handleLocationSelect}
+        currentLocation={selectedLocation ? { latitude: selectedLocation.lat, longitude: selectedLocation.lng } : undefined}
+        initialAddress={eventLocation}
       />
 
       {/* Delete Confirmation Modal */}

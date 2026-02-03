@@ -1,6 +1,7 @@
 package com.aidea.backend.domain.meeting.service;
 
 import com.aidea.backend.domain.meeting.dto.request.CreateMeetingRequest;
+import java.util.Optional;
 import com.aidea.backend.domain.meeting.dto.response.MeetingResponse;
 import com.aidea.backend.domain.meeting.dto.response.MeetingSummaryResponse;
 import com.aidea.backend.domain.meeting.dto.response.MeetingLikeResponse;
@@ -22,7 +23,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
-import com.aidea.backend.domain.chat.repository.ChatRoomRepository; // Added import
+import com.aidea.backend.domain.chat.repository.ChatRoomRepository;
+import com.aidea.backend.domain.chat.service.ChatService; // Added import
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -47,6 +49,7 @@ public class MeetingService {
     private final com.aidea.backend.domain.event.repository.EventRepository eventRepository; // Inject EventRepository
     private final com.aidea.backend.domain.event.repository.EventParticipantRepository eventParticipantRepository; // Inject
     private final S3Service s3Service;
+    private final ChatService chatService; // Inject ChatService
 
     /**
      * 모임 생성
@@ -72,35 +75,145 @@ public class MeetingService {
         MeetingMember hostMember = MeetingMember.createHost(meeting, user);
         meetingMemberRepository.save(hostMember);
 
+        // 4. 채팅방 생성 (자동)
+        try {
+            chatService.createChatRoomForMeeting(meeting.getId());
+            log.info("채팅방 생성 완료: meetingId={}", meeting.getId());
+        } catch (Exception e) {
+            log.error("채팅방 자동 생성 실패: {}", e.getMessage());
+            // 성공 실패와 상관없이 모임 생성을 계속 진행하거나 처리 결정
+        }
+
         return meeting.toResponse("HOST", "APPROVED");
     }
 
     /**
      * 모임 상세 조회
+     * ✅ members, events 배열 포함 (N+1 최소화)
      */
     public MeetingResponse getMeetingById(Long meetingId, Long userId) {
+        // 1. Meeting 조회
         Meeting meeting = meetingRepository.findById(meetingId)
                 .orElseThrow(() -> new RuntimeException("모임을 찾을 수 없습니다."));
 
+        // ✅ 1. myRole, myStatus 설정 및 members 배열 생성 (단일 쿼리로 최적화)
         String myRole = "NONE";
         String myStatus = "NONE";
 
+        // userId 검증
+        if (userId == null) {
+            log.warn("getUserId returned null for meeting {}, treating as guest user", meetingId);
+        }
+
+        // 모든 활성 멤버 조회 (LEFT 제외) - 단일 쿼리
+        List<MeetingMember> allActiveMembers = meetingMemberRepository
+                .findByMeetingIdAndStatusNot(meetingId, MemberStatus.LEFT);
+
+        // 현재 사용자의 멤버십 찾기 (스트림 필터링)
         if (userId != null) {
-            // 1. 호스트 여부 확인
+            // 호스트 여부 확인
             if (meeting.getCreator().getUserId().equals(userId)) {
                 myRole = "HOST";
                 myStatus = "APPROVED";
+                log.debug("User {} is HOST of meeting {}", userId, meetingId);
             } else {
-                // 2. 멤버 여부 확인
-                var member = meetingMemberRepository.findByMeetingIdAndUser_UserId(meetingId, userId);
-                if (member.isPresent()) {
-                    myRole = "MEMBER";
-                    myStatus = member.get().getStatus().name();
+                // 멤버 여부 확인 (메모리에서 필터링)
+                Optional<MeetingMember> myMembership = allActiveMembers.stream()
+                        .filter(m -> m.getUser().getUserId().equals(userId))
+                        .findFirst();
+
+                if (myMembership.isPresent()) {
+                    myRole = myMembership.get().getRole().name();
+                    myStatus = myMembership.get().getStatus().name();
+                    log.debug("User {} has role {} and status {} in meeting {}",
+                            userId, myRole, myStatus, meetingId);
+                } else {
+                    log.debug("User {} is not a member of meeting {}", userId, meetingId);
                 }
             }
         }
 
-        return meeting.toResponse(myRole, myStatus);
+        // ✅ 2. members 배열 생성 (APPROVED 멤버만 필터링)
+        List<com.aidea.backend.domain.meeting.dto.response.MemberResponse> members = allActiveMembers
+                .stream()
+                .filter(m -> m.getStatus() == MemberStatus.APPROVED)
+                .map(com.aidea.backend.domain.meeting.entity.MeetingMember::toMemberResponse)
+                .collect(Collectors.toList());
+
+        // ✅ 3. events 배열 생성
+        List<com.aidea.backend.domain.event.dto.response.EventSummaryDto> events = eventRepository
+                .findByMeetingIdOrderByDateAsc(meetingId).stream()
+                .map(event -> com.aidea.backend.domain.event.dto.response.EventSummaryDto.builder()
+                        .eventId(event.getId())
+                        .title(event.getTitle())
+                        .scheduledAt(event.getDate())
+                        .date(event.getDate() != null ? event.getDate().toLocalDate().toString() : null)
+                        .placeName(event.getLocationName())
+                        .cost(parseCostToInteger(event.getCost()))
+                        .maxParticipants(event.getMaxParticipants())
+                        .participantCount(event.getParticipants().size())
+                        .participants(event.getParticipants().stream()
+                                .map(p -> new com.aidea.backend.domain.event.dto.response.EventSummaryDto.ParticipantDto(
+                                        p.getUser().getUserId(),
+                                        p.getUser().getNickname(),
+                                        p.getUser().getProfileImage(),
+                                        p.getUser().getUserId().equals(meeting.getCreator().getUserId()) ? "HOST"
+                                                : "MEMBER",
+                                        "APPROVED", // 정모 참여는 현재 별도 승인 없음
+                                        p.getJoinedAt()))
+                                .collect(Collectors.toList()))
+                        .build())
+                .collect(Collectors.toList());
+
+        // ✅ 4. MeetingResponse 생성 (members, events, memberCount 포함)
+        MeetingResponse response = meeting.toResponse(myRole, myStatus);
+
+        // Builder 패턴으로 새 필드 추가
+        return MeetingResponse.builder()
+                .groupId(response.getGroupId())
+                .title(response.getTitle())
+                .description(response.getDescription())
+                .imageUrl(response.getImageUrl())
+                .interestCategoryId(response.getInterestCategoryId())
+                .interestCategoryName(response.getInterestCategoryName())
+                .region(response.getRegion())
+                .regionFullName(response.getRegionFullName())
+                .location(response.getLocation())
+                .latitude(response.getLatitude())
+                .longitude(response.getLongitude())
+                .locationDetail(response.getLocationDetail())
+                .maxMembers(response.getMaxMembers())
+                .currentMembers(response.getCurrentMembers())
+                .meetingDate(response.getMeetingDate())
+                .status(response.getStatus())
+                .isPublic(response.getIsPublic())
+                .creator(response.getCreator())
+                .ownerUserId(response.getOwnerUserId()) // ✅ 추가: Frontend 권한 체크용
+                .createdAt(response.getCreatedAt())
+                .updatedAt(response.getUpdatedAt())
+                .myRole(myRole)
+                .myStatus(myStatus)
+                .isApprovalRequired(meeting.getIsApprovalRequired()) // 승인 필요 여부 추가
+                .memberCount(members.size()) // ✅ 추가
+                .members(members) // ✅ 추가
+                .events(events) // ✅ 추가
+                .build();
+    }
+
+    /**
+     * ✅ Helper: cost String을 Integer로 변환
+     */
+    private Integer parseCostToInteger(String cost) {
+        if (cost == null || cost.trim().isEmpty()) {
+            return 0;
+        }
+        try {
+            // 숫자만 추출
+            String numericOnly = cost.replaceAll("[^0-9]", "");
+            return numericOnly.isEmpty() ? 0 : Integer.parseInt(numericOnly);
+        } catch (NumberFormatException e) {
+            return 0;
+        }
     }
 
     /**
@@ -266,10 +379,30 @@ public class MeetingService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
 
-        // 3. 중복 참가 확인 (LEFT 상태 제외)
-        if (meetingMemberRepository.existsByMeetingIdAndUser_UserIdAndStatusNot(
-                meetingId, userId, MemberStatus.LEFT)) {
-            throw new RuntimeException("이미 참가 신청한 모임입니다.");
+        // 3. 기존 멤버십 확인 (재가입 처리 포함)
+        Optional<MeetingMember> existingMember = meetingMemberRepository
+                .findByMeetingIdAndUser_UserId(meetingId, userId);
+
+        if (existingMember.isPresent()) {
+            MeetingMember member = existingMember.get();
+            MemberStatus currentStatus = member.getStatus();
+
+            // LEFT 상태인 경우 재활성화 (UPDATE)
+            if (currentStatus == MemberStatus.LEFT) {
+                log.info("재가입 처리: userId={}, meetingId={}", userId, meetingId);
+                member.reactivate(meeting.getIsApprovalRequired());
+                MeetingMember savedMember = meetingMemberRepository.save(member);
+
+                // 자동 승인인 경우 currentMembers 증가
+                if (!meeting.getIsApprovalRequired()) {
+                    meeting.incrementMembers();
+                }
+
+                return savedMember.toMemberResponse();
+            } else {
+                // PENDING, APPROVED, REJECTED 상태인 경우 에러
+                throw new RuntimeException("이미 참가 신청한 모임입니다. 현재 상태: " + currentStatus);
+            }
         }
 
         // 4. 정원 확인 (승인된 멤버 수 기준)
@@ -278,16 +411,17 @@ public class MeetingService {
         }
 
         // 5. MeetingMember 생성
-        MeetingMember member = MeetingMember.createMember(
-                meeting, user, meeting.getIsApprovalRequired());
+        boolean approvalRequired = (meeting.getIsApprovalRequired() != null) ? meeting.getIsApprovalRequired() : true;
+        MeetingMember member = MeetingMember.createMember(meeting, user, approvalRequired);
 
         MeetingMember savedMember = meetingMemberRepository.save(member);
 
         // 6. 자동 승인인 경우 currentMembers 증가
-        if (!meeting.getIsApprovalRequired()) {
+        if (!approvalRequired) {
             meeting.incrementMembers();
         }
 
+        log.info("참가 신청 완료: userId={}, meetingId={}, status={}", userId, meetingId, savedMember.getStatus());
         return savedMember.toMemberResponse();
     }
 
@@ -328,6 +462,7 @@ public class MeetingService {
     @Transactional
     public com.aidea.backend.domain.meeting.dto.response.MemberResponse approveJoinRequest(
             Long meetingId, Long memberId, Long userId) {
+        log.info("참가 신청 승인 시도: meetingId={}, memberId={}, hostUserId={}", meetingId, memberId, userId);
         // 1. Meeting 조회
         Meeting meeting = meetingRepository.findById(meetingId)
                 .orElseThrow(() -> new RuntimeException("모임을 찾을 수 없습니다."));
@@ -358,6 +493,7 @@ public class MeetingService {
      */
     @Transactional
     public void rejectJoinRequest(Long meetingId, Long memberId, Long userId) {
+        log.info("참가 신청 거절 시도: meetingId={}, memberId={}, hostUserId={}", meetingId, memberId, userId);
         // 1. Meeting 조회
         Meeting meeting = meetingRepository.findById(meetingId)
                 .orElseThrow(() -> new RuntimeException("모임을 찾을 수 없습니다."));
@@ -394,21 +530,29 @@ public class MeetingService {
                 .orElseThrow(() -> new RuntimeException("모임을 찾을 수 없습니다."));
 
         // 4. 탈퇴 처리
+        MemberStatus prevStatus = member.getStatus();
         member.leave();
-        meeting.decrementMembers();
+        log.info("모임 탈퇴/참가 취소 처리: userId={}, meetingId={}, prevStatus={}", userId, meetingId, prevStatus);
+
+        // 5. APPROVED 상태였을 때만 멤버 수 감소
+        if (prevStatus == MemberStatus.APPROVED) {
+            meeting.decrementMembers();
+            log.info("모임 인원 감소 처리: meetingId={}", meetingId);
+        }
     }
 
     /**
      * 참가자 강제 퇴출 (HOST 전용)
      */
     @Transactional
-    public void removeMember(Long meetingId, Long memberId, Long userId) {
+    public void removeMember(Long meetingId, Long memberId, Long hostUserId) {
+        log.info("멤버 강퇴 시도: meetingId={}, memberId={}, hostUserId={}", meetingId, memberId, hostUserId);
         // 1. Meeting 조회
         Meeting meeting = meetingRepository.findById(meetingId)
                 .orElseThrow(() -> new RuntimeException("모임을 찾을 수 없습니다."));
 
         // 2. HOST 권한 확인
-        if (!meeting.getCreator().getUserId().equals(userId)) {
+        if (!meeting.getCreator().getUserId().equals(hostUserId)) {
             throw new RuntimeException("권한이 없습니다.");
         }
 
@@ -424,6 +568,59 @@ public class MeetingService {
         // 5. 퇴출 처리
         member.leave();
         meeting.decrementMembers();
+    }
+
+    /**
+     * 모임장 권한 양도 (HOST 전용)
+     */
+    @Transactional
+    public void transferHost(Long meetingId, Long newHostUserId, Long currentHostId) {
+        log.info("모임장 권한 양도 시도: meetingId={}, newHostUserId={}, currentHostId={}", meetingId, newHostUserId,
+                currentHostId);
+
+        // 1. 모임 조회
+        Meeting meeting = meetingRepository.findById(meetingId)
+                .orElseThrow(() -> new RuntimeException("모임을 찾을 수 없습니다."));
+
+        // 2. 현재 요청자가 모임장인지 확인
+        if (!meeting.getCreator().getUserId().equals(currentHostId)) {
+            throw new RuntimeException("모임장 권한 위임은 모임장만 가능합니다.");
+        }
+
+        // 3. 자기 자신에게 양도하는지 확인
+        if (currentHostId.equals(newHostUserId)) {
+            throw new RuntimeException("이미 모임장입니다.");
+        }
+
+        // 4. 새 모임장 후보 (멤버) 조회
+        MeetingMember newHostMember = meetingMemberRepository.findByMeetingIdAndUser_UserId(meetingId, newHostUserId)
+                .orElseThrow(() -> new RuntimeException("양도할 멤버를 찾을 수 없습니다."));
+
+        // 5. 멤버 상태 확인 (APPROVED 상태여야 함)
+        if (newHostMember.getStatus() != MemberStatus.APPROVED) {
+            throw new RuntimeException("승인된 멤버에게만 모임장을 위임할 수 있습니다.");
+        }
+
+        // 6. 현재 모임장 (멤버) 조회
+        MeetingMember currentHostMember = meetingMemberRepository
+                .findByMeetingIdAndUser_UserId(meetingId, currentHostId)
+                .orElseThrow(() -> new RuntimeException("현재 모임장 정보를 찾을 수 없습니다."));
+
+        // 7. 권한 변경 (원자적 처리)
+        // 7-1. 기존 모임장 -> 일반 멤버
+        currentHostMember.assignMember();
+
+        // 7-2. 새 모임장 -> HOST
+        newHostMember.assignHost();
+
+        // 7-3. 모임 Creator 정보 업데이트
+        meeting.changeCreator(newHostMember.getUser());
+
+        // ✅ 변경 사항 명시적 저장 (문제 방지)
+        meetingMemberRepository.saveAll(java.util.List.of(currentHostMember, newHostMember));
+        meetingRepository.save(meeting);
+
+        log.info("모임장 권한 양도 완료: meetingId={}, oldHost={}, newHost={}", meetingId, currentHostId, newHostUserId);
     }
 
     // ========== 찜 기능 ==========

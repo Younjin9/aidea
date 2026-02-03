@@ -1,20 +1,25 @@
-import React, { useEffect, useState, useRef } from 'react';
+﻿import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { Send, ChevronLeft } from 'lucide-react';
 import { Client } from '@stomp/stompjs';
 import { chatApi } from '@/shared/api/chatAPI';
 import { useAuthStore } from '@/features/auth/store/authStore';
+import { getWebSocketUrl } from '@/shared/utils/websocket';
 import type { ChatMessage } from '@/shared/types/Chat.types';
 
-const ChatRoomPage: React.FC = () => {
+interface ChatRoomPageProps {
+    isEnabled?: boolean;
+}
+
+const ChatRoomPage: React.FC<ChatRoomPageProps> = ({ isEnabled = true }) => {
     const params = useParams<{ meetingId: string }>();
     const meetingId = params.meetingId;
     const navigate = useNavigate();
     const user = useAuthStore((state) => state.user);
 
     // 테스트를 위한 임시 유저 (로그인 안 된 경우)
-    const [guestId] = useState(() => `guest-${Math.floor(Math.random() * 10000)}`);
+    const [guestId] = useState(() => 'guest-' + Math.floor(Math.random() * 10000));
     const myId = user?.userId ? String(user.userId) : guestId;
 
     const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -22,98 +27,32 @@ const ChatRoomPage: React.FC = () => {
     const stompClient = useRef<Client | null>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
+    // Auth Store에서 토큰 가져오기 (WebSocket 인증용)
+    const token = useAuthStore((state) => state.accessToken);
+
     // 데모용 Fallback: meetingId가 없으면 1로 설정
     const parsedMeetingId = meetingId ? Number(meetingId) : 1;
 
     // 시간 포맷팅 함수
     const formatTime = (dateString: string) => {
+        if (!dateString) return '';
         const date = new Date(dateString);
+        if (isNaN(date.getTime())) return '';
         let hours = date.getHours();
         const minutes = date.getMinutes();
         const ampm = hours >= 12 ? '오후' : '오전';
         hours = hours % 12;
         hours = hours ? hours : 12;
-        return `${ampm} ${hours}:${minutes < 10 ? '0' + minutes : minutes}`;
+        const minutesStr = minutes < 10 ? '0' + minutes : minutes;
+        return `${ampm} ${hours}:${minutesStr}`;
     };
 
-    // 1. 기존 메시지 불러오기
-    const { data: initialMessages } = useQuery({
-        queryKey: ['chatMessages', parsedMeetingId],
-        queryFn: async () => {
-            try {
-                const response = await chatApi.getMessages(parsedMeetingId);
-                // @ts-expect-error
-                return Array.isArray(response) ? response : [];
-            } catch {
-                // Fallback Dummy Data for UI Dev
-                return [
-                    { messageId: '1', senderId: '101', senderName: '김철수', message: '같이 가요!', createdAt: '2023-10-25T10:00:00', senderProfileImage: undefined, type: 'TALK' },
-                    { messageId: '2', senderId: '202', senderName: '김쩌고', message: '다른 사람이 말하는 버전 1줄 버전!', createdAt: '2023-10-25T10:05:00', senderProfileImage: undefined, type: 'TALK' },
-                ] as ChatMessage[];
-            }
-        },
-        enabled: true,
-    });
+    const scrollToBottom = () => {
+        setTimeout(() => {
+            messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        }, 100);
+    };
 
-    // 메시지 읽음 처리 Mutation
-    const { mutate: markAsRead } = useMutation({
-        mutationFn: (id: number) => chatApi.markAsRead(id),
-        onError: (error) => console.error("Failed to mark messages as read", error)
-    });
-
-    useEffect(() => {
-        if (initialMessages) {
-            setMessages(initialMessages);
-            scrollToBottom();
-            if (!isNaN(parsedMeetingId)) {
-                markAsRead(parsedMeetingId);
-            }
-        }
-    }, [initialMessages, parsedMeetingId, markAsRead]);
-
-    // 2. STOMP 연결
-    useEffect(() => {
-        const client = new Client({
-            brokerURL: 'ws://localhost:8080/ws/websocket', // Backend WebSocket Endpoint (Direct)
-            debug: (str) => {
-                console.log('STOMP: ' + str);
-            },
-            reconnectDelay: 5000,
-            heartbeatIncoming: 4000,
-            heartbeatOutgoing: 4000,
-        });
-
-        client.onConnect = (frame) => {
-            console.log('Connected: ' + frame);
-
-            // Subscribe to Meeting Topic
-            client.subscribe(`/topic/meeting/${parsedMeetingId}`, (message) => {
-                if (message.body) {
-                    try {
-                        const newMessage: ChatMessage = JSON.parse(message.body);
-                        setMessages((prev) => [...prev, newMessage]);
-                        scrollToBottom();
-                    } catch (e) {
-                        console.error('Message parse error', e);
-                    }
-                }
-            });
-        };
-
-        client.onStompError = (frame) => {
-            console.error('Broker reported error: ' + frame.headers['message']);
-            console.error('Additional details: ' + frame.body);
-        };
-
-        client.activate();
-        stompClient.current = client;
-
-        return () => {
-            client.deactivate();
-        };
-    }, [parsedMeetingId]);
-
-    // 3. 메시지 전송
     const handleSendMessage = () => {
         if (!inputMessage.trim()) return;
 
@@ -127,14 +66,15 @@ const ChatRoomPage: React.FC = () => {
 
         // STOMP 전송
         if (stompClient.current && stompClient.current.connected) {
+            const destination = `/app/chat/send/${parsedMeetingId}`;
+            console.log(`Sending message to ${destination}`, messagePayload);
             stompClient.current.publish({
-                destination: `/app/chat.send.${parsedMeetingId}`,
+                destination: destination,
                 body: JSON.stringify(messagePayload),
             });
             setInputMessage('');
-            // Optimistic Update는 하지 않음 (서버 응답(구독)으로 받아서 처리)
         } else {
-            console.error('STOMP Client is not connected');
+            console.error('STOMP Client is not connected. Status:', stompClient.current?.state);
             alert('채팅 서버와 연결되지 않았습니다.');
         }
     };
@@ -145,11 +85,89 @@ const ChatRoomPage: React.FC = () => {
         }
     };
 
-    const scrollToBottom = () => {
-        setTimeout(() => {
-            messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-        }, 100);
-    };
+    // 1. 기존 메시지 불러오기
+    const { data: initialMessages } = useQuery({
+        queryKey: ['chatMessages', parsedMeetingId],
+        queryFn: async () => {
+            try {
+                const response = await chatApi.getMessages(parsedMeetingId);
+                return response.data ?? [];
+            } catch {
+                return [] as ChatMessage[];
+            }
+        },
+        enabled: isEnabled && !!meetingId, // isEnabled가 true일 때만 호출
+    });
+
+    // 메시지 읽음 처리 Mutation
+    const { mutate: markAsRead } = useMutation({
+        mutationFn: (id: number) => chatApi.markAsRead(id),
+        onError: (error) => console.error("Failed to mark messages as read", error)
+    });
+
+    useEffect(() => {
+        if (initialMessages) {
+            setMessages(initialMessages);
+            scrollToBottom();
+            if (!isNaN(parsedMeetingId) && isEnabled) {
+                markAsRead(parsedMeetingId);
+            }
+        }
+    }, [initialMessages, parsedMeetingId, markAsRead, isEnabled]);
+
+    // 2. STOMP 연결
+    useEffect(() => {
+        // 비회원이거나 meetingId가 없으면 연결하지 않음
+        if (!isEnabled || !meetingId) return;
+
+        const wsUrl = getWebSocketUrl();
+        console.log('[DEBUG] Calculated WebSocket URL:', wsUrl);
+        console.log('[DEBUG] Current Base URL:', import.meta.env.VITE_API_BASE_URL);
+
+        const client = new Client({
+            brokerURL: wsUrl,
+            connectHeaders: {
+                Authorization: token ? `Bearer ${token}` : '',
+            },
+            debug: (str: string) => {
+                console.log('STOMP: ' + str);
+            },
+            reconnectDelay: 5000,
+            heartbeatIncoming: 4000,
+            heartbeatOutgoing: 4000,
+        });
+
+        client.onConnect = (frame: any) => {
+            console.log('Connected: ' + frame);
+
+            // Subscribe to Meeting Topic
+            client.subscribe(`/topic/meeting/${parsedMeetingId}`, (message: any) => {
+                if (message.body) {
+                    try {
+                        console.log('STOMP Message Received:', message.body);
+                        const newMessage: ChatMessage = JSON.parse(message.body);
+                        setMessages((prev) => [...prev, newMessage]);
+                        scrollToBottom();
+                    } catch (e) {
+                        console.error('Message parse error', e);
+                    }
+                }
+            });
+        };
+
+        client.onStompError = (frame: any) => {
+            console.error('Broker reported error: ' + frame.headers['message']);
+            console.error('Additional details: ' + frame.body);
+        };
+
+        client.activate();
+        stompClient.current = client;
+
+        return () => {
+            client.deactivate();
+        };
+    }, [parsedMeetingId, token, isEnabled, meetingId]);
+
 
     return (
         <div className="absolute inset-0 flex flex-col w-full bg-white">
@@ -168,7 +186,7 @@ const ChatRoomPage: React.FC = () => {
             {/* Message List */}
             <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-white scrollbar-hide">
                 <div className="text-center text-xs text-gray-400 my-2">
-                    {user ? '로그인 상태입니다.' : `게스트 모드 (${guestId})`}
+                    {user ? '로그인 상태입니다.' : '게스트 모드 (' + guestId + ')'}
                 </div>
 
                 {messages.length === 0 ? (

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Crown } from 'lucide-react';
+import { Crown, ChevronRight } from 'lucide-react';
 import ProfileImage from '@/shared/components/ui/ProfileImage';
 import Button from '@/shared/components/ui/Button';
 import Modal from '@/shared/components/ui/Modal';
@@ -16,9 +16,11 @@ interface EventCardProps {
   isMember: boolean;
   isParticipating: boolean;
   onTitleClick: () => void;
+  onEditClick?: () => void;
   onCancelParticipation: () => void;
   onJoin: () => void;
   onJoinMeetingFirst: () => void;
+  onShare: () => void;
 }
 
 const EventCard: React.FC<EventCardProps> = ({
@@ -28,9 +30,11 @@ const EventCard: React.FC<EventCardProps> = ({
   isMember,
   isParticipating,
   onTitleClick,
+  onEditClick,
   onCancelParticipation,
   onJoin,
   onJoinMeetingFirst,
+  onShare,
 }) => {
   const formatDateTime = (dateString?: string) => {
     if (!dateString) return '일시 미정';
@@ -40,12 +44,47 @@ const EventCard: React.FC<EventCardProps> = ({
     return `${dateStr} ${timeStr}`;
   };
 
+  // D-day 계산 함수
+  const calculateDDay = (dateString?: string): string | null => {
+    if (!dateString) return null;
+
+    try {
+      const targetDate = new Date(dateString);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      targetDate.setHours(0, 0, 0, 0);
+
+      const diffTime = targetDate.getTime() - today.getTime();
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+      if (diffDays < 0) return null; // 지난 날짜는 표시 안 함
+      if (diffDays === 0) return 'D-day';
+      return `D-${diffDays}`;
+    } catch {
+      return null;
+    }
+  };
+
+  const dDay = calculateDDay(event.date || event.scheduledAt);
+
   return (
     <div className="border-b border-gray-100 pb-4 last:border-b-0">
-      {isHost ? (
-        <h3 className="font-semibold text-sm mb-3 cursor-pointer hover:opacity-60 transition" onClick={onTitleClick}>{event.title}</h3>
-      ) : (
-        <h3 className="font-semibold text-sm mb-3">{event.title}</h3>
+      <div className="flex items-center justify-between gap-2 mb-3">
+        <div className="flex items-center gap-2 flex-1 cursor-pointer hover:opacity-60 transition" onClick={onTitleClick}>
+          {dDay && (
+            <span className="text-xs font-bold bg-primary text-white px-2 py-0.5 rounded-full whitespace-nowrap">
+              {dDay}
+            </span>
+          )}
+          <h3 className="font-semibold text-sm line-clamp-1">{event.title}</h3>
+        </div>
+        {isHost && onEditClick && (
+          <ChevronRight size={18} className="text-gray-400 flex-shrink-0 cursor-pointer hover:text-gray-600 transition" onClick={onEditClick} />
+        )}
+      </div>
+      {/* 한줄 설명 */}
+      {event.summary && (
+        <p className="text-xs text-gray-500 mb-3 line-clamp-1">{event.summary}</p>
       )}
       <div className="space-y-2 text-sm mb-4">
         <div className="flex gap-3"><p className="text-gray-500 w-12">일시</p><p className="font-medium">{formatDateTime(event.scheduledAt)}</p></div>
@@ -77,32 +116,23 @@ const EventCard: React.FC<EventCardProps> = ({
 
       {/* Buttons */}
       <div className="flex gap-2 items-center">
-        <Button variant="outline" size="md" className="flex-1">공유</Button>
-        {isHost ? (
-          <div className="flex-1 flex items-center justify-center gap-1 text-green-600 font-medium py-2 bg-green-50 rounded-md border border-green-200">
-            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-            </svg>
-            필참 (모임장)
-          </div>
-        ) : (
-          isMember ? (
-            isParticipating ? (
-              <Button variant="primary" size="md" className="flex-1 bg-gray-500 hover:bg-gray-600 border-gray-500" onClick={onCancelParticipation}>취소</Button>
-            ) : (
-              <Button
-                variant="primary"
-                size="md"
-                className="flex-1"
-                onClick={onJoin}
-                disabled={event.participantCount! >= (event.maxParticipants || meeting.maxMembers)}
-              >
-                {event.participantCount! >= (event.maxParticipants || meeting.maxMembers) ? '마감' : '참석'}
-              </Button>
-            )
+        <Button variant="outline" size="md" className="flex-1" onClick={onShare}>공유</Button>
+        {isMember || isHost ? (
+          isParticipating ? (
+            <Button variant="primary" size="md" className="flex-1 bg-gray-500 hover:bg-gray-600 border-gray-500" onClick={onCancelParticipation}>취소</Button>
           ) : (
-            <Button variant="primary" size="md" className="flex-1" onClick={onJoinMeetingFirst}>참석</Button>
+            <Button
+              variant="primary"
+              size="md"
+              className="flex-1"
+              onClick={onJoin}
+              disabled={event.participantCount! >= (event.maxParticipants || meeting.maxMembers)}
+            >
+              {event.participantCount! >= (event.maxParticipants || meeting.maxMembers) ? '마감' : '참가'}
+            </Button>
           )
+        ) : (
+          <Button variant="primary" size="md" className="flex-1" onClick={onJoinMeetingFirst}>참가</Button>
         )}
       </div>
     </div>
@@ -120,9 +150,12 @@ export interface EventSectionProps {
   isMember: boolean;
   userId?: string;
   onEventTitleClick: (event: MeetingEvent) => void;
+  onEditEvent: (event: MeetingEvent) => void;
   onEventAction: (eventId: string, title: string, action: 'cancelParticipation' | 'join') => void;
   onJoinMeetingFirst: () => void;
+  // onShare removed as it is unused
   onCreateEvent: () => void;
+  onShareEvent: (event: MeetingEvent) => void;
   // 모달 상태 props
   showCancelModal: boolean;
   showJoinEventModal: boolean;
@@ -142,9 +175,11 @@ const EventSection: React.FC<EventSectionProps> = ({
   isMember,
   userId,
   onEventTitleClick,
+  onEditEvent,
   onEventAction,
   onJoinMeetingFirst,
   onCreateEvent,
+  onShareEvent,
   showCancelModal,
   showJoinEventModal,
   showJoinMeetingFirstModal,
@@ -159,7 +194,7 @@ const EventSection: React.FC<EventSectionProps> = ({
     <section className="p-4 space-y-6">
       {events.length > 0 ? (
         events.map((event) => {
-          const isParticipating = (event.participants || []).some(p => p.userId === userId);
+          const isParticipating = (event.participants || []).some(p => String(p.userId) === String(userId));
           return (
             <EventCard
               key={event.eventId}
@@ -169,9 +204,11 @@ const EventSection: React.FC<EventSectionProps> = ({
               isMember={isMember}
               isParticipating={isParticipating}
               onTitleClick={() => onEventTitleClick(event)}
+              onEditClick={isHost ? () => onEditEvent(event) : undefined}
               onCancelParticipation={() => onEventAction(String(event.eventId), event.title, 'cancelParticipation')}
               onJoin={() => onEventAction(String(event.eventId), event.title, 'join')}
               onJoinMeetingFirst={() => onJoinMeetingFirst()}
+              onShare={() => onShareEvent(event)}
             />
           );
         })
@@ -191,7 +228,7 @@ const EventSection: React.FC<EventSectionProps> = ({
     <Modal
       isOpen={showCancelModal}
       onClose={onCloseCancelModal}
-      message={`"${selectedEventTitle}" 정모 참석을 취소하시겠습니까?`}
+      message={`"${selectedEventTitle}" 정모 참여를 취소하시겠습니까?`}
       confirmText="취소"
       cancelText="닫기"
       onConfirm={onConfirmCancel}
@@ -200,8 +237,8 @@ const EventSection: React.FC<EventSectionProps> = ({
     <Modal
       isOpen={showJoinEventModal}
       onClose={onCloseJoinEventModal}
-      message={`"${selectedEventTitle}" 정모에 참여하시겠습니까?`}
-      confirmText="참여"
+      message={`"${selectedEventTitle}" 정모에 참가하시겠습니까?`}
+      confirmText="참가"
       cancelText="취소"
       onConfirm={onConfirmJoin}
     />
@@ -209,7 +246,7 @@ const EventSection: React.FC<EventSectionProps> = ({
     <Modal
       isOpen={showJoinMeetingFirstModal}
       onClose={onCloseJoinMeetingFirstModal}
-      message="모임에 먼저 가입 후 참석할 수 있습니다."
+      message="모임에 먼저 가입 후 참가할 수 있습니다."
       confirmText="확인"
       singleButton
       onConfirm={onCloseJoinMeetingFirstModal}

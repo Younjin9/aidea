@@ -17,7 +17,7 @@ export const useCreateEvent = (groupId: string) => {
     },
     onSuccess: (data) => {
       // 쿼리 무효화
-      queryClient.invalidateQueries({ queryKey: ['meeting', 'detail', groupId] });
+      queryClient.invalidateQueries({ queryKey: ['meetings', 'detail', groupId] });
       queryClient.invalidateQueries({ queryKey: ['events', groupId] });
 
       // 상세 페이지로 이동 (새 이벤트 정보와 함께)
@@ -42,7 +42,7 @@ export const useUpdateEvent = (groupId: string, eventId: string) => {
       return response.data;
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['meeting', 'detail', groupId] });
+      queryClient.invalidateQueries({ queryKey: ['meetings', 'detail', groupId] });
       queryClient.invalidateQueries({ queryKey: ['events', groupId] });
 
       navigate(`/meetings/${groupId}`, { state: { updatedEvent: data } });
@@ -66,7 +66,7 @@ export const useDeleteEvent = (groupId: string) => {
       return eventId;
     },
     onSuccess: (eventId) => {
-      queryClient.invalidateQueries({ queryKey: ['meeting', 'detail', groupId] });
+      queryClient.invalidateQueries({ queryKey: ['meetings', 'detail', groupId] });
       queryClient.invalidateQueries({ queryKey: ['events', groupId] });
 
       navigate(`/meetings/${groupId}`, { state: { deletedEventId: eventId } });
@@ -89,11 +89,12 @@ export const useJoinEvent = (groupId: string) => {
       return response.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['meeting', 'detail', groupId] });
+      queryClient.invalidateQueries({ queryKey: ['meetings', 'detail', groupId] });
       queryClient.invalidateQueries({ queryKey: ['events', groupId] });
     },
-    onError: (error) => {
-      console.warn('정모 참석 API 실패 (fallback 처리됨):', error);
+    onError: (error: any) => {
+      console.warn('정모 참석 API 실패:', error);
+      alert(error?.response?.data?.message || '정모 참석에 실패했습니다.');
     },
   });
 };
@@ -110,11 +111,12 @@ export const useCancelEventParticipation = (groupId: string) => {
       return eventId;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['meeting', 'detail', groupId] });
+      queryClient.invalidateQueries({ queryKey: ['meetings', 'detail', groupId] });
       queryClient.invalidateQueries({ queryKey: ['events', groupId] });
     },
-    onError: (error) => {
-      console.warn('정모 참석 취소 API 실패 (fallback 처리됨):', error);
+    onError: (error: any) => {
+      console.warn('정모 참석 취소 API 실패:', error);
+      alert(error?.response?.data?.message || '정모 참석 취소에 실패했습니다.');
     },
   });
 };

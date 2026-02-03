@@ -2,10 +2,15 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { INTEREST_CATEGORIES } from '@/shared/config/constants';
 import Button from '@/shared/components/ui/Button';
+import { authApi } from '@/shared/api/authApi';
+import { useAuthStore } from '@/features/auth/store/authStore';
 
 const InterestPage: React.FC = () => {
   const navigate = useNavigate();
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const user = useAuthStore((state) => state.user);
+  const updateUser = useAuthStore((state) => state.updateUser);
 
   // Toggle selection of a specific interest item (e.g., "축구")
   const toggleItem = (item: string) => {
@@ -16,9 +21,25 @@ const InterestPage: React.FC = () => {
     );
   };
 
-  const handleComplete = () => {
-    // In real app, submit selectedItems to API
-    navigate('/shorts');
+  const handleComplete = async () => {
+    if (selectedItems.length === 0 || isSubmitting) return;
+
+    try {
+      setIsSubmitting(true);
+      const response = await authApi.updateInterests(selectedItems);
+      if (!response.success) {
+        throw new Error(response.message || '관심사 저장 실패');
+      }
+      if (user) {
+        updateUser({ ...user, interests: selectedItems });
+      }
+      navigate('/shorts', { replace: true });
+    } catch (error) {
+      console.error('관심사 저장 실패:', error);
+      alert('관심사 저장에 실패했습니다. 잠시 후 다시 시도해주세요.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -68,10 +89,10 @@ const InterestPage: React.FC = () => {
           fullWidth
           size="lg"
           onClick={handleComplete}
-          disabled={selectedItems.length === 0}
+          disabled={selectedItems.length === 0 || isSubmitting}
           className="shadow-lg font-bold text-lg h-14"
         >
-          선택완료
+          {isSubmitting ? '저장 중...' : '선택완료'}
         </Button>
       </div>
     </div>

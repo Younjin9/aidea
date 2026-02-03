@@ -27,6 +27,7 @@ export interface Meeting {
   region: string;
   distanceKm?: number;
   isPublic: boolean;
+  isLiked?: boolean;
   rules?: string[];
   ownerUserId: number; // Backend uses userId Long
   creator?: {
@@ -38,11 +39,15 @@ export interface Meeting {
   updatedAt: string;
   myRole?: 'HOST' | 'MEMBER' | 'NONE'; // Backend driven permission
   myStatus?: 'APPROVED' | 'PENDING' | 'REJECTED' | 'NONE';
+
+  // ✅ 추가: 백엔드에서 이제 기본으로 포함됨
+  members?: Member[];
+  events?: MeetingEvent[];
 }
 
 export interface MeetingDetail extends Meeting {
-  members: Member[];
-  events: MeetingEvent[];
+  members: Member[]; // Required in detail view
+  events: MeetingEvent[]; // Required in detail view
 }
 
 // Map에서 사용하는 간단한 모임 타입
@@ -136,18 +141,27 @@ export interface MeetingListParams {
 export interface MeetingEvent {
   eventId: number | string;
   title: string;
+  summary?: string;
   date: string;
   scheduledAt?: string;
   placeName?: string;
   location?: string | { lat: number; lng: number };
   description?: string;
+  notes?: string;
   attendees?: number;
   participantCount?: number;
   participants?: Member[];
   maxParticipants?: number;
-  cost?: number;
+  cost?: number | string;
   imageUrl?: string;
   mapUrl?: string;
   isHost?: boolean;
 }
 
+
+export interface ShareCreationResponse {
+  shareToken: string;
+  shareUrl: string;
+  expiresAt: string;
+  messages: string[];
+}

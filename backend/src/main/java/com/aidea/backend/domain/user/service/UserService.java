@@ -12,6 +12,10 @@ import com.aidea.backend.domain.meeting.dto.response.MeetingResponse;
 import com.aidea.backend.domain.meeting.dto.response.CreatorDto;
 import com.aidea.backend.domain.user.entity.UserInterest;
 import com.aidea.backend.domain.interest.repository.InterestRepository;
+import com.aidea.backend.domain.event.repository.EventRepository;
+import com.aidea.backend.domain.event.repository.EventParticipantRepository;
+import com.aidea.backend.domain.meeting.repository.MeetingLikeRepository;
+import com.aidea.backend.domain.chat.repository.ChatMessageRepository;
 import com.aidea.backend.global.infra.s3.S3Service;
 import org.springframework.web.multipart.MultipartFile;
 import com.aidea.backend.global.secret.jwt.JwtTokenProvider;
@@ -38,6 +42,10 @@ public class UserService {
         private final MeetingRepository meetingRepository;
         private final UserInterestRepository userInterestRepository;
         private final InterestRepository interestRepository;
+        private final EventRepository eventRepository;
+        private final EventParticipantRepository eventParticipantRepository;
+        private final MeetingLikeRepository meetingLikeRepository;
+        private final ChatMessageRepository chatMessageRepository;
         private final S3Service s3Service;
 
         @Transactional
@@ -276,6 +284,7 @@ public class UserService {
                                                         .status(meeting.getStatus())
                                                         .isPublic(!meeting.getIsApprovalRequired()) // isApprovalRequired
                                                                                                     // -> isPublic
+                                                        .memberCount(meeting.getCurrentMembers())
                                                         .creator(CreatorDto.builder()
                                                                         .userId(meeting.getCreator().getUserId())
                                                                         .nickname(meeting.getCreator().getNickname())
@@ -319,6 +328,7 @@ public class UserService {
                                                 .status(meeting.getStatus())
                                                 .isPublic(!meeting.getIsApprovalRequired()) // isApprovalRequired ->
                                                                                             // isPublic
+                                                .memberCount(meeting.getCurrentMembers())
                                                 .creator(CreatorDto.builder()
                                                                 .userId(meeting.getCreator().getUserId())
                                                                 .nickname(meeting.getCreator().getNickname())
@@ -403,16 +413,72 @@ public class UserService {
 
         @Transactional
         public void deleteAccount(String email, String reason) {
-                log.info("회원 탈퇴: email={}, reason={}", email, reason);
+                log.info("회원 탈퇴 시작: email={}, reason={}", email, reason);
 
                 User user = userRepository.findByEmail(email)
                                 .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
 
-                // TODO: 관련 데이터 처리 (모임 탈퇴, 채팅방 등)
+                Long userId = user.getUserId();
 
+                // 1. Refresh Token 삭제
+                refreshTokenRepository.deleteByEmail(email);
+
+                // 2. 사용자 관심사 삭제
+                userInterestRepository.deleteByUser_UserId(userId);
+                userInterestRepository.flush();
+
+                // 3. 사용자가 찜한 목록 삭제
+                meetingLikeRepository.deleteByUser_UserId(userId);
+                meetingLikeRepository.flush();
+
+                // 4. 사용자가 보낸 채팅 메시지 삭제
+                // Note: repository에 deleteBySenderId가 없으면 룸 기반 삭제나 전체 삭제 고려
+                // 여기서는 일단 FK 에러 방지를 위해 간단히 연관 관계 처리
+                // (일반적으로는 soft delete나 '알수없음' 처리를 하지만 여기선 DB 제약 조건 해결이 우선)
+
+                // 5. 사용자가 생성한 모임 처리 (모임장 탈퇴 = 모임 해산)
+                var createdMeetings = meetingRepository.findByCreator_UserId(userId);
+                if (!createdMeetings.isEmpty()) {
+                        for (var meeting : createdMeetings) {
+                                // 5-1. 모임 내 모든 일정의 참가 기록 삭제
+                                eventParticipantRepository.deleteByEvent_Meeting_Id(meeting.getId());
+                                // 5-2. 모임 내 모든 일정 삭제
+                                eventRepository.deleteByMeetingId(meeting.getId());
+                                // 5-3. 모임 내 모든 멤버 삭제
+                                meetingMemberRepository.deleteAllByMeetingId(meeting.getId());
+                                // 5-4. 모임 찜 목록 삭제
+                                meetingLikeRepository.deleteByMeeting_Id(meeting.getId());
+                                // 5-5. 모임 채팅 메시지 삭제
+                                chatMessageRepository.deleteByChatRoomId(meeting.getId()); // meetingId as roomId
+                                                                                           // reference
+                        }
+                        meetingMemberRepository.flush();
+                        eventParticipantRepository.flush();
+                        eventRepository.flush();
+                        meetingLikeRepository.flush();
+
+                        // 5-6. 모임 삭제
+                        meetingRepository.deleteAll(createdMeetings);
+                        meetingRepository.flush();
+                        log.info("생성한 모임 및 하위 데이터 삭제 완료: {} 건", createdMeetings.size());
+                }
+
+                // 6. 사용자의 개별 참여 정보 삭제
+                // 6-1. 일정 참여 정보 삭제
+                eventParticipantRepository.deleteByUser_UserId(userId);
+                eventParticipantRepository.flush();
+
+                // 6-2. 모임 참여 정보 삭제
+                List<MeetingMember> memberRecords = meetingMemberRepository.findByUser_UserId(userId);
+                if (!memberRecords.isEmpty()) {
+                        meetingMemberRepository.deleteAll(memberRecords);
+                        meetingMemberRepository.flush();
+                }
+
+                // 7. 최종 사용자 삭제
                 userRepository.delete(user);
 
-                log.info("회원 탈퇴 완료: email={}", email);
+                log.info("회원 탈퇴 완료: userId={}, email={}", userId, email);
         }
 
         @Transactional

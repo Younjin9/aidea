@@ -32,6 +32,7 @@ logging:
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
 
+
 server:
   servlet:
     encoding:
@@ -42,3 +43,8 @@ server:
 app:
   vector-seed:
     enabled: true
+
+jwt:
+  secret: ${JWT_SECRET:ThisIsASecretKeyForLocalDevelopmentAndTestingPurposesOnly123456}
+  expiration: 86400000
+

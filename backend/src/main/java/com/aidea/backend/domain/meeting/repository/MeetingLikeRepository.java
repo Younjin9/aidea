@@ -37,6 +37,11 @@ public interface MeetingLikeRepository extends JpaRepository<MeetingLike, Long> 
     void deleteByUser_UserIdAndMeeting_Id(Long userId, Long meetingId);
 
     /**
+     * 특정 사용자가 찜한 모든 찜 삭제 (회원 탈퇴 시 사용)
+     */
+    void deleteByUser_UserId(Long userId);
+
+    /**
      * 특정 모임의 모든 찜 삭제 (모임 삭제 시 사용)
      */
     void deleteByMeeting_Id(Long meetingId);

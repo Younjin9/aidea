@@ -10,12 +10,14 @@ import com.aidea.backend.domain.meeting.repository.MeetingRepository;
 import com.aidea.backend.domain.user.entity.User;
 import com.aidea.backend.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -86,6 +88,7 @@ public class EventService {
                 .maxParticipants(request.getMaxParticipants())
                 .cost(request.getCost())
                 .description(request.getNotes())
+                .imageUrl(request.getImageUrl())
                 .build();
 
         eventRepository.save(event);
@@ -97,6 +100,10 @@ public class EventService {
                 .user(user)
                 .build();
         eventParticipantRepository.save(participant);
+
+        // 메모리 상의 연관관계 및 카운트 업데이트 (Response 반영용)
+        event.getParticipants().add(participant);
+        event.incrementParticipants();
 
         return EventDetailResponse.from(event, userId);
     }
@@ -121,7 +128,8 @@ public class EventService {
                 request.getLocation() != null ? request.getLocation().getLng() : null,
                 request.getMaxParticipants(),
                 request.getCost(),
-                request.getNotes());
+                request.getNotes(),
+                request.getImageUrl());
 
         return EventDetailResponse.from(event, userId);
     }
@@ -158,31 +166,51 @@ public class EventService {
      */
     @Transactional
     public void participateEvent(Long meetingId, Long eventId, Long userId) {
-        Meeting meeting = meetingRepository.findById(meetingId)
-                .orElseThrow(() -> new RuntimeException("모임을 찾을 수 없습니다."));
+        log.info("정모 참가 요청 시작: meetingId={}, eventId={}, userId={}", meetingId, eventId, userId);
+
+        if (!meetingRepository.existsById(meetingId)) {
+            throw new RuntimeException("모임을 찾을 수 없습니다.");
+        }
 
         Event event = eventRepository.findById(eventId)
                 .orElseThrow(() -> new RuntimeException("정모를 찾을 수 없습니다."));
 
+        // URL의 meetingId와 이벤트의 meetingId가 일치하는지 검증
+        if (!event.getMeeting().getId().equals(meetingId)) {
+            log.error("모임 ID 불일치: 요청된 meetingId={}, 실제 event의 meetingId={}", meetingId, event.getMeeting().getId());
+            throw new RuntimeException("잘못된 접근입니다. 해당 모임의 정모가 아닙니다.");
+        }
+
         // 정원 초과 확인
-        if (event.getParticipants().size() >= event.getMaxParticipants()) {
+        int currentCount = event.getParticipants().size();
+        log.debug("현재 참가자 수: {}, 최대 참가자 수: {}", currentCount, event.getMaxParticipants());
+        if (currentCount >= event.getMaxParticipants()) {
             throw new RuntimeException("정원이 초과되었습니다.");
         }
 
         // 이미 참석 중인지 확인
-        if (eventParticipantRepository.existsByEventIdAndUser_UserId(eventId, userId)) {
+        boolean isAlreadyParticipating = eventParticipantRepository.existsByEvent_IdAndUser_UserId(eventId, userId);
+        log.info("참가 상태 확인 결과: eventId={}, userId={}, isParticipating={}", eventId, userId, isAlreadyParticipating);
+
+        if (isAlreadyParticipating) {
+            log.warn("이미 참석 중인 사용자입니다: userId={}", userId);
             throw new RuntimeException("이미 참석 중입니다.");
         }
 
         // 모임 멤버인지 확인
         boolean isMember = meetingMemberRepository.existsByMeetingIdAndUser_UserIdAndStatusNot(meetingId, userId,
                 com.aidea.backend.domain.meeting.entity.enums.MemberStatus.LEFT);
+        if (!isMember) {
+            log.warn("모임 멤버가 아닌 사용자가 정모 참여 시도: meetingId={}, userId={}", meetingId, userId);
+            throw new RuntimeException("모임 멤버만 참석할 수 있습니다.");
+        }
+
         // APPROVE check? Typically only APPROVED members can join events.
         // Let's check status APPROVED.
         var member = meetingMemberRepository.findByMeetingIdAndUser_UserId(meetingId, userId);
         if (member.isEmpty()
                 || member.get().getStatus() != com.aidea.backend.domain.meeting.entity.enums.MemberStatus.APPROVED) {
-            throw new RuntimeException("모임 멤버만 참석할 수 있습니다.");
+            throw new RuntimeException("모임 승인된 멤버만 참석할 수 있습니다.");
         }
 
         User user = userRepository.getReferenceById(userId);
@@ -194,6 +222,9 @@ public class EventService {
                 .build();
 
         eventParticipantRepository.save(participant);
+
+        // 역방향 관계 업데이트 (JPA 영속성 컨텍스트 동기화)
+        event.getParticipants().add(participant);
     }
 
     /**
@@ -201,11 +232,21 @@ public class EventService {
      */
     @Transactional
     public void cancelParticipation(Long meetingId, Long eventId, Long userId) {
+        log.info("정모 참가 취소 요청: eventId={}, userId={}", eventId, userId);
+
         Event event = eventRepository.findById(eventId)
                 .orElseThrow(() -> new RuntimeException("정모를 찾을 수 없습니다."));
 
+        if (!event.getMeeting().getId().equals(meetingId)) {
+            throw new RuntimeException("잘못된 접근입니다.");
+        }
+
         // ... comments ...
 
-        eventParticipantRepository.deleteByEventIdAndUser_UserId(eventId, userId);
+        eventParticipantRepository.deleteByEvent_IdAndUser_UserId(eventId, userId);
+
+        // 역방향 관계 업데이트
+        boolean removed = event.getParticipants().removeIf(p -> p.getUser().getUserId().equals(userId));
+        log.info("참가 취소 완료 (메모리 제거 여부: {})", removed);
     }
 }
