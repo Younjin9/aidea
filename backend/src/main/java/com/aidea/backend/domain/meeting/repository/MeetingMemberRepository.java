@@ -2,6 +2,7 @@ package com.aidea.backend.domain.meeting.repository;
 
 import com.aidea.backend.domain.meeting.entity.MeetingMember;
 import com.aidea.backend.domain.meeting.entity.enums.MemberStatus;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
@@ -23,7 +24,9 @@ public interface MeetingMemberRepository extends JpaRepository<MeetingMember, Lo
 
     /**
      * 특정 모임의 특정 상태가 아닌 멤버 조회 (LEFT 제외)
+     * N+1 방지: user를 한 번에 로딩
      */
+    @EntityGraph(attributePaths = { "user" })
     List<MeetingMember> findByMeetingIdAndStatusNot(Long meetingId, MemberStatus status);
 
     /**

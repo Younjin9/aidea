@@ -7,7 +7,7 @@ import { useMeetings } from '../hooks/useMeetings';
 
 const MeetingSearchPage: React.FC = () => {
   const navigate = useNavigate();
-  const { meetings, toggleLikeMeeting, isLoading } = useMeetings();
+  const { meetings, toggleLikeMeeting, isLoading } = useMeetings({ size: 100 });
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
 
