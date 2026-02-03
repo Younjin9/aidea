@@ -21,6 +21,7 @@ spring:
       port: ${REDIS_PORT:6379}
 
   ai:
+    enabled: true  # ✅ AI 기능 활성화
     model:
       embedding: bedrock-titan
     bedrock:

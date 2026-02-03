@@ -64,13 +64,13 @@ logging:
 
 app:
   vector-seed:
-    enabled: false
+    enabled: true  # ✅ 벡터 시드 데이터 활성화
   
   # AI 기능 설정
   ai:
-    enabled: true
+    enabled: true      # ✅ AI 기능 완전 활성화
     embedding:
-      enabled: true
+      enabled: true   # ✅ 임베딩 생성 활성화
 
 vector-datasource:
   url: jdbc:postgresql://localhost:5432/aidea_dev
