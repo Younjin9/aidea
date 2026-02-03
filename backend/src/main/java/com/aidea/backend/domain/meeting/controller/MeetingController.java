@@ -150,9 +150,11 @@ public class MeetingController {
     @Operation(summary = "모임 참가 신청", description = "모임에 참가 신청을 합니다")
     @PostMapping("/{id}/join")
     public ResponseEntity<com.aidea.backend.global.common.dto.ApiResponse<com.aidea.backend.domain.meeting.dto.response.MemberResponse>> joinMeeting(
-            @PathVariable Long id) {
+            @PathVariable Long id,
+            @RequestBody(required = false) com.aidea.backend.domain.meeting.dto.request.JoinMeetingRequest request) {
+        String message = (request != null) ? request.getRequestMessage() : null;
         com.aidea.backend.domain.meeting.dto.response.MemberResponse response = meetingService.joinMeeting(id,
-                getAuthenticatedUser().getUserId());
+                getAuthenticatedUser().getUserId(), message);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(com.aidea.backend.global.common.dto.ApiResponse.success(response));
     }

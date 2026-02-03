@@ -7,4 +7,5 @@ import java.util.Optional;
 
 public interface InterestRepository extends JpaRepository<Interest, Long> {
   Optional<Interest> findByInterestName(String interestName);
+  java.util.List<Interest> findByCategory(String category);
 }
