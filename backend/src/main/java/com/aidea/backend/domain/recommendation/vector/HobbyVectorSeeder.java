@@ -17,7 +17,7 @@ import java.util.Map;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-@ConditionalOnProperty(name = "app.vector-seed.enabled", havingValue = "true", matchIfMissing = true)
+@ConditionalOnProperty(name = "app.vector-seed.enabled", havingValue = "true", matchIfMissing = false)
 public class HobbyVectorSeeder implements CommandLineRunner {
 
     // ✅ MySQL (기존 Spring Boot 기본 datasource)
@@ -36,13 +36,13 @@ public class HobbyVectorSeeder implements CommandLineRunner {
     @Override
     public void run(String... args) {
         try {
-            // 1) MySQL hobby 목록 조회
+            // 1) MySQL interest 목록 조회
             List<Map<String, Object>> rows = jdbcTemplate.queryForList(
-                    "SELECT id, hobby_name FROM hobby"
+                    "SELECT interest_id, interest_name FROM interest"
             );
 
             if (rows.isEmpty()) {
-                log.warn("[VECTOR-SEED] MySQL hobby table is empty. Skip seeding.");
+                log.warn("[VECTOR-SEED] MySQL interest table is empty. Skip seeding.");
                 return;
             }
 
@@ -58,16 +58,16 @@ public class HobbyVectorSeeder implements CommandLineRunner {
             int insertedOrUpdated = 0;
             int skipped = 0;
 
-            // 3) MySQL hobby_name -> Titan 임베딩(1024) -> Postgres UPSERT
+            // 3) MySQL interest_name -> Titan 임베딩(1024) -> Postgres UPSERT
             for (Map<String, Object> row : rows) {
-                Long hobbyId = ((Number) row.get("id")).longValue();
+                Long hobbyId = ((Number) row.get("interest_id")).longValue();
 
-                String hobbyNameRaw = (String) row.get("hobby_name");
+                String hobbyNameRaw = (String) row.get("interest_name");
                 String hobbyName = (hobbyNameRaw == null) ? null : hobbyNameRaw.trim();
 
                 if (hobbyName == null || hobbyName.isBlank()) {
                     skipped++;
-                    log.warn("[VECTOR-SEED] skip empty hobby_name. hobbyId={}", hobbyId);
+                    log.warn("[VECTOR-SEED] skip empty interest_name. hobbyId={}", hobbyId);
                     continue;
                 }
 

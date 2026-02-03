@@ -77,6 +77,13 @@ public class Meeting {
     @Column(nullable = false)
     private Boolean isApprovalRequired = true; // 승인 필요 여부 기본값 true
 
+    // ========== Soft Delete ==========
+    @Column(nullable = false)
+    private Boolean isDeleted = false; // 삭제 여부
+
+    @Column
+    private LocalDateTime deletedAt; // 삭제 시간
+
     // ========== 연관 관계 ==========
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "creator_id")
@@ -123,6 +130,7 @@ public class Meeting {
         this.isApprovalRequired = isApprovalRequired != null ? isApprovalRequired : true;
         this.status = MeetingStatus.RECRUITING;
         this.creator = creator;
+        this.isDeleted = false; // 초기값 명시
     }
 
     // ========== 비즈니스 메서드 ==========
@@ -161,6 +169,21 @@ public class Meeting {
     }
 
     /**
+     * 모임 완료 처리
+     */
+    public void complete() {
+        this.status = MeetingStatus.COMPLETED;
+    }
+
+    /**
+     * 논리 삭제(Soft Delete) 처리
+     */
+    public void softDelete() {
+        this.isDeleted = true;
+        this.deletedAt = LocalDateTime.now();
+    }
+
+    /**
      * 모임 정보 수정
      * - HOST만 수정 가능 (권한 검증은 Service에서 수행)
      */
@@ -187,6 +210,13 @@ public class Meeting {
             this.maxMembers = request.getMaxMembers();
         if (request.getIsApprovalRequired() != null)
             this.isApprovalRequired = request.getIsApprovalRequired();
+    }
+
+    /**
+     * 자동 승인 여부 확인
+     */
+    public boolean isAutoApprove() {
+        return this.isApprovalRequired != null && !this.isApprovalRequired;
     }
 
     /**

@@ -1,4 +1,4 @@
-﻿// 마이페이지
+// 마이페이지
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Edit2 } from 'lucide-react';
@@ -75,14 +75,14 @@ const MyPageView: React.FC<{ onUnlike?: (id: number) => void }> = ({ onUnlike })
     } catch (error) {
       console.warn('Logout API failed:', error);
     }
-    
+
     logoutAuth(); // Auth 스토어 초기화
     clearUser(); // MyPage 스토어 초기화
-    
+
     // React Query 캐시 제거 (다음 로그인 시 이전 사용자 데이터 보임 방지)
     queryClient.removeQueries({ queryKey: myPageKeys.all });
     queryClient.removeQueries({ queryKey: ['meetings'] });
-    
+
     setShowLogoutModal(false);
     console.log('로그아웃 완료');
     navigate('/');
@@ -92,12 +92,12 @@ const MyPageView: React.FC<{ onUnlike?: (id: number) => void }> = ({ onUnlike })
   const handleWithdraw = async () => {
     try {
       await userApi.deleteAccount();
-      
+
       logoutAuth();
       clearUser();
       queryClient.removeQueries({ queryKey: myPageKeys.all });
       queryClient.removeQueries({ queryKey: ['meetings'] });
-      
+
       setShowWithdrawModal(false);
       console.log('회원탈퇴 완료');
       navigate('/');

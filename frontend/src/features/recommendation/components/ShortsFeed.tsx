@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import RecommendedMeetingCard from './RecommendedMeetingCard';
 
 type RecommendedMeetingCardResponse = {
   meetingId: number;
@@ -9,19 +10,10 @@ type RecommendedMeetingCardResponse = {
   maxMembers: number;
   score: number;
   reason: string;
+  imageUrl?: string; // 추가: 모임 이미지
 };
 
-type ShortsFeedProps = {
-  topK?: number;
-  limit?: number;
-  mode?: 'vector' | 'basic' | 'mvp';
-};
-
-const ShortsFeed: React.FC<ShortsFeedProps> = ({
-  topK = 10,
-  limit = 10,
-  mode = 'vector',
-}) => {
+const ShortsFeed: React.FC = () => {
   const [cards, setCards] = useState<RecommendedMeetingCardResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -38,9 +30,9 @@ const ShortsFeed: React.FC<ShortsFeedProps> = ({
           throw new Error('accessToken이 없습니다. (로그인/토큰 저장 로직을 확인해주세요)');
         }
 
-        // ✅ nickname 제거, mode=vector 기반 추천
+        // ✅ 실제 API 호출
         const res = await fetch(
-          `/api/recommendations?topK=${topK}&limit=${limit}&mode=${mode}`,
+          `/api/recommendations?topK=10&limit=10&mode=vector`,
           {
             credentials: 'include',
             headers: {
@@ -64,7 +56,7 @@ const ShortsFeed: React.FC<ShortsFeedProps> = ({
     };
 
     fetchCards();
-  }, [topK, limit, mode]);
+  }, []);
 
   if (loading) {
     return (
@@ -90,30 +82,24 @@ const ShortsFeed: React.FC<ShortsFeedProps> = ({
     );
   }
 
+  // RecommendedMeetingCard 타입에 맞게 변환
+  const meetingCards = cards.map(card => ({
+    id: card.meetingId,
+    title: card.title,
+    image: card.imageUrl || `https://images.unsplash.com/photo-${card.meetingId}?q=80&w=400&auto=format&fit=crop`,
+    location: card.region,
+    category: card.category,
+    members: card.currentMembers,
+    description: card.reason,
+    groupId: String(card.meetingId), // string으로 변환
+    isLiked: false,
+  }));
+
   return (
     <div className="absolute inset-0 w-full h-full overflow-y-scroll snap-y snap-mandatory no-scrollbar bg-black">
-      {cards.map((card) => (
-        <div
-          key={card.meetingId}
-          className="w-full h-full snap-start snap-always relative flex items-center justify-center"
-        >
-          <div className="w-[90%] max-w-md rounded-2xl p-6 bg-zinc-900 text-white">
-            <h2 className="text-xl font-bold mb-2">{card.title}</h2>
-
-            <p className="text-sm text-gray-300 mb-2">
-              {card.region} · {card.category}
-            </p>
-
-            <p className="text-sm text-gray-300 mb-2">
-              인원: {card.currentMembers}/{card.maxMembers}
-            </p>
-
-            <p className="text-sm text-gray-300 mb-2">
-              점수: {Number.isFinite(card.score) ? card.score.toFixed(2) : '0.00'}
-            </p>
-
-            <p className="text-sm text-gray-200 mt-4">{card.reason}</p>
-          </div>
+      {meetingCards.map((meeting) => (
+        <div key={meeting.id} className="w-full h-full snap-start snap-always relative">
+          <RecommendedMeetingCard meeting={meeting} />
         </div>
       ))}
     </div>

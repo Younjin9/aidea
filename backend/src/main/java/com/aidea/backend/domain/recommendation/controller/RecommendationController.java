@@ -33,4 +33,17 @@ public class RecommendationController {
     ) {
         return recommendationService.recommendMeetingsByEmail(email, topK, limit, mode);
     }
+
+    /**
+     * Shorts 스타일 추천 UI를 위한 엔드포인트
+     */
+    @GetMapping("/shorts")
+    public List<RecommendedMeetingCardResponse> recommendShorts(
+            @AuthenticationPrincipal String email,
+            @RequestParam(defaultValue = "10") int topK,
+            @RequestParam(defaultValue = "10") int limit,
+            @RequestParam(defaultValue = "vector") String mode
+    ) {
+        return recommendationService.recommendMeetingsByEmail(email, topK, limit, mode);
+    }
 }

@@ -5,12 +5,14 @@ import com.aidea.backend.domain.meeting.repository.MeetingRepository;
 import com.aidea.backend.domain.recommendation.dto.RecommendedMeetingCardResponse;
 import com.aidea.backend.domain.recommendation.repository.MySqlRecommendationRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.jdbc.core.JdbcTemplate;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 @Slf4j
@@ -20,6 +22,7 @@ public class RecommendationService {
 
     private final MySqlRecommendationRepository mySqlRepo;
     private final MeetingRepository meetingRepository;
+    private final JdbcTemplate jdbcTemplate;
 
     /**
      * ✅ 정식 엔트리포인트 (email -> userId)
@@ -54,12 +57,17 @@ public class RecommendationService {
                 ? "category"
                 : mode.trim().toLowerCase();
 
-        // 지금은 category 기반만 사용 (vector/mvp는 기존 취미 기반이라 의미 없음)
-        if (!"category".equals(safeMode)) {
-            log.warn("[RECO] mode='{}' requested but category-only is enabled. fallback to category. userId={}", safeMode, userId);
+        switch (safeMode) {
+            case "category":
+                return recommendByCategory(userId, limit);
+            case "vector":
+                return recommendByVector(userId, topK, limit);
+            case "mvp":
+                return recommendByMVP(userId, limit);
+            default:
+                log.warn("[RECO] Unknown mode='{}', fallback to category. userId={}", safeMode, userId);
+                return recommendByCategory(userId, limit);
         }
-
-        return recommendByCategory(userId, limit);
     }
 
     /**
@@ -70,15 +78,60 @@ public class RecommendationService {
      */
     private List<RecommendedMeetingCardResponse> recommendByCategory(Long userId, int limit) {
 
-        // 1) 유저 카테고리 조회 (user_hobby -> hobby.category)
-        List<String> userCategories = mySqlRepo.findUserCategoryNamesByUserId(userId);
-        if (userCategories == null || userCategories.isEmpty()) {
+        // 1) 유저 카테고리 조회 (user_hobby -> hobby.category) - 한글 이름으로 조회
+        List<String> userCategoryDisplayNames = mySqlRepo.findUserCategoryNamesByUserId(userId);
+        log.info("[RECO-CATEGORY] userId={}, userCategoryDisplayNames={}", userId, userCategoryDisplayNames);
+        
+        // 2) 한글 이름을 enum 이름으로 변환
+        Map<String, String> categoryMap = Map.of(
+            "취미 / 여가", "HOBBY_LEISURE",
+            "운동 / 액티비티", "SPORTS", 
+            "문화 / 예술", "CULTURE_ART",
+            "자기계발 / 공부", "STUDY_SELF_DEV",
+            "여행 / 나들이", "TRAVEL",
+            "콘텐츠 / 미디어", "CONTENT_MEDIA"
+        );
+        
+        List<String> userCategories = userCategoryDisplayNames.stream()
+                .map(categoryMap::get)
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+        
+        log.info("[RECO-CATEGORY] userId={}, userCategories={}", userId, userCategories);
+        
+        if (userCategories.isEmpty()) {
             log.info("[RECO-CATEGORY] userId={} userCategories=0 -> empty", userId);
             return List.of();
         }
 
         // 2) 해당 카테고리의 모임 id 조회
-        List<Long> meetingIds = mySqlRepo.findMeetingIdsByCategories(userCategories);
+        // 강력한 디버깅: 직접 DB 조회
+        List<Long> meetingIds = null;
+        
+        log.info("[DEBUG] 직접 DB 카테고리 확인:");
+        jdbcTemplate.query("SELECT id, category FROM meeting ORDER BY id", (rs) -> {
+            log.info("[DEBUG] 모임: id={}, category={}", rs.getLong("id"), rs.getString("category"));
+        });
+        
+        log.info("[DEBUG] 직접 쿼리 실행:");
+        try {
+            meetingIds = jdbcTemplate.query(
+                "SELECT id FROM meeting WHERE category = ?", 
+                (rs, rowNum) -> rs.getLong("id"), 
+                "HOBBY_LEISURE"
+            );
+            log.info("[DEBUG] 직접 쿼리 결과: {}", meetingIds);
+        } catch (Exception e) {
+            log.error("[DEBUG] 직접 쿼리 실패: {}", e.getMessage());
+        }
+        
+        // 원래 메서드도 시도
+        List<Long> originalMeetingIds = mySqlRepo.findMeetingIdsByCategories(userCategories);
+        log.info("[RECO-CATEGORY] userId={}, originalMeetingIds={}", userId, originalMeetingIds);
+        
+        meetingIds = originalMeetingIds;
+        
         if (meetingIds == null || meetingIds.isEmpty()) {
             log.info("[RECO-CATEGORY] userId={} meetingIds=0 -> empty (userCategories={})", userId, userCategories);
             return List.of();
@@ -105,6 +158,12 @@ public class RecommendationService {
                             ? "선택한 관심 카테고리와 맞는 모임이에요"
                             : "선택한 관심 카테고리(" + meetingCategory + ")와(과) 같은 모임이에요";
 
+                    // 모임 이미지 URL 생성
+                    String imageUrl = meeting.getImageUrl();
+                    if (imageUrl == null || imageUrl.isBlank()) {
+                        imageUrl = "https://images.unsplash.com/photo-" + meeting.getId() + "?q=80&w=400&auto=format&fit=crop";
+                    }
+                    
                     return new RecommendedMeetingCardResponse(
                             meeting.getId(),
                             meeting.getTitle(),
@@ -113,7 +172,8 @@ public class RecommendationService {
                             meeting.getCurrentMembers(),
                             meeting.getMaxMembers(),
                             score,
-                            reason
+                            reason,
+                            imageUrl
                     );
                 })
                 .filter(Objects::nonNull)
@@ -121,9 +181,36 @@ public class RecommendationService {
                 .limit(limit)
                 .toList();
 
-        log.info("[RECO-CATEGORY] userId={}, userCategories={}, meetingCandidate={}, result={}",
+        // 디버깅: 각 모임의 카테고리 확인
+        List<String> meetingCategories = meetings.stream()
+                .map(m -> m.getCategory() != null ? m.getCategory().name() : "NULL")
+                .toList();
+        
+        log.info("[RECO-CATEGORY] userId={}, userCategories={}, meetingIds={}, meetingCategories={}, result={}",
                 userId, userCategories, distinctMeetingIds.size(), result.size());
 
         return result;
+    }
+
+    /**
+     * 벡터 기반 추천 (user_hobby 벡터 유사도)
+     */
+    private List<RecommendedMeetingCardResponse> recommendByVector(Long userId, int topK, int limit) {
+        // TODO: 사용자 관심사 벡터와 모임 카테고리 벡터의 유사도 계산
+        log.info("[RECO-VECTOR] userId={}, topK={}, limit={}", userId, topK, limit);
+        
+        // 임시: category 기반으로 대체 (벡터 계산 로직은 나중에 구현)
+        return recommendByCategory(userId, limit);
+    }
+
+    /**
+     * MVP 추천 (가장 간단한 추천)
+     */
+    private List<RecommendedMeetingCardResponse> recommendByMVP(Long userId, int limit) {
+        log.info("[RECO-MVP] userId={}, limit={}", userId, limit);
+        
+        // 임시: 인기있는 모임 반환
+        // TODO: 인기도, 참여율 등 기반 추천 로직 구현
+        return recommendByCategory(userId, limit);
     }
 }
