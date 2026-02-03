@@ -3,10 +3,10 @@ import type { Notification, NotificationListResponse } from '@/shared/types/Noti
 
 /**
  * 알림 목록 조회
- * GET /api/v1/notifications
+ * GET /api/notifications
  */
 export const getNotifications = async (): Promise<NotificationListResponse> => {
-  const response = await apiClient.get('/api/v1/notifications');
+  const response = await apiClient.get('/api/notifications');
   
   // 응답 형식 정규화
   if (response && typeof response === 'object') {
@@ -46,10 +46,10 @@ export const getNotifications = async (): Promise<NotificationListResponse> => {
 
 /**
  * 알림 읽음 처리
- * PATCH /api/v1/notifications/{id}/read
+ * PATCH /api/notifications/{id}/read
  */
 export const markAsRead = async (notificationId: number): Promise<void> => {
-  await apiClient.patch(`/api/v1/notifications/${notificationId}/read`);
+  await apiClient.patch(`/api/notifications/${notificationId}/read`);
 };
 
 /**
