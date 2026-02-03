@@ -75,14 +75,14 @@ const MyPageView: React.FC<{ onUnlike?: (id: number) => void }> = ({ onUnlike })
     } catch (error) {
       console.warn('Logout API failed:', error);
     }
-    
+
     logoutAuth(); // Auth 스토어 초기화
     clearUser(); // MyPage 스토어 초기화
-    
+
     // React Query 캐시 제거 (다음 로그인 시 이전 사용자 데이터 보임 방지)
     queryClient.removeQueries({ queryKey: myPageKeys.all });
     queryClient.removeQueries({ queryKey: ['meetings'] });
-    
+
     setShowLogoutModal(false);
     console.log('로그아웃 완료');
     navigate('/');
@@ -92,12 +92,12 @@ const MyPageView: React.FC<{ onUnlike?: (id: number) => void }> = ({ onUnlike })
   const handleWithdraw = async () => {
     try {
       await userApi.deleteAccount();
-      
+
       logoutAuth();
       clearUser();
       queryClient.removeQueries({ queryKey: myPageKeys.all });
       queryClient.removeQueries({ queryKey: ['meetings'] });
-      
+
       setShowWithdrawModal(false);
       console.log('회원탈퇴 완료');
       navigate('/');
@@ -121,15 +121,7 @@ const MyPageView: React.FC<{ onUnlike?: (id: number) => void }> = ({ onUnlike })
       <header className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
         <img src={logo} alt="AIMO" className="w-8 h-8 object-contain" />
         <h1 className="text-lg font-bold text-gray-900">MyPage</h1>
-<<<<<<< HEAD
-<<<<<<< HEAD
         <NotificationBell />
-=======
-        <NotificationBell />
->>>>>>> 74261f27300a2d689100d448a9ba92202bc4b1c1
-=======
-        <NotificationBell />
->>>>>>> d954858af74f5928a60e0586f41638ba44e720fe
       </header>
 
       <main className="flex-1 overflow-y-auto pb-32 no-scrollbar flex flex-col min-h-0">

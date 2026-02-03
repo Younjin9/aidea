@@ -22,7 +22,7 @@ import java.time.LocalDateTime;
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @EntityListeners(AuditingEntityListener.class)
-@ToString(exclude = {"user"})
+@ToString(exclude = { "user" })
 public class Notification {
 
     @Id
@@ -44,8 +44,9 @@ public class Notification {
     @Column(name = "message", nullable = false, columnDefinition = "TEXT")
     private String message;
 
-@Column(name = "is_read", nullable = false)
-    private Boolean isRead;
+    @com.fasterxml.jackson.annotation.JsonProperty("isRead")
+    @Column(name = "is_read", nullable = false)
+    private Boolean isRead = false;
 
     @Column(name = "related_group_id")
     private Long relatedGroupId;
@@ -65,7 +66,7 @@ public class Notification {
     private LocalDateTime updatedAt;
 
     public Notification(User user, NotificationType type, String title, String message,
-                      Long relatedGroupId, Long relatedUserId, Long relatedEventId) {
+            Long relatedGroupId, Long relatedUserId, Long relatedEventId) {
         this.user = user;
         this.type = type;
         this.title = title;
@@ -86,8 +87,9 @@ public class Notification {
     /**
      * 알림 읽음 여부 확인
      */
+    @com.fasterxml.jackson.annotation.JsonProperty("isRead")
     public boolean isRead() {
-        return this.isRead;
+        return this.isRead != null && this.isRead;
     }
 
     /**

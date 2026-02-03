@@ -16,6 +16,8 @@ import com.aidea.backend.domain.meeting.repository.MeetingMemberRepository;
 import com.aidea.backend.domain.meeting.repository.MeetingRepository;
 import com.aidea.backend.domain.user.entity.User;
 import com.aidea.backend.domain.user.repository.UserRepository;
+import com.aidea.backend.domain.notification.service.NotificationService;
+import com.aidea.backend.domain.notification.entity.enums.NotificationType;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -37,7 +39,8 @@ public class ChatService {
         private final ChatMessageRepository chatMessageRepository;
         private final MeetingRepository meetingRepository;
         private final UserRepository userRepository;
-        private final MeetingMemberRepository meetingMemberRepository; // Added
+        private final MeetingMemberRepository meetingMemberRepository;
+        private final NotificationService notificationService;
 
         /**
          * 모임에 대한 채팅방 생성
@@ -91,7 +94,26 @@ public class ChatService {
                 ChatMessage savedMessage = chatMessageRepository.save(chatMessage);
                 log.info("채팅 메시지 저장 완료: messageId={}", savedMessage.getId());
 
-                // 4. Response 반환
+                // 4. ✅ 다른 멤버들에게 알림 생성 (실시간 채팅방에 없는 유저들을 위해)
+                if (chatMessage.getMessageType() == ChatMessage.MessageType.TALK) {
+                        List<MeetingMember> members = meetingMemberRepository.findByMeetingIdAndStatus(
+                                        request.getMeetingId(), MemberStatus.APPROVED);
+
+                        for (MeetingMember member : members) {
+                                if (!member.getUser().getUserId().equals(userId)) {
+                                        notificationService.createNotification(
+                                                        member.getUser().getUserId(),
+                                                        NotificationType.CHAT_MESSAGE,
+                                                        "새 메시지: " + chatRoom.getMeeting().getTitle(),
+                                                        user.getNickname() + ": " + request.getMessage(),
+                                                        request.getMeetingId(),
+                                                        userId,
+                                                        null);
+                                }
+                        }
+                }
+
+                // 5. Response 반환
                 return savedMessage.toResponse();
         }
 
