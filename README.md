@@ -1,4 +1,15 @@
-# Aidea (Location-based AI Short-form Meeting Platform)
+# 📍 Aidea (Location-based AI Short-form Meeting Platform)
+
+<div align="center">
+  <img src="https://img.shields.io/badge/SpringBoot-6DB33F?style=for-the-badge&logo=SpringBoot&logoColor=white">
+  <img src="https://img.shields.io/badge/React-61DAFB?style=for-the-badge&logo=React&logoColor=black">
+  <img src="https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=TypeScript&logoColor=white">
+  <img src="https://img.shields.io/badge/MySQL-4479A1?style=for-the-badge&logo=MySQL&logoColor=white">
+  <img src="https://img.shields.io/badge/Redis-DC382D?style=for-the-badge&logo=Redis&logoColor=white">
+  <img src="https://img.shields.io/badge/AWS-232F3E?style=for-the-badge&logo=AmazonAWS&logoColor=white">
+</div>
+
+---
 
 ## 1. 목표와 기능
 
@@ -10,59 +21,35 @@
 
 ### 1.2 기능
 - **지도 기반 모임 탐색**: 지도 위에서 내 주변 모임을 직관적으로 확인 (Kakao Map 활용)
-- **실시간 채팅**: 모임 참여자 간의 실시간 소통 및 일정 조율
+- **실시간 채팅**: 모임 참여자 간의 실시간 소통 및 일정 조율 (WebSocket/STOMP)
 - **정모(Event) 관리**: 모임 내의 구체적인 약속 날짜와 장소를 관리하고 참여 의사 확인
-- **관심사 및 AI 추천**: 사용자의 관심사를 기반으로 한 그룹 추천 알고리즘 적용
+- **관심사 및 AI 추천**: 사용자 관심사 기반의 그룹 추천 알고리즘 (AWS Bedrock/Titan Embedding)
+- **알림 시스템**: 모임 신청/승인, 채팅, 찜하기 등 주요 활동에 대한 실시간 알림 서비스
 - **공유 기능**: 링크를 통해 외부 플랫폼으로 손쉽게 모임 공유
 
-### 1.3 팀 구성
-<table>
-	<tr>
-		<th>팀장 (BE)</th>
-		<th>FE</th>
-		<th>FE</th>
-		<th>BE</th>
-        <th>BE</th>
-	</tr>
- 	<tr>
-		<td>이세종</td>
-		<td>박영선</td>
-		<td>박유경</td>
-        <td>김민규</td>
-        <td>방영진</td>
-	</tr>
-</table>
+---
 
 ## 2. 개발 환경 및 배포 URL
 
 ### 2.1 개발 환경
-- **Frontend**
-  - Language: TypeScript
-  - Framework: React 18
-  - Build Tool: Vite
-  - Styling: Tailwind CSS
-  - State Management: Zustand (Store 폴더 참조)
-  - Map API: Kakao Maps API
-- **Backend (API 기준 추정)**
-  - Server: Spring Boot
-  - Database: MySQL / Redis (Chat)
-  - Docs: Swagger/OAS 3.0
-- **AI**
-  - Recommendation Engine (Embedding Test Controller 참조)
+| 구분 | 기술 스택 |
+| :--- | :--- |
+| **Frontend** | React 18, TypeScript, Vite, Tailwind CSS, Zustand, TanStack Query |
+| **Backend** | Spring Boot 3.3, Java 17, JPA/Hibernate, Spring Security |
+| **Database** | MySQL 8.0, Redis (Chat/Session), AWS RDS |
+| **Infra** | AWS EC2 (t3.medium), S3, CloudFront, GitHub Actions |
+| **AI** | AWS Bedrock (Titan Text Embeddings v2) |
+| **Maps** | Kakao Maps API |
 
 ### 2.2 배포 URL
-- **Frontend**: https://www.aidea.co.kr (예시)
-- **Backend API**: http://aimo.ai.kr
-- **Test Account**
-  ```
-  id : test@aidea.com
-  pw : test1234!
-  ```
+- **Frontend**: [https://www.aidea.co.kr](https://www.aidea.co.kr) (예시)
+- **Backend API**: [http://aimo.ai.kr](http://aimo.ai.kr)
+- **테스트 계정**
+  - ID: `test@aidea.com` / PW: `test1234!`
 
-### 2.3 URL 구조 (API 명세 기반)
+### 2.3 URL 구조 (API 명세)
 
 **User (사용자)**
-
 | Method | URL | 설명 | 권한 |
 |:---:|:---|:---|:---:|
 | POST | `/api/users/join` | 회원가입 | - |
@@ -73,7 +60,6 @@
 | POST | `/api/users/nickname-check` | 닉네임 중복 확인 | - |
 
 **Meeting (모임)**
-
 | Method | URL | 설명 | 권한 |
 |:---:|:---|:---|:---:|
 | GET | `/api/groups` | 모임 목록 조회 | - |
@@ -84,7 +70,6 @@
 | GET | `/api/groups/search` | 모임 검색 | - |
 
 **Event (정모/일정)**
-
 | Method | URL | 설명 | 권한 |
 |:---:|:---|:---|:---:|
 | GET | `/api/groups/{meetingId}/events` | 일정 목록 조회 | ✅ |
@@ -92,23 +77,17 @@
 | POST | `/api/groups/{meetingId}/events/{eventId}/participate` | 일정 참석 | ✅ |
 
 **Chat (채팅)**
-
 | Method | URL | 설명 | 권한 |
 |:---:|:---|:---|:---:|
 | GET | `/api/chat/rooms` | 내 채팅방 목록 | ✅ |
 | GET | `/api/chat/meetings/{meetingId}/messages` | 메시지 조회 | ✅ |
 | POST | `/api/chat/rooms` | 채팅방 생성 | ✅ |
 
-**Recommendation (추천)**
+---
 
-| Method | URL | 설명 | 권한 |
-|:---:|:---|:---|:---:|
-| GET | `/api/recommendations` | AI 기반 모임 추천 | ✅ |
-
-## 3. 요구사항 명세와 기능 명세
+## 3. 요구사항 명세 및 기능 명세
 
 ### 3.1 주요 흐름 (Sequence Diagram)
-모임 참가 및 승인 프로세스 예시입니다.
 
 ```mermaid
 sequenceDiagram
@@ -132,72 +111,28 @@ sequenceDiagram
     FE->>Server: GET /api/chat/rooms
 ```
 
-   
-## 4. 프로젝트 구조와 개발 일정
+---
 
-### 4.1 프로젝트 구조 (Frontend)
-Feature-Slices Design 패턴을 차용하여 기능별(features)로 응집도 높게 구성하였습니다.
+## 4. 프로젝트 구조 및 개발 일정
 
+### 4.1 프로젝트 구조 (Frontend - FSD 패턴)
 ```bash
 📦frontend
- ┣ 📂public
  ┣ 📂src
- ┃ ┣ 📂assets
- ┃ ┣ 📂features           # 핵심 기능 단위 모듈
- ┃ ┃ ┣ 📂auth             # 인증 (로그인, 회원가입)
- ┃ ┃ ┣ 📂chat             # 채팅 (채팅방, 메시지)
- ┃ ┃ ┣ 📂map              # 지도 (위치 표시, 마커)
- ┃ ┃ ┣ 📂meeting          # 모임 (생성, 조회, 정모 관리)
- ┃ ┃ ┣ 📂mypage           # 마이페이지
- ┃ ┃ ┣ 📂onboarding       # 초기 진입
- ┃ ┃ ┣ 📂profile          # 프로필
- ┃ ┃ ┗ 📂recommendation   # 추천 시스템
- ┃ ┣ 📂routes             # 라우팅 설정
- ┃ ┣ 📂shared             # 공용 모듈
- ┃ ┃ ┣ 📂api              # API 클라이언트 및 엔드포인트
- ┃ ┃ ┣ 📂components       # UI 컴포넌트 (Button, Input 등)
- ┃ ┃ ┣ 📂config           # 상수 및 환경설정
- ┃ ┃ ┣ 📂types            # 전역 타입 정의 (DTO 등)
- ┃ ┃ ┗ 📂utils            # 유틸리티 함수 (WebSocket 등)
- ┃ ┣ 📂store              # 전역 상태 관리 (Zustand 등)
- ┃ ┣ 📂styles             # 전역 스타일 (Tailwind 설정 등)
- ┃ ┣ 📜App.tsx
- ┃ ┗ 📜main.tsx
- ┣ 📜eslint.config.js
- ┣ 📜package.json
- ┣ 📜tailwind.config.js
- ┣ 📜tsconfig.json
- ┗ 📜vite.config.ts
+ ┃ ┣ 📂features           # 핵심 기능 단위 (auth, chat, map, meeting, recommendation 등)
+ ┃ ┣ 📂routes             # 페이지 라우팅
+ ┃ ┣ 📂shared             # 공용 모듈 (api, components, hooks, utils)
+ ┃ ┣ 📂store              # 전역 상태 관리 (Zustand)
+ ┃ ┗ 📂styles             # 전역 스타일링 (Tailwind CSS)
 ```
 
-### 4.2 프로젝트 구조 (Backend)
-다운로드된 개발 브랜치의 실제 디렉토리 구조를 반영한 백엔드 구조입니다.
-
+### 4.2 프로젝트 구조 (Backend - Domain Driven)
 ```bash
 📦backend
- ┣ 📂src
- ┃ ┣ 📂main
- ┃ ┃ ┣ 📂java
- ┃ ┃ ┃ ┗ 📂com
- ┃ ┃ ┃ ┃ ┗ 📂aidea
- ┃ ┃ ┃ ┃ ┃ ┗ 📂backend
- ┃ ┃ ┃ ┃ ┃ ┃ ┣ 📂domain              # 도메인별 비즈니스 로직
- ┃ ┃ ┃ ┃ ┃ ┃ ┃ ┣ 📂ai                # AI 서비스 (Bedrock, Titan Embedding)
- ┃ ┃ ┃ ┃ ┃ ┃ ┃ ┣ 📂chat              # 채팅 (WebSocket, Message, Room)
- ┃ ┃ ┃ ┃ ┃ ┃ ┃ ┣ 📂event             # 모임 일정/이벤트
- ┃ ┃ ┃ ┃ ┃ ┃ ┃ ┣ 📂interest          # 사용자 관심사
- ┃ ┃ ┃ ┃ ┃ ┃ ┃ ┣ 📂meeting           # 모임(Meeting) 핵심 로직
- ┃ ┃ ┃ ┃ ┃ ┃ ┃ ┣ 📂notification      # 알림 서비스
- ┃ ┃ ┃ ┃ ┃ ┃ ┃ ┣ 📂recommendation    # AI 추천/벡터 검색
- ┃ ┃ ┃ ┃ ┃ ┃ ┃ ┣ 📂review            # 리뷰/후기
- ┃ ┃ ┃ ┃ ┃ ┃ ┃ ┣ 📂safety            # 신고/차단
- ┃ ┃ ┃ ┃ ┃ ┃ ┃ ┗ 📂user              # 사용자/프로필
- ┃ ┃ ┃ ┃ ┃ ┃ ┗ 📂global              # 전역 공통 설정
- ┃ ┃ ┃ ┃ ┃ ┃ ┃ ┣ 📂common            # 공통 응답/DTO
- ┃ ┃ ┃ ┃ ┃ ┃ ┃ ┣ 📂config            # 설정 (Security, Swagger, WebSocket 등)
- ┃ ┃ ┃ ┃ ┃ ┃ ┃ ┣ 📂error             # 예외 처리
- ┃ ┃ ┃ ┃ ┃ ┃ ┃ ┣ 📂infra             # 외부 인프라 (S3)
- ┃ ┃ ┃ ┃ ┃ ┃ ┃ ┗ 📂secret            # 인증/인가 (JWT, OAuth)
+ ┣ 📂src/main/java/com/aidea/backend
+ ┃ ┣ 📂domain              # 도메인별 비즈니스 로직
+ ┃ ┃ ┣ 📂ai, 📂chat, 📂event, 📂meeting, 📂notification, 📂user 등
+ ┃ ┗ 📂global              # 전역 공통 설정 (config, error, infra, secret)
 ```
 
 ### 4.3 개발 일정 (WBS)
@@ -210,25 +145,30 @@ gantt
         API 명세서 작성 :2026-01-15, 5d
         UI/UX 디자인 :2026-01-15, 10d
     section Frontend Development
-        프로젝트 세팅 (Vite/TS) :2026-01-20, 2d
+        프로젝트 세팅 :2026-01-20, 2d
         공통 컴포넌트 개발 :2026-01-22, 5d
-        회원가입/로그인 (Auth) :2026-01-25, 5d
-        지도 및 위치 연동 (Map) :2026-01-30, 5d
-        모임 CRUD 및 로직 (Meeting) :2026-02-01, 7d
-        채팅 구현 (WebSocket) :2026-02-05, 7d
-        AI 추천 연동 :2026-02-10, 3d
+        회원가입/로그인 :2026-01-25, 5d
+        지도 연동 (Map) :2026-01-30, 5d
+        모임 CRUD :2026-02-01, 7d
+        실시간 채팅 :2026-02-05, 7d
     section Integration & Test
         API 연동 및 디버깅 :2026-02-12, 5d
         QA 및 배포 :2026-02-18, 3d
 ```
 
+---
+
 ## 5. 역할 분담
 
-- **이세종 (팀장/BE)** : DB 설계 및 API 명세 총괄, 배포(DevOps) 환경 구축, 회원 인증(Auth) 보안 담당
-- **김민규 (BE)** : 사용자 취향 분석 및 추천 알고리즘 구현, 쇼츠 데이터 서빙 최적화, 모임 CRUD
-- **방영진 (BE)** : 실시간 채팅(Socket) 서버 구현, 카카오 API(지도/공유) 백엔드 로직 처리, 알림 시스템
-- **박영선 (FE)** : 쇼츠(Shorts) UI 및 인터랙션 구현, 로그인/회원가입, 공통 컴포넌트 관리, 채팅방 UI, 카카오 맵(Map) 및 주소 검색 연동
-- **박유경 (FE)** : 카카오 맵(Map) 및 주소 검색 연동, 필터 검색 UI, 마이페이지 및 모임 개설 폼 구현
+| 이름 | 역할 | 담당 업무 |
+| :--- | :---: | :--- |
+| **이세종** | BE (팀장) | DB 설계 및 API 명세 총괄, 배포(DevOps) 환경 구축, 보안(Auth) |
+| **김민규** | BE | 추천 알고리즘 구현, 쇼츠 데이터 서빙 최적화, 모임 CRUD |
+| **방영진** | BE | 실시간 채팅(Socket) 서버, 알림 시스템, 카카오 API 연동 |
+| **박영선** | FE | 쇼츠 UI 및 인터랙션, 채팅 UI, 공통 컴포넌트 관리 |
+| **박유경** | FE | 지도(Map) 연동, 검색 필터 UI, 모임 개설 폼 구현 |
+
+---
 
 ## 6. 와이어프레임 / UI
 
@@ -242,10 +182,10 @@ gantt
             <td align="center"><b>4. 모임 상세</b></td>
         </tr>
         <tr>
-            <td><img src="docs/images/shorts.png" width="200" /></td>
-            <td><img src="docs/images/login.png" width="200" /></td>
-            <td><img src="docs/images/interest.png" width="200" /></td>
-            <td><img src="docs/images/meeting_detail.png" width="200" /></td>
+            <td><img src="docs/images/shorts.png" width="180" /></td>
+            <td><img src="docs/images/login.png" width="180" /></td>
+            <td><img src="docs/images/interest.png" width="180" /></td>
+            <td><img src="docs/images/meeting_detail.png" width="180" /></td>
         </tr>
         <tr>
             <td align="center"><b>5. 채팅방</b></td>
@@ -254,96 +194,78 @@ gantt
             <td></td>
         </tr>
         <tr>
-            <td><img src="docs/images/chat.png" width="200" /></td>
-            <td><img src="docs/images/mypage.png" width="200" /></td>
-            <td><img src="docs/images/map.png" width="200" /></td>
+            <td><img src="docs/images/chat.png" width="180" /></td>
+            <td><img src="docs/images/mypage.png" width="180" /></td>
+            <td><img src="docs/images/map.png" width="180" /></td>
             <td></td>
         </tr>
     </tbody>
 </table>
 
-## 7. 데이터베이스 모델링 (ERD)
+---
 
-API 명세서를 기반으로 추정한 핵심 엔티티 관계도입니다.
+## 7. 데이터베이스 모델링 (ERD)
 
 ```mermaid
 erDiagram
-    Users {
-        Long id PK
-        String email
-        String nickname
-        String profileImage
-        Location location
-    }
-    Meetings {
-        Long id PK
-        String title
-        String content
-        Long hostId FK
-        String category
-    }
-    Events {
-        Long id PK
-        Long meetingId FK
-        DateTime eventDate
-        String location
-    }
-    ChatRooms {
-        Long id PK
-        Long meetingId FK
-    }
-    Members {
-        Long id PK
-        Long userId FK
-        Long meetingId FK
-        String status
-    }
-
     Users ||--o{ Members : joins
     Meetings ||--o{ Members : has
     Meetings ||--o{ Events : schedules
     Meetings ||--|{ ChatRooms : has
     Users ||--o{ Meetings : hosts
-    Users ||--o{ Interests : selects
 ```
 
-## 8. Architecture
+---
+
+## 8. 시스템 아키텍처 (Architecture)
+
 ```mermaid
 graph TD;
-    Client[Client (React PWA)] -->|HTTPS| LB[Load Balancer]
-    LB --> API[API Server (Spring Boot)]
+    Client[Client (React PWA)] -->|HTTPS| CF[AWS CloudFront]
+    CF --> API[API Server (Spring Boot)]
     
     subgraph Backend Services
-        API --> DB[(MySQL)]
-        API --> Redis[(Redis - Cache/Session)]
+        API --> DB[(MySQL RDS)]
+        API --> Redis[(Redis - Cache)]
         API --> AI[AI Recommendation Engine]
     end
     
     subgraph External APIs
         Client --> Map[Kakao Map API]
-        API --> Auth[OAuth Provider (Kakao/Google)]
+        API --> Auth[OAuth Provider]
     end
     
-    Client <-->|WebSocket| API
+    Client <--- WebSocket ---> API
 ```
+
+---
 
 ## 9. 핵심 기능 설명
 
-1.  **위치 기반 모임 매칭**: 사용자의 실시간 경위도 좌표를 이용하여, 반경 N km 이내의 활성화된 모임을 지도상에 마커로 표시합니다.
-2.  **숏폼 UI**: 모임을 클릭하면 핵심 정보(이미지, 요약)가 숏폼 카드 형태로 노출되어 빠르게 넘겨보며 탐색할 수 있습니다.
-3.  **실시간 모임 관리**: 모임장은 '정모(Event)'를 생성하고, 멤버들은 참석/불참 버튼으로 즉시 의사를 표현하며, 이는 실시간으로 반영됩니다.
-4.  **안전 시스템**: 신고하기 기능을 통해 불쾌한 유저나 모임을 제재할 수 있는 프로세스가 구축되어 있습니다.
-5.  **실시간 채팅**: 모임별 채팅방을 통해 멤버들 간의 실시간 소통이 가능하며, WebSocket을 활용하여 메시지 전송 지연을 최소화했습니다. 이전 대화 내역 저장 및 읽음 처리 기능도 지원합니다.
+1.  **위치 기반 모임 매칭**: 사용자의 실시간 경위도 좌표를 이용하여, 반경 N km 이내의 모임을 지도상에 마커로 표시합니다.
+2.  **숏폼 UI**: 시각적인 즐거움을 위해 숏폼 카드 형태로 모임 정보를 제공하여 빠른 탐색 경험을 선사합니다.
+3.  **실시간 모임 관리**: 모임장은 '정모(Event)'를 생성하고, 멤버들은 참석 여부를 즉시 투표하며 실시간으로 결과를 확인합니다.
+4.  **안전 시스템**: 신고/차단 기능을 통해 건전한 커뮤니티 문화를 유지할 수 있는 프로세스를 구축했습니다.
+5.  **실시간 채팅 및 알림**: WebSocket을 활용한 1:N 채팅과 모임 신청/승인 시 발생하는 실시간 알림 서비스를 제공합니다.
+
+---
 
 ## 10. 문제 해결 (Troubleshooting)
 
-- **이슈**: 모바일 환경에서 지도 드래그 시 성능 저하 발생
-  - **해결**: 마커 클러스터링(Clustering) 도입 및 뷰포트 변경 시에만 API를 재호출하도록 Debounce 처리 적용
-- **이슈**: 실시간 채팅 메시지 순서 보장 문제
-  - **해결**: 메시지 생성 시간을 기준으로 정렬하되, Socket 응답 지연 시 로컬 낙관적 업데이트(Optimistic Update) 적용 후 서버 동기화
+### 🚨 N+1 쿼리 최적화 및 OOM 장애 해결
+- **이슈**: 모임 상세 조회 시 정모 목록과 참가자 조회가 중첩되어 200여 개의 쿼리가 동시 발생, 메모리 부족(OOM)으로 서버 다운.
+- **해결**: `@EntityGraph` 및 `Fetch Join`을 도입하여 단일 쿼리로 최적화. 쿼리 수를 1-2개로 감소시켜 시스템 안전성 확보.
+- **예방**: JVM Memory Limit 설정 및 보안 그룹을 통한 외부 API 직접 호출 차단.
+
+### 🗺️ 지도 드래그 성능 최적화
+- **이슈**: 모바일 환경에서 지도 이동 시 잦은 API 호출로 인한 성능 저하.
+- **해결**: 마커 클러스터링 도입 및 `Debounce` 처리를 통해 뷰포트 변경 완료 시에만 데이터 동기화.
+
+---
 
 ## 11. 회고 및 느낀점
 
-- **FE**: 기획 단계부터 참여하여 위치 기반 서비스의 실제 사용성을 고민할 수 있었습니다. 특히 지도 API와 React 상태 관리의 동기화 부분에서 많은 학습이 되었습니다.
-- **BE**: 복잡한 다대다 관계(유저-모임-일정)를 효율적으로 설계하고, 쿼리 최적화를 통해 응답 속도를 개선하는 경험을 했습니다.
+- **FE**: 지도 API와 복잡한 React 상태 간의 동기화, 특히 실시간 채팅 데이터의 낙관적 업데이트(Optimistic Update) 구현을 통해 사용자 경험의 깊이를 더했습니다.
+- **BE**: 대규모 데이터 조인 상황에서의 성능 병목을 해결하고, 인프라 리소스 제한의 중요성을 실무적으로 깨달은 프로젝트였습니다.
+를 통해 응답 속도를 개선하는 경험을 했습니다.
 
