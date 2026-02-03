@@ -27,6 +27,9 @@ import com.aidea.backend.domain.chat.repository.ChatRoomRepository;
 import com.aidea.backend.domain.chat.service.ChatService; // Added import
 import com.aidea.backend.domain.meeting.repository.MeetingHobbyRepository;
 import com.aidea.backend.domain.meeting.entity.MeetingHobby;
+import com.aidea.backend.domain.interest.repository.InterestRepository;
+import com.aidea.backend.domain.interest.entity.Interest;
+import com.aidea.backend.domain.meeting.entity.enums.MeetingCategory;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -46,6 +49,7 @@ public class MeetingService {
     private final UserRepository userRepository;
     private final MeetingLikeRepository meetingLikeRepository;
     private final ChatRoomRepository chatRoomRepository; // Inject ChatRoomRepository
+    private final InterestRepository interestRepository;
     private final com.aidea.backend.domain.chat.repository.ChatMessageRepository chatMessageRepository; // Inject
                                                                                                         // ChatMessageRepository
     private final com.aidea.backend.domain.event.repository.EventRepository eventRepository; // Inject EventRepository
@@ -75,10 +79,13 @@ public class MeetingService {
         meetingRepository.save(meeting);
 
         // 2-1. meeting_hobby 저장 (카테고리 1개만 매핑)
-        String categoryIdStr = request.getInterestCategoryId();  // ✅ String으로 받기
-        if (categoryIdStr != null && !categoryIdStr.isBlank()) {
-            Long categoryId = Long.parseLong(categoryIdStr);      // ✅ Long 변환
-            meetingHobbyRepository.save(new MeetingHobby(meeting.getId(), categoryId));
+        String categoryCode = request.getInterestCategoryId();  // 카테고리 코드 (예: "hobby")
+        if (categoryCode != null && !categoryCode.isBlank()) {
+            // 카테고리 코드로 첫번째 interest ID 찾기
+            Long categoryId = findInterestIdByCategoryCode(categoryCode);
+            if (categoryId != null) {
+                meetingHobbyRepository.save(new MeetingHobby(meeting.getId(), categoryId));
+            }
         }
 
         // 3. HOST 등록
@@ -723,6 +730,25 @@ public class MeetingService {
      */
     public String uploadMeetingImage(MultipartFile image) {
         return s3Service.uploadFile(image, "meeting-images");
+    }
+
+    /**
+     * 카테고리 코드로 첫번째 interest ID 찾기
+     */
+    private Long findInterestIdByCategoryCode(String categoryCode) {
+        try {
+            MeetingCategory category = MeetingCategory.findByCode(categoryCode);
+            String targetCategoryName = category.getDisplayName();
+            
+            return interestRepository.findByCategory(targetCategoryName)
+                    .stream()
+                    .findFirst()
+                    .map(interest -> interest.getInterestId())
+                    .orElse(null);
+        } catch (Exception e) {
+            log.warn("카테고리 코드로 interest ID 찾기 실패: {}", categoryCode);
+            return null;
+        }
     }
 
 

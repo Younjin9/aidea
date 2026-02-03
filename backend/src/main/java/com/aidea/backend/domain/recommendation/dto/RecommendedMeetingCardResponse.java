@@ -17,5 +17,6 @@ public class RecommendedMeetingCardResponse {
 
     private double score;
     private String reason;     // 추천 사유
+    private String imageUrl;     // 모임 이미지 URL
 
 }

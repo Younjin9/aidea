@@ -5,11 +5,15 @@ import java.util.ArrayList;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.Optional;
+import java.util.Objects;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @Repository
 public class MySqlRecommendationRepository {
 
@@ -22,7 +26,7 @@ public class MySqlRecommendationRepository {
     // ✅ (기존) nickname 기반 조회 - 혹시 다른 곳에서 쓰면 유지
     public Long findUserIdByNickname(String nickname) {
         return jdbcTemplate.queryForObject(
-                "SELECT user_id FROM app_user WHERE nickname = ?",
+                "SELECT user_id FROM users WHERE nickname = ?",
                 Long.class,
                 nickname
         );
@@ -30,7 +34,7 @@ public class MySqlRecommendationRepository {
 
     // ✅ (신규) email 기반 조회 - 정식 해결에서 사용
     public Optional<Long> findUserIdByEmail(String email) {
-        String sql = "SELECT user_id FROM app_user WHERE email = ? LIMIT 1";
+        String sql = "SELECT user_id FROM users WHERE email = ? LIMIT 1";
         return jdbcTemplate.query(sql, rs -> {
             if (rs.next()) return Optional.of(rs.getLong("user_id"));
             return Optional.empty();
@@ -110,23 +114,43 @@ public class MySqlRecommendationRepository {
         String sql = """
             SELECT DISTINCT i.category
             FROM user_interest ui
-            JOIN interest i ON ui.interest_id = i.id
+            JOIN interest i ON ui.interest_id = i.interest_id
             WHERE ui.user_id = ?
               AND i.category IS NOT NULL
         """;
         return jdbcTemplate.query(sql, (rs, rowNum) -> rs.getString(1), userId);
     }
 
-    // 2) 카테고리 목록에 해당하는 모임 ID 목록
+    // 2) 카테고리 목록에 해당하는 모임 ID 목록 (한글 이름 → enum 이름 매핑)
     public List<Long> findMeetingIdsByCategories(List<String> categoryNames) {
+        log.info("[NEW-DEBUG] findMeetingIdsByCategories 호출됨! categoryNames={}", categoryNames);
+        
         if (categoryNames == null || categoryNames.isEmpty()) {
+            log.info("[NEW-DEBUG] categoryNames가 비어있음");
             return List.of();
         }
 
-        String placeholders = String.join(",", categoryNames.stream().map(x -> "?").toList());
-        String sql = "SELECT id FROM meeting WHERE category IN (" + placeholders + ")";
+        // 이미 enum 이름이 들어오므로 매핑 불필요
+        List<String> enumCategoryNames = categoryNames.stream()
+                .filter(Objects::nonNull)
+                .filter(name -> !name.isBlank())
+                .toList();
 
-        return jdbcTemplate.query(sql, (rs, rowNum) -> rs.getLong(1), categoryNames.toArray());
+        if (enumCategoryNames.isEmpty()) {
+            log.info("[NEW-DEBUG] enumCategoryNames가 비어있음");
+            return List.of();
+        }
+
+        String placeholders = String.join(",", enumCategoryNames.stream().map(x -> "?").toList());
+        String sql = "SELECT id FROM meeting WHERE category IN (" + placeholders + ")";
+        
+        log.info("[NEW-DEBUG] SQL: {}", sql);
+        log.info("[NEW-DEBUG] 파라미터: {}", enumCategoryNames);
+        
+        List<Long> result = jdbcTemplate.query(sql, (rs, rowNum) -> rs.getLong(1), enumCategoryNames.toArray());
+        log.info("[NEW-DEBUG] 결과: {}", result);
+        
+        return result;
     }
 
     public List<Long> findAllHobbyIds() {
