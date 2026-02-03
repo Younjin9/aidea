@@ -82,10 +82,7 @@ const EventCard: React.FC<EventCardProps> = ({
           <ChevronRight size={18} className="text-gray-400 flex-shrink-0 cursor-pointer hover:text-gray-600 transition" onClick={onEditClick} />
         )}
       </div>
-      {/* 한줄 설명 */}
-      {event.summary && (
-        <p className="text-xs text-gray-500 mb-3 line-clamp-1">{event.summary}</p>
-      )}
+
       <div className="space-y-2 text-sm mb-4">
         <div className="flex gap-3"><p className="text-gray-500 w-12">일시</p><p className="font-medium">{formatDateTime(event.scheduledAt)}</p></div>
         <div className="flex gap-3"><p className="text-gray-500 w-12">위치</p><p className="font-medium">{event.placeName || meeting.region || '미정'}</p></div>
