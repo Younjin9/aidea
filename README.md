@@ -308,7 +308,6 @@ erDiagram
 ```
 
 ## 8. Architecture
-
 ```mermaid
 graph TD;
     Client[Client (React PWA)] -->|HTTPS| LB[Load Balancer]
