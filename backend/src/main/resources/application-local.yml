@@ -4,8 +4,8 @@ spring:
       client:
         registration:
           kakao:
-            client-id: ${KAKAO_CLIENT_ID:ebdbba052c461ca5ce7c8eeb8cbbcfef}
-            client-secret: ${KAKAO_CLIENT_SECRET:mxgvMPIntBsVEszWcv7uuKL3UutO7kxx}
+            client-id: ${KAKAO_CLIENT_ID:6c638bd63d40dd3137e1ae774a049e71}
+            client-secret: ${KAKAO_CLIENT_SECRET:rDCTiNFm1bxY0ToWEfOCQ6TFufic5b96}
             client-authentication-method: client_secret_post
             authorization-grant-type: authorization_code
             redirect-uri: http://localhost:8080/login/oauth2/code/kakao
@@ -43,12 +43,13 @@ spring:
   cloud:
     aws:
       credentials:
-        access-key: ${AWS_ACCESS_KEY_ID}
+        access-key: ${AWS_ACCESS_KEY}
         secret-key: ${AWS_SECRET_ACCESS_KEY}
       region:
         static: ap-northeast-2
       s3:
-        bucket: ${AWS_S3_BUCKET:aidea-s3-bucket}
+        bucket: ${AWS_S3_BUCKET}
+
 
 jwt:
   secret: local-dev-secret-key-change-this-in-production-environment-aidea-2026
@@ -60,6 +61,16 @@ logging:
     org.hibernate.SQL: DEBUG
     org.hibernate.type.descriptor.sql.BasicBinder: TRACE
     org.springframework.web: DEBUG
+
+app:
+  vector-seed:
+    enabled: false
+  
+  # AI 기능 설정
+  ai:
+    enabled: true
+    embedding:
+      enabled: true
 
 vector-datasource:
   url: jdbc:postgresql://localhost:5432/aidea_dev

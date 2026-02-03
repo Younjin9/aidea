@@ -37,13 +37,13 @@ public class NotificationController {
     @GetMapping
     public ResponseEntity<ApiResponse<NotificationListResponse>> getNotifications(
             Authentication authentication) {
-        
+
         String email = authentication.getName();
         log.info("알림 목록 조회 요청: email={}", email);
-        
+
         UserResponse userResponse = userService.getMyProfile(email);
         Long userId = Long.parseLong(userResponse.getUserId());
-        
+
         NotificationListResponse notifications = notificationService.getUserNotifications(userId);
         return ResponseEntity.ok(ApiResponse.success(notifications));
     }
@@ -56,13 +56,13 @@ public class NotificationController {
     public ResponseEntity<ApiResponse<NotificationReadResponse>> markAsRead(
             @PathVariable Long id,
             Authentication authentication) {
-        
+
         String email = authentication.getName();
         log.info("알림 읽음 처리 요청: notificationId={}, email={}", id, email);
-        
+
         UserResponse userResponse = userService.getMyProfile(email);
         Long userId = Long.parseLong(userResponse.getUserId());
-        
+
         NotificationReadResponse response = notificationService.markAsRead(id, userId);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
@@ -74,13 +74,13 @@ public class NotificationController {
     @PatchMapping("/read-all")
     public ResponseEntity<ApiResponse<NotificationReadResponse>> markAllAsRead(
             Authentication authentication) {
-        
+
         String email = authentication.getName();
         log.info("전체 알림 읽음 처리 요청: email={}", email);
-        
+
         UserResponse userResponse = userService.getMyProfile(email);
         Long userId = Long.parseLong(userResponse.getUserId());
-        
+
         NotificationReadResponse response = notificationService.markAllAsRead(userId);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
@@ -89,16 +89,16 @@ public class NotificationController {
      * 안 읽은 알림 개수 조회
      */
     @Operation(summary = "안 읽은 알림 개수 조회", description = "사용자의 안 읽은 알림 개수만 조회합니다.")
-    @GetMapping("/unread-count")
+    @GetMapping("/unread/count")
     public ResponseEntity<ApiResponse<UnreadCountResponse>> getUnreadCount(
             Authentication authentication) {
-        
+
         String email = authentication.getName();
         log.info("안 읽은 알림 개수 조회 요청: email={}", email);
-        
+
         UserResponse userResponse = userService.getMyProfile(email);
         Long userId = Long.parseLong(userResponse.getUserId());
-        
+
         UnreadCountResponse response = notificationService.getUnreadCount(userId);
         return ResponseEntity.ok(ApiResponse.success(response));
     }

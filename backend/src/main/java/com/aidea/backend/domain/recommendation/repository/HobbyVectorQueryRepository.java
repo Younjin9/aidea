@@ -25,8 +25,8 @@ public class HobbyVectorQueryRepository {
      */
     public List<Long> findTopKHobbyIdsByUserId(Long userId, int topK) {
         String sql = """
-            SELECT hobby_id
-            FROM user_hobby
+            SELECT interest_id
+            FROM user_interest
             WHERE user_id = ?
             LIMIT ?
         """;

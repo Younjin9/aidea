@@ -9,6 +9,8 @@ import com.aidea.backend.domain.meeting.entity.Meeting;
 import com.aidea.backend.domain.meeting.repository.MeetingRepository;
 import com.aidea.backend.domain.user.entity.User;
 import com.aidea.backend.domain.user.repository.UserRepository;
+import com.aidea.backend.domain.notification.service.NotificationService;
+import com.aidea.backend.domain.notification.entity.enums.NotificationType;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -27,10 +29,11 @@ public class EventService {
     private final MeetingRepository meetingRepository;
     private final UserRepository userRepository;
     private final com.aidea.backend.domain.event.repository.EventParticipantRepository eventParticipantRepository;
-    private final com.aidea.backend.domain.meeting.repository.MeetingMemberRepository meetingMemberRepository; // Need
-                                                                                                               // check
-                                                                                                               // member
-                                                                                                               // status
+    private final com.aidea.backend.domain.meeting.repository.MeetingMemberRepository meetingMemberRepository;
+    private final NotificationService notificationService;
+    // check
+    // member
+    // status
 
     /**
      * 일정 목록 조회
@@ -225,6 +228,18 @@ public class EventService {
 
         // 역방향 관계 업데이트 (JPA 영속성 컨텍스트 동기화)
         event.getParticipants().add(participant);
+
+        // ✅ 일정 생성자에게 참가 알림 전송
+        if (!event.getCreator().getUserId().equals(userId)) {
+            notificationService.createNotification(
+                    event.getCreator().getUserId(),
+                    NotificationType.EVENT_JOIN,
+                    "정모 참가 소식",
+                    user.getNickname() + "님이 '" + event.getTitle() + "' 정모에 참가 신청했습니다.",
+                    meetingId,
+                    userId,
+                    eventId);
+        }
     }
 
     /**
@@ -248,5 +263,20 @@ public class EventService {
         // 역방향 관계 업데이트
         boolean removed = event.getParticipants().removeIf(p -> p.getUser().getUserId().equals(userId));
         log.info("참가 취소 완료 (메모리 제거 여부: {})", removed);
+
+        // ✅ 일정 생성자에게 취소 알림 전송
+        if (removed && !event.getCreator().getUserId().equals(userId)) {
+            User user = userRepository.findById(userId).orElse(null);
+            String nickname = (user != null) ? user.getNickname() : "알 수 없는 사용자";
+
+            notificationService.createNotification(
+                    event.getCreator().getUserId(),
+                    NotificationType.EVENT_CANCEL,
+                    "정모 참가 취소",
+                    nickname + "님이 '" + event.getTitle() + "' 정모 참가를 취소했습니다.",
+                    meetingId,
+                    userId,
+                    eventId);
+        }
     }
 }
