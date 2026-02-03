@@ -9,6 +9,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.Optional;
+import java.util.List;
 
 public interface MeetingShareRepository extends JpaRepository<MeetingShare, Long> {
 
@@ -28,4 +29,11 @@ public interface MeetingShareRepository extends JpaRepository<MeetingShare, Long
     @Modifying
     @Query("DELETE FROM MeetingShare ms WHERE ms.expiresAt < :now")
     void deleteByExpiresAtBefore(@Param("now") LocalDateTime now);
+
+    /**
+     * 여러 모임의 공유 링크 전체 일괄 삭제 (Cleanup용)
+     */
+    @Modifying
+    @Query("DELETE FROM MeetingShare ms WHERE ms.meeting.id IN :meetingIds")
+    void deleteByMeetingIdIn(@Param("meetingIds") List<Long> meetingIds);
 }

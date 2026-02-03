@@ -43,12 +43,15 @@ spring:
   cloud:
     aws:
       credentials:
+        access-key: ${AWS_ACCESS_KEY:AKIATXV3D5SHTXCFDCQJ}
+        secret-key: ${AWS_SECRET_ACCESS_KEY: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}
         access-key: ${AWS_ACCESS_KEY_ID}
         secret-key: ${AWS_SECRET_ACCESS_KEY}
       region:
         static: ap-northeast-2
       s3:
         bucket: ${AWS_S3_BUCKET:aidea-s3-bucket}
+
 
 jwt:
   secret: local-dev-secret-key-change-this-in-production-environment-aidea-2026

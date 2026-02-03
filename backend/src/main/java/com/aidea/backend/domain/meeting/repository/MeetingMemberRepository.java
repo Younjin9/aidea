@@ -4,6 +4,9 @@ import com.aidea.backend.domain.meeting.entity.MeetingMember;
 import com.aidea.backend.domain.meeting.entity.enums.MemberStatus;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 import java.util.Optional;
@@ -58,4 +61,11 @@ public interface MeetingMemberRepository extends JpaRepository<MeetingMember, Lo
      * 모임의 모든 멤버 삭제 (모임 삭제 시 사용)
      */
     void deleteAllByMeetingId(Long meetingId);
+
+    /**
+     * 여러 모임의 멤버 전체 일괄 삭제 (Cleanup용)
+     */
+    @Modifying
+    @Query("DELETE FROM MeetingMember mm WHERE mm.meeting.id IN :meetingIds")
+    void deleteByMeetingIdIn(@Param("meetingIds") List<Long> meetingIds);
 }
