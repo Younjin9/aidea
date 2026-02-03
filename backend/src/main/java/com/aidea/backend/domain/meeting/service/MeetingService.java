@@ -25,6 +25,8 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import com.aidea.backend.domain.chat.repository.ChatRoomRepository;
 import com.aidea.backend.domain.chat.service.ChatService; // Added import
+import com.aidea.backend.domain.meeting.repository.MeetingHobbyRepository;
+import com.aidea.backend.domain.meeting.entity.MeetingHobby;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -50,6 +52,7 @@ public class MeetingService {
     private final com.aidea.backend.domain.event.repository.EventParticipantRepository eventParticipantRepository; // Inject
     private final S3Service s3Service;
     private final ChatService chatService; // Inject ChatService
+    private final MeetingHobbyRepository meetingHobbyRepository;
 
     /**
      * 모임 생성
@@ -70,6 +73,13 @@ public class MeetingService {
         // 2. 모임 생성
         Meeting meeting = request.toEntity(user);
         meetingRepository.save(meeting);
+
+        // 2-1. meeting_hobby 저장 (카테고리 1개만 매핑)
+        String categoryIdStr = request.getInterestCategoryId();  // ✅ String으로 받기
+        if (categoryIdStr != null && !categoryIdStr.isBlank()) {
+            Long categoryId = Long.parseLong(categoryIdStr);      // ✅ Long 변환
+            meetingHobbyRepository.save(new MeetingHobby(meeting.getId(), categoryId));
+        }
 
         // 3. HOST 등록
         MeetingMember hostMember = MeetingMember.createHost(meeting, user);
@@ -714,4 +724,6 @@ public class MeetingService {
     public String uploadMeetingImage(MultipartFile image) {
         return s3Service.uploadFile(image, "meeting-images");
     }
+
+
 }

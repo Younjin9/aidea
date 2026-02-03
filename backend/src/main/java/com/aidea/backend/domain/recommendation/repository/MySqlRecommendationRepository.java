@@ -118,4 +118,32 @@ public class MySqlRecommendationRepository {
                 Long.class
         );
     }
+
+    // =========================
+    // ✅ 카테고리 기반 추천용
+    // =========================
+
+    // 1) 유저가 선택한 취미들의 카테고리 목록
+    public List<String> findUserCategoryNamesByUserId(Long userId) {
+        String sql = """
+            SELECT DISTINCT h.category
+            FROM user_hobby uh
+            JOIN hobby h ON uh.hobby_id = h.id
+            WHERE uh.user_id = ?
+              AND h.category IS NOT NULL
+        """;
+        return jdbcTemplate.query(sql, (rs, rowNum) -> rs.getString(1), userId);
+    }
+
+    // 2) 카테고리 목록에 해당하는 모임 ID 목록
+    public List<Long> findMeetingIdsByCategories(List<String> categoryNames) {
+        if (categoryNames == null || categoryNames.isEmpty()) {
+            return List.of();
+        }
+
+        String placeholders = String.join(",", categoryNames.stream().map(x -> "?").toList());
+        String sql = "SELECT id FROM meeting WHERE category IN (" + placeholders + ")";
+
+        return jdbcTemplate.query(sql, (rs, rowNum) -> rs.getLong(1), categoryNames.toArray());
+    }
 }
