@@ -14,6 +14,7 @@ import org.springframework.web.server.ResponseStatusException;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -193,14 +194,101 @@ public class RecommendationService {
     }
 
     /**
-     * 벡터 기반 추천 (user_hobby 벡터 유사도)
+     * 벡터 기반 추천 (user_hobby 벡터와 meeting_hobby 벡터의 코사인 계산)
      */
     private List<RecommendedMeetingCardResponse> recommendByVector(Long userId, int topK, int limit) {
-        // TODO: 사용자 관심사 벡터와 모임 카테고리 벡터의 유사도 계산
-        log.info("[RECO-VECTOR] userId={}, topK={}, limit={}", userId, topK, limit);
+        log.info("[RECO-VECTOR] 벡터 기반 추천 시작. userId={}, topK={}, limit={}", userId, topK, limit);
         
-        // 임시: category 기반으로 대체 (벡터 계산 로직은 나중에 구현)
-        return recommendByCategory(userId, limit);
+        // 1) 사용자 관심사 벡터 계산
+        Map<String, Double> userInterestVector = mySqlRepo.calculateUserInterestVector(userId);
+        log.info("[RECO-VECTOR] 사용자 관심사 벡터: {}", userInterestVector.size());
+        
+        // 2) 후보 모임 ID 목록 (사용자 관심사 관련 모임)
+        List<Long> candidateMeetingIds = mySqlRepo.findMeetingIdsByUserInterests(userId);
+        log.info("[RECO-VECTOR] 후보 모임 수: {}", candidateMeetingIds.size());
+        
+        if (candidateMeetingIds.isEmpty()) {
+            log.info("[RECO-VECTOR] 관련 모임 없음");
+            return List.of();
+        }
+        
+        // 3) 모임 벡터 계산
+        Map<Long, double[]> meetingVectors = mySqlRepo.getMeetingCategoryVectors(candidateMeetingIds);
+        log.info("[RECO-VECTOR] 모임 벡터 계산 완료: {}", meetingVectors.size());
+        
+        // 4) Meeting 엔티티 조회
+        List<Meeting> meetings = meetingRepository.findAllById(candidateMeetingIds);
+        log.info("[RECO-VECTOR] 모임 엔티티 조회 완료: {}", meetings.size());
+        
+        // 5) 코사인 유사도 계산 및 상위 topK 선택
+        List<RecommendedMeetingCardResponse> result = meetings.stream()
+                .map(meeting -> {
+                    // 코사인 유사도 계산
+                    double similarity = calculateCosineSimilarity(
+                        userInterestVector, 
+                        meetingVectors.get(meeting.getId())
+                    );
+                    
+                    // 벡터 공간에서 임베딩 계산 (클수)
+                    double embeddingSimilarity = 1.0 - similarity; // 코사인 거리가 가까울수록 임베딩
+                    
+                    String reason = String.format("관심사 유사도 %.1f%% (%.1f/5.0점)", similarity * 100.0, similarity * 5.0);
+                    
+                    // 모임 이미지 URL 생성
+                    String imageUrl = meeting.getImageUrl();
+                    if (imageUrl == null || imageUrl.isBlank()) {
+                        imageUrl = "https://images.unsplash.com/photo-" + meeting.getId() + "?q=80&w=400&auto=format&fit=crop";
+                    }
+                    
+                    return new RecommendedMeetingCardResponse(
+                            meeting.getId(),
+                            meeting.getTitle(),
+                            meeting.getCategory().name(),
+                            meeting.getRegion().name(),
+                            meeting.getCurrentMembers(),
+                            meeting.getMaxMembers(),
+                            embeddingSimilarity, // 실제 임베딩 유사도 사용
+                            reason,
+                            imageUrl
+                    );
+                })
+                .sorted((a, b) -> Double.compare(b.getScore(), a.getScore()) * -1) // 높은 점수 순으로 정렬
+                .limit(limit)
+                .collect(Collectors.toList());
+        
+        log.info("[RECO-VECTOR] 벡터 추천 결과: {}개", result.size());
+        return result;
+    }
+    
+    /**
+     * 코사인 유사도 계산
+     */
+    private double calculateCosineSimilarity(Map<String, Double> vectorA, double[] vectorB) {
+        if (vectorA == null || vectorB == null) return 0.0;
+        
+        double dotProduct = 0.0;
+        double normA = 0.0;
+        double normB = 0.0;
+        
+        for (Map.Entry<String, Double> entry : vectorA.entrySet()) {
+            String interestId = entry.getKey();
+            double weightA = entry.getValue();
+            double weightB = 0.0;
+            
+            // interest_id 1-8에 해당하는 가중치
+            int index = Integer.parseInt(interestId.substring(interestId.length() - 1)) - 1; // 마지막 글자를 숫자로
+            if (index >= 0 && index < 8) {
+                weightB = vectorB[index];
+            }
+            
+            dotProduct += weightA * weightB;
+            normA += weightA * weightA;
+            normB += weightB * weightB;
+        }
+        
+        double norm = Math.sqrt(normA) * Math.sqrt(normB);
+        
+        return norm == 0.0 ? 0.0 : (dotProduct / norm);
     }
 
     /**
@@ -209,8 +297,48 @@ public class RecommendationService {
     private List<RecommendedMeetingCardResponse> recommendByMVP(Long userId, int limit) {
         log.info("[RECO-MVP] userId={}, limit={}", userId, limit);
         
-        // 임시: 인기있는 모임 반환
-        // TODO: 인기도, 참여율 등 기반 추천 로직 구현
-        return recommendByCategory(userId, limit);
+        // MVP: 가장 인기 있는 모임 반환
+        List<Long> candidateMeetingIds = mySqlRepo.findMeetingIdsByUserInterests(userId);
+        if (candidateMeetingIds.isEmpty()) {
+            return List.of();
+        }
+        
+        // 모임 정보 조회
+        List<Meeting> meetings = meetingRepository.findAllById(candidateMeetingIds);
+        if (meetings.isEmpty()) {
+            return List.of();
+        }
+        
+        // MVP 추천 로직: 참여율 기반 정렬
+        List<RecommendedMeetingCardResponse> result = meetings.stream()
+                .map(meeting -> {
+                    double participationRate = (double) meeting.getCurrentMembers() / meeting.getMaxMembers();
+                    double score = participationRate >= 0.5 ? 0.9 : 0.5;
+                    String reason = "참여율 높은 인기 모임이에요";
+                    
+                    // 모임 이미지 URL 생성
+                    String imageUrl = meeting.getImageUrl();
+                    if (imageUrl == null || imageUrl.isBlank()) {
+                        imageUrl = "https://images.unsplash.com/photo-" + meeting.getId() + "?q=80&w=400&auto=format&fit=crop";
+                    }
+                    
+                    return new RecommendedMeetingCardResponse(
+                            meeting.getId(),
+                            meeting.getTitle(),
+                            meeting.getCategory().name(),
+                            meeting.getRegion().name(),
+                            meeting.getCurrentMembers(),
+                            meeting.getMaxMembers(),
+                            score,
+                            reason,
+                            imageUrl
+                    );
+                })
+                .sorted((a, b) -> Double.compare(b.getScore(), a.getScore()))
+                .limit(limit)
+                .toList();
+        
+        log.info("[RECO-MVP] MVP 추천 결과: {}개", result.size());
+        return result;
     }
 }
