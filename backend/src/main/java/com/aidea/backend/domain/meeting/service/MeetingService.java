@@ -422,7 +422,7 @@ public class MeetingService {
 
         // 5. MeetingMember 생성
         boolean approvalRequired = (meeting.getIsApprovalRequired() != null) ? meeting.getIsApprovalRequired() : true;
-        MeetingMember member = MeetingMember.createMember(meeting, user, approvalRequired);
+        MeetingMember member = MeetingMember.createMember(meeting, user, approvalRequired, requestMessage);
 
         MeetingMember savedMember = meetingMemberRepository.save(member);
 
