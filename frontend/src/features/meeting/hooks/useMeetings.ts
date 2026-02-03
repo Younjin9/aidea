@@ -21,7 +21,7 @@ const transformMeetingToUI = (meeting: Meeting): MeetingUI => {
     image: meeting.imageUrl || '',
     title: meeting.title,
     category: meeting.interestCategoryName || '카테고리',
-    location: meeting.region || meeting.location || '위치 정보',
+    location: meeting.location || meeting.region || '위치 정보',
     members: meeting.memberCount || meeting.currentMembers || 0,
     maxMembers: meeting.maxMembers,
     description: meeting.description?.trim() || undefined, // 빈 문자열이면 undefined로 변환
