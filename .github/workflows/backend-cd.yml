@@ -121,9 +121,13 @@ jobs:
                   AWS_ACCESS_KEY: ${{ secrets.AWS_ACCESS_KEY }}
                   AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
                   AWS_S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}
+                  JAVA_OPTS: "-Xmx768m -Xms512m -XX:MaxMetaspaceSize=256m -XX:+UseContainerSupport -XX:+ExitOnOutOfMemoryError"
+                mem_limit: 1g
+                mem_reservation: 512m
                 depends_on:
                   - mysql
                   - redis
+
 
             volumes:
               mysql_data:
