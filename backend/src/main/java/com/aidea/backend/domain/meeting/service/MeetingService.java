@@ -30,6 +30,8 @@ import com.aidea.backend.domain.meeting.entity.MeetingHobby;
 import com.aidea.backend.domain.interest.repository.InterestRepository;
 import com.aidea.backend.domain.interest.entity.Interest;
 import com.aidea.backend.domain.meeting.entity.enums.MeetingCategory;
+import com.aidea.backend.domain.notification.service.NotificationService;
+import com.aidea.backend.domain.notification.entity.enums.NotificationType;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -81,7 +83,7 @@ public class MeetingService {
         meetingRepository.save(meeting);
 
         // 2-1. meeting_hobby 저장 (카테고리 1개만 매핑)
-        String categoryCode = request.getInterestCategoryId();  // 카테고리 코드 (예: "hobby")
+        String categoryCode = request.getInterestCategoryId(); // 카테고리 코드 (예: "hobby")
         if (categoryCode != null && !categoryCode.isBlank()) {
             // 카테고리 코드로 첫번째 interest ID 찾기
             Long categoryId = findInterestIdByCategoryCode(categoryCode);
@@ -848,7 +850,7 @@ public class MeetingService {
         try {
             MeetingCategory category = MeetingCategory.findByCode(categoryCode);
             String targetCategoryName = category.getDisplayName();
-            
+
             return interestRepository.findByCategory(targetCategoryName)
                     .stream()
                     .findFirst()
@@ -859,6 +861,5 @@ public class MeetingService {
             return null;
         }
     }
-
 
 }
