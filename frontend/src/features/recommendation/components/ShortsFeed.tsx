@@ -10,12 +10,7 @@ type RecommendedMeetingCardResponse = {
   maxMembers: number;
   score: number;
   reason: string;
-};
-
-type ShortsFeedProps = {
-  topK?: number;
-  limit?: number;
-  mode?: 'vector' | 'basic' | 'mvp';
+  imageUrl?: string; // 추가: 모임 이미지
 };
 
 const ShortsFeed: React.FC = () => {
@@ -96,7 +91,7 @@ const ShortsFeed: React.FC = () => {
     category: card.category,
     members: card.currentMembers,
     description: card.reason,
-    groupId: card.meetingId,
+    groupId: String(card.meetingId), // string으로 변환
     isLiked: false,
   }));
 
