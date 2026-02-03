@@ -155,6 +155,7 @@ public class MeetingMember {
         .userId(this.user.getUserId())
         .nickname(this.user.getNickname())
         .profileImage(this.user.getProfileImage())
+        .requestMessage(this.requestMessage)
         .status(this.status)
         .requestedAt(this.joinedAt)
         .build();
