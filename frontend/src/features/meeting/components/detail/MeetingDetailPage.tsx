@@ -192,11 +192,6 @@ const MeetingDetailPage: React.FC = () => {
     return baseMeeting;
   });
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
-=======
->>>>>>> d954858af74f5928a60e0586f41638ba44e720fe
   const showToastMessage = (message: string) => {
     setToastMessage(message);
     setShowToast(true);
@@ -489,47 +484,6 @@ const MeetingDetailPage: React.FC = () => {
     openModal(action === 'cancelParticipation' ? 'cancelParticipation' : 'joinEvent');
   };
 
-<<<<<<< HEAD
-  const showToastMessage = (message: string) => {
-    setToastMessage(message);
-    setShowToast(true);
-    setTimeout(() => setShowToast(false), 2000);
-  };
-
-  const copyToClipboard = async (text: string) => {
-    try {
-      await navigator.clipboard.writeText(text);
-      return true;
-    } catch {
-      return false;
-    }
-  };
-
-  const handleShareEvent = async (_event: MeetingEvent) => {
-    if (!meetingId) return;
-    try {
-      const response = await shareApi.createShare(meetingId);
-      const shareUrl = response.data?.shareUrl;
-      if (!shareUrl) {
-        showToastMessage('공유 링크 생성에 실패했습니다.');
-        return;
-      }
-      const success = await copyToClipboard(shareUrl);
-      if (success) {
-        showToastMessage('링크가 복사되었습니다.');
-      } else {
-        showToastMessage('복사에 실패했습니다.');
-      }
-    } catch (error) {
-      console.error('Share failure:', error);
-      showToastMessage('공유 링크 생성에 실패했습니다.');
-    }
-  };
-
-
-
-=======
->>>>>>> 74261f27300a2d689100d448a9ba92202bc4b1c1
   // API 로딩 중일 때 로딩 UI 표시
   if (isLoading) {
     return (
@@ -549,14 +503,7 @@ const MeetingDetailPage: React.FC = () => {
         isLiked={isLiked}
         activeTab={activeTab}
         onLikeToggle={handleLikeToggle}
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
         onShare={() => handleShareEvent()}
->>>>>>> 74261f27300a2d689100d448a9ba92202bc4b1c1
-=======
-        onShare={() => handleShareEvent()}
->>>>>>> d954858af74f5928a60e0586f41638ba44e720fe
         onTabChange={setActiveTab}
         isHost={isHost}
         isMember={!!isMember}

@@ -213,6 +213,13 @@ public class Meeting {
     }
 
     /**
+     * 자동 승인 여부 확인
+     */
+    public boolean isAutoApprove() {
+        return this.isApprovalRequired != null && !this.isApprovalRequired;
+    }
+
+    /**
      * 모임장(Creator) 변경
      */
     public void changeCreator(User newCreator) {
