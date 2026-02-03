@@ -46,6 +46,9 @@ public class MeetingMember {
   @Column(nullable = false, length = 20)
   private MemberStatus status = MemberStatus.APPROVED; // 상태
 
+  @Column(length = 500)
+  private String requestMessage; // 가입 인사
+
   // ========== 시간 정보 ==========
   @CreatedDate
   @Column(nullable = false, updatable = false)
@@ -53,11 +56,12 @@ public class MeetingMember {
 
   // ========== 생성자 ==========
   @Builder
-  public MeetingMember(Meeting meeting, User user, MemberRole role, MemberStatus status) {
+  public MeetingMember(Meeting meeting, User user, MemberRole role, MemberStatus status, String requestMessage) {
     this.meeting = meeting;
     this.user = user;
     this.role = role != null ? role : MemberRole.MEMBER;
     this.status = status != null ? status : MemberStatus.APPROVED;
+    this.requestMessage = requestMessage;
   }
 
   /**
@@ -75,12 +79,14 @@ public class MeetingMember {
   /**
    * 일반 멤버로 생성 (참가 신청용)
    */
-  public static MeetingMember createMember(Meeting meeting, User user, boolean isApprovalRequired) {
+  public static MeetingMember createMember(Meeting meeting, User user, boolean isApprovalRequired,
+      String requestMessage) {
     return MeetingMember.builder()
         .meeting(meeting)
         .user(user)
         .role(MemberRole.MEMBER)
         .status(isApprovalRequired ? MemberStatus.PENDING : MemberStatus.APPROVED)
+        .requestMessage(requestMessage)
         .build();
   }
 
@@ -109,10 +115,18 @@ public class MeetingMember {
 
   /**
    * 재가입 처리 (LEFT 상태에서 재활성화)
+   * 
+   * @param requestMessage 재가입 시 새로운 요청 메시지 (null 허용)
+   * @param autoApprove    자동 승인 여부
    */
-  public void reactivate(boolean isApprovalRequired) {
-    this.status = isApprovalRequired ? MemberStatus.PENDING : MemberStatus.APPROVED;
+  public void reactivate(String requestMessage, boolean autoApprove) {
+    this.status = autoApprove ? MemberStatus.APPROVED : MemberStatus.PENDING;
+    this.requestMessage = requestMessage != null ? requestMessage : "";
     this.joinedAt = LocalDateTime.now();
+  }
+
+  public void setRequestMessage(String requestMessage) {
+    this.requestMessage = requestMessage;
   }
 
   /**
@@ -155,6 +169,7 @@ public class MeetingMember {
         .userId(this.user.getUserId())
         .nickname(this.user.getNickname())
         .profileImage(this.user.getProfileImage())
+        .requestMessage(this.requestMessage)
         .status(this.status)
         .requestedAt(this.joinedAt)
         .build();

@@ -85,8 +85,9 @@ public class Notification {
     /**
      * 알림 읽음 여부 확인
      */
+    @com.fasterxml.jackson.annotation.JsonProperty("isRead")
     public boolean isRead() {
-        return this.isRead;
+        return this.isRead != null && this.isRead;
     }
 
     /**

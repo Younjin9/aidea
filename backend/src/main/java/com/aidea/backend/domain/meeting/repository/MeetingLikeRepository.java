@@ -3,6 +3,9 @@ package com.aidea.backend.domain.meeting.repository;
 import com.aidea.backend.domain.meeting.entity.MeetingLike;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import java.util.List;
 import java.util.Optional;
 
@@ -45,4 +48,11 @@ public interface MeetingLikeRepository extends JpaRepository<MeetingLike, Long> 
      * 특정 모임의 모든 찜 삭제 (모임 삭제 시 사용)
      */
     void deleteByMeeting_Id(Long meetingId);
+
+    /**
+     * 여러 모임의 찜 전체 일괄 삭제 (Cleanup용)
+     */
+    @Modifying
+    @Query("DELETE FROM MeetingLike ml WHERE ml.meeting.id IN :meetingIds")
+    void deleteByMeetingIdIn(@Param("meetingIds") List<Long> meetingIds);
 }
