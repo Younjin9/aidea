@@ -47,13 +47,13 @@ const EventEditPage: React.FC = () => {
   // Form State
   const [eventImage, setEventImage] = useState<string | undefined>(eventDetail?.imageUrl);
   const [eventName, setEventName] = useState(eventDetail?.title || '');
-  const [shortDescription, setShortDescription] = useState(eventDetail?.summary || eventDetail?.notes || eventDetail?.description || '');
+  const [shortDescription, setShortDescription] = useState(eventDetail?.summary || (eventDetail as any)?.notes || '');
   const [date, setDate] = useState(initialDateTime.date);
   const [time, setTime] = useState(initialDateTime.time);
   const [eventLocation, setEventLocation] = useState(
     typeof eventDetail?.location === 'string' ? eventDetail.location : (eventDetail?.placeName || '')
   );
-  const [description, setDescription] = useState(eventDetail?.notes || eventDetail?.description || '');
+  const [description, setDescription] = useState((eventDetail as any)?.notes || '');
   const [cost, setCost] = useState(eventDetail?.cost || '');
   const [maxParticipants, setMaxParticipants] = useState<number>(typeof eventDetail?.maxParticipants === 'number' ? eventDetail.maxParticipants : 10);
   const [isInitialized, setIsInitialized] = useState(false);
@@ -68,9 +68,8 @@ const EventEditPage: React.FC = () => {
   useEffect(() => {
     if (!eventDetail || isInitialized) return;
     setEventImage(eventDetail.imageUrl);
-    setImageUrlInput(eventDetail.imageUrl || '');
     setEventName(eventDetail.title || '');
-    const notesValue = eventDetail.notes || eventDetail.description || '';
+    const notesValue = (eventDetail as any).notes || '';
     const firstLine = notesValue.split('\n')[0] || '';
     setShortDescription(eventDetail.summary || firstLine);
     const nextDateTime = parseDateTime(eventDetail.scheduledAt);
