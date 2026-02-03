@@ -1,9 +1,11 @@
 package com.aidea.backend.domain.recommendation.dto;
 
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
 
 @Getter
+@Builder
 @AllArgsConstructor
 public class RecommendedMeetingCardResponse {
     private Long meetingId;
@@ -15,5 +17,6 @@ public class RecommendedMeetingCardResponse {
 
     private double score;
     private String reason;     // 추천 사유
+    private String imageUrl;     // 모임 이미지 URL
 
 }

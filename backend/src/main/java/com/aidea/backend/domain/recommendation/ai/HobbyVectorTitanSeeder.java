@@ -27,7 +27,7 @@ public class HobbyVectorTitanSeeder implements CommandLineRunner {
             return;
         }
 
-        Map<Long, String> hobbyMap = mySqlRepo.findAllHobbiesAsMap();
+        Map<Long, String> hobbyMap = mySqlRepo.findHobbyNamesByIds(mySqlRepo.findAllHobbyIds());
         log.info("[SEED] hobby count={}", hobbyMap.size());
 
         int ok = 0;

@@ -71,11 +71,9 @@ public class SecurityConfig {
                                 // Disable CSRF (using JWT)
                                 .csrf(AbstractHttpConfigurer::disable)
 
-                                // ✅ OAuth2를 위한 세션 허용 (가장 중요한 수정!)
+                                // ✅ JWT 기반 인증 - 세션 비활성화 (STATELESS)
                                 .sessionManagement(session -> session
-                                                .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED) // 필요시 세션 생성
-                                                .maximumSessions(1) // 동시 세션 1개 제한
-                                                .maxSessionsPreventsLogin(false) // 새 로그인 시 기존 세션 만료
+                                                .sessionCreationPolicy(SessionCreationPolicy.STATELESS) // 세션 없이 JWT만 사용
                                 )
 
                                 // Public Endpoints

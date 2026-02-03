@@ -208,16 +208,18 @@ public class UserService {
 
         @Transactional
         public UpdateProfileImageResponse updateProfileImage(String email, MultipartFile image) {
-                log.info("프로필 이미지 수정: email={}", email);
+                log.info("프로필 이미지 수정: email={}, filename={}", email, image.getOriginalFilename());
 
                 User user = userRepository.findByEmail(email)
                                 .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
 
                 // S3에 이미지 업로드
                 String imageUrl = s3Service.uploadFile(image, "profile-images");
+                log.info("S3 업로드 완료: url={}", imageUrl);
 
                 user.setProfileImage(imageUrl);
                 userRepository.save(user);
+                log.info("DB 저장 완료: profileImage={}", imageUrl);
 
                 return new UpdateProfileImageResponse(imageUrl);
         }

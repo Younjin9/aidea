@@ -17,7 +17,7 @@ public class MeetingHobby {
     private Long meetingId;
 
     @Id
-    @Column(name = "hobby_id", nullable = false)
+    @Column(name = "interest_id", nullable = false)
     private Long hobbyId;
 
     public MeetingHobby(Long meetingId, Long hobbyId) {

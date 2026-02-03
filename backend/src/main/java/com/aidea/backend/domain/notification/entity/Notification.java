@@ -4,7 +4,6 @@ import com.aidea.backend.domain.notification.entity.enums.NotificationType;
 import com.aidea.backend.domain.user.entity.User;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
-import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
@@ -44,9 +43,8 @@ public class Notification {
     @Column(name = "message", nullable = false, columnDefinition = "TEXT")
     private String message;
 
-    @com.fasterxml.jackson.annotation.JsonProperty("isRead")
     @Column(name = "is_read", nullable = false)
-    private Boolean isRead = false;
+    private Boolean isRead;
 
     @Column(name = "related_group_id")
     private Long relatedGroupId;

@@ -37,6 +37,7 @@ logging:
 
 
 server:
+  port: 8080
   servlet:
     encoding:
       charset: UTF-8
