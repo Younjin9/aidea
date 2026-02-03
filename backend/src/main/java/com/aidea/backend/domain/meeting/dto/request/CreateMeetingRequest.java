@@ -6,6 +6,7 @@ import lombok.Setter;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * 모임 생성 요청 DTO
@@ -50,6 +51,9 @@ public class CreateMeetingRequest {
 
     // Spec mentions rules
     private java.util.List<String> rules;
+
+    // @NotEmpty(message = "취미는 최소 1개 이상 선택해야 합니다")
+    // private List<Long> hobbyIds;
 
     /**
      * DTO -> Entity 변환
