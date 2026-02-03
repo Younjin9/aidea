@@ -1,9 +1,11 @@
 package com.aidea.backend.domain.recommendation.dto;
 
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
 
 @Getter
+@Builder
 @AllArgsConstructor
 public class RecommendedMeetingCardResponse {
     private Long meetingId;

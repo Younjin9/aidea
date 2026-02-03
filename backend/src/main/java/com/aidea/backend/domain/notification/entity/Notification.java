@@ -4,7 +4,6 @@ import com.aidea.backend.domain.notification.entity.enums.NotificationType;
 import com.aidea.backend.domain.user.entity.User;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
-import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
@@ -22,7 +21,7 @@ import java.time.LocalDateTime;
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @EntityListeners(AuditingEntityListener.class)
-@ToString(exclude = {"user"})
+@ToString(exclude = { "user" })
 public class Notification {
 
     @Id
@@ -44,7 +43,7 @@ public class Notification {
     @Column(name = "message", nullable = false, columnDefinition = "TEXT")
     private String message;
 
-@Column(name = "is_read", nullable = false)
+    @Column(name = "is_read", nullable = false)
     private Boolean isRead;
 
     @Column(name = "related_group_id")
@@ -65,7 +64,7 @@ public class Notification {
     private LocalDateTime updatedAt;
 
     public Notification(User user, NotificationType type, String title, String message,
-                      Long relatedGroupId, Long relatedUserId, Long relatedEventId) {
+            Long relatedGroupId, Long relatedUserId, Long relatedEventId) {
         this.user = user;
         this.type = type;
         this.title = title;

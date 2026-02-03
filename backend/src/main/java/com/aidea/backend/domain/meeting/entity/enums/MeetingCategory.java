@@ -38,4 +38,8 @@ public enum MeetingCategory {
              throw new IllegalArgumentException("존재하지 않는 카테고리입니다: " + code);
         }
     }
+    
+    public String getDisplayName() {
+        return this.displayName;
+    }
 }
