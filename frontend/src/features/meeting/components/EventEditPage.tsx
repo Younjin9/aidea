@@ -1,14 +1,17 @@
 // 정모 수정하기
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { Camera, Search, MapPin } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
 import BackButton from '@/shared/components/ui/BackButton';
 import Button from '@/shared/components/ui/Button';
 import Input from '@/shared/components/ui/Input';
 import Modal from '@/shared/components/ui/Modal';
 import KakaoMapModal, { type SelectedPlace } from './KakaoMapModal';
 import { useUpdateEvent, useDeleteEvent } from '../hooks/useEvents';
+import { uploadImage } from '@/shared/api';
 import type { MeetingEvent } from '@/shared/types/Meeting.types';
+import { eventApi } from '@/shared/api';
 
 const EventEditPage: React.FC = () => {
   const navigate = useNavigate();
@@ -19,6 +22,14 @@ const EventEditPage: React.FC = () => {
   // 전달받은 정모 데이터
   const eventData = (location.state as { event?: MeetingEvent })?.event;
 
+  const { data: eventDetailData } = useQuery({
+    queryKey: ['eventDetail', meetingId, eventId],
+    queryFn: () => eventApi.getEventDetail(meetingId!, eventId!),
+    enabled: !!meetingId && !!eventId,
+  });
+
+  const eventDetail = eventDetailData?.data ?? eventData;
+
   // API Mutations
   const { mutate: updateEvent, isPending: isUpdating } = useUpdateEvent(String(meetingId || ''), String(eventId || eventData?.eventId || ''));
   const { mutate: deleteEvent, isPending: isDeleting } = useDeleteEvent(String(meetingId || ''));
@@ -26,24 +37,26 @@ const EventEditPage: React.FC = () => {
   // 날짜/시간 파싱
   const parseDateTime = (scheduledAt?: string) => {
     if (!scheduledAt) return { date: '', time: '' };
-    const [datePart, timePart] = scheduledAt.split(' ');
-    return { date: datePart || '', time: timePart || '' };
+    const normalized = scheduledAt.replace('T', ' ');
+    const [datePart, timePart] = normalized.split(' ');
+    return { date: datePart || '', time: timePart ? timePart.slice(0, 5) : '' };
   };
 
-  const initialDateTime = eventData ? parseDateTime(eventData.scheduledAt) : { date: '', time: '' };
+  const initialDateTime = eventDetail ? parseDateTime(eventDetail.scheduledAt) : { date: '', time: '' };
 
   // Form State
-  const [eventImage, setEventImage] = useState<string | undefined>(eventData?.imageUrl);
-  const [eventName, setEventName] = useState(eventData?.title || '');
-  const [shortDescription, setShortDescription] = useState(eventData?.description || '');
+  const [eventImage, setEventImage] = useState<string | undefined>(eventDetail?.imageUrl);
+  const [eventName, setEventName] = useState(eventDetail?.title || '');
+  const [shortDescription, setShortDescription] = useState(eventDetail?.summary || (eventDetail as any)?.notes || '');
   const [date, setDate] = useState(initialDateTime.date);
   const [time, setTime] = useState(initialDateTime.time);
   const [eventLocation, setEventLocation] = useState(
-    typeof eventData?.location === 'string' ? eventData.location : ''
+    typeof eventDetail?.location === 'string' ? eventDetail.location : (eventDetail?.placeName || '')
   );
-  const [description, setDescription] = useState(eventData?.description || '');
-  const [cost, setCost] = useState(eventData?.cost || '');
-  const [maxParticipants, setMaxParticipants] = useState<number>(typeof eventData?.maxParticipants === 'number' ? eventData.maxParticipants : 10);
+  const [description, setDescription] = useState((eventDetail as any)?.notes || '');
+  const [cost, setCost] = useState(eventDetail?.cost || '');
+  const [maxParticipants, setMaxParticipants] = useState<number>(typeof eventDetail?.maxParticipants === 'number' ? eventDetail.maxParticipants : 10);
+  const [isInitialized, setIsInitialized] = useState(false);
 
   // Map State
   const [selectedLocation, setSelectedLocation] = useState<SelectedPlace | null>(null);
@@ -52,12 +65,35 @@ const EventEditPage: React.FC = () => {
   // Delete Modal State
   const [showDeleteModal, setShowDeleteModal] = useState(false);
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  useEffect(() => {
+    if (!eventDetail || isInitialized) return;
+    setEventImage(eventDetail.imageUrl);
+    setEventName(eventDetail.title || '');
+    const notesValue = (eventDetail as any).notes || '';
+    const firstLine = notesValue.split('\n')[0] || '';
+    setShortDescription(eventDetail.summary || firstLine);
+    const nextDateTime = parseDateTime(eventDetail.scheduledAt);
+    setDate(nextDateTime.date);
+    setTime(nextDateTime.time);
+    setEventLocation(
+      typeof eventDetail.location === 'string' ? eventDetail.location : (eventDetail.placeName || '')
+    );
+    setDescription(notesValue);
+    setCost(eventDetail.cost || '');
+    setMaxParticipants(typeof eventDetail.maxParticipants === 'number' ? eventDetail.maxParticipants : 10);
+    setIsInitialized(true);
+  }, [eventDetail, isInitialized]);
+
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => setEventImage(reader.result as string);
-      reader.readAsDataURL(file);
+      try {
+        const response = await uploadImage(file);
+        const imageUrl = response.profileImage;
+        setEventImage(imageUrl);
+      } catch (error) {
+        console.error('이미지 업로드 실패:', error);
+      }
     }
   };
 
@@ -84,6 +120,8 @@ const EventEditPage: React.FC = () => {
       imageUrl: eventImage,
     };
 
+    const imageUrlForApi = eventImage;
+
     // API 호출 시도
     updateEvent(
       {
@@ -95,6 +133,8 @@ const EventEditPage: React.FC = () => {
           ? { lat: Number(selectedLocation.lat), lng: Number(selectedLocation.lng) }
           : { lat: 0, lng: 0 },
         maxParticipants,
+        cost: cost || undefined,
+        imageUrl: imageUrlForApi,
       },
       {
         onError: () => {
@@ -121,7 +161,7 @@ const EventEditPage: React.FC = () => {
   const isFormValid = eventName && shortDescription && date && time && eventLocation && description;
 
   // 데이터가 없으면 뒤로가기
-  if (!eventData) {
+  if (!eventDetail) {
     return (
       <div className="min-h-screen bg-white flex flex-col items-center justify-center">
         <p className="text-gray-500 mb-4">정모 정보를 찾을 수 없습니다.</p>

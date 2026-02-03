@@ -70,6 +70,15 @@ dependencies {
     annotationProcessor 'org.projectlombok:lombok'
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.springframework.security:spring-security-test'
+
+    implementation "software.amazon.awssdk:bedrockruntime"
+
+    implementation platform("software.amazon.awssdk:bom:2.25.62")
+    implementation "software.amazon.awssdk:bedrockruntime"
+    implementation "software.amazon.awssdk:auth"
+    implementation "software.amazon.awssdk:regions"
+
+    implementation "com.fasterxml.jackson.core:jackson-databind"
 }
 
 dependencyManagement {
@@ -81,4 +90,8 @@ dependencyManagement {
 
 tasks.named('test') {
     useJUnitPlatform()
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.compilerArgs += '-parameters'
 }

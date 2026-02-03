@@ -8,6 +8,7 @@ import Input from '@/shared/components/ui/Input';
 import KakaoMapModal, { type SelectedPlace } from './KakaoMapModal';
 import { useAuthStore } from '@/features/auth/store/authStore';
 import { useCreateEvent } from '../hooks/useEvents';
+import { uploadImage } from '@/shared/api';
 import LocationSearchModal from '../../meeting/components/LocationSearchModal';
 
 const EventCreatePage: React.FC = () => {
@@ -35,12 +36,16 @@ const EventCreatePage: React.FC = () => {
   const [showMapModal, setShowMapModal] = useState(false);
   const [showLocationSearchModal, setShowLocationSearchModal] = useState(false);
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => setEventImage(reader.result as string);
-      reader.readAsDataURL(file);
+      try {
+        const response = await uploadImage(file);
+        const imageUrl = response.profileImage;
+        setEventImage(imageUrl);
+      } catch (error) {
+        console.error('이미지 업로드 실패:', error);
+      }
     }
   };
 
@@ -75,6 +80,8 @@ const EventCreatePage: React.FC = () => {
       imageUrl: eventImage,
     };
 
+    const imageUrlForApi = eventImage;
+
     // API 호출 시도
     createEvent(
       {
@@ -87,6 +94,8 @@ const EventCreatePage: React.FC = () => {
           ? { lat: Number(selectedLocation.lat), lng: Number(selectedLocation.lng) }
           : { lat: 0, lng: 0 },
         maxParticipants,
+        cost: cost || undefined,
+        imageUrl: imageUrlForApi,
       },
       {
         onError: () => {
