@@ -78,3 +78,10 @@ logging:
     org.hibernate.SQL: WARN
     org.springframework.web: WARN
     root: INFO
+
+vector:
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    url: jdbc:postgresql://${PG_HOST:localhost}:5432/${PG_DB:aidea_dev}
+    username: ${PG_USER:aidea}
+    password: ${PG_PASSWORD:aidea1234}
