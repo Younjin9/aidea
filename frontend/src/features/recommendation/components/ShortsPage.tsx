@@ -21,7 +21,7 @@ const ShortsPage: React.FC = () => {
     );
   }
 
-  return <ShortsFeed nickname={nickname} topK={topK} limit={limit} mode={mode} />;
+  return <ShortsFeed topK={topK} limit={limit} mode={mode} />;
 };
 
 export default ShortsPage;

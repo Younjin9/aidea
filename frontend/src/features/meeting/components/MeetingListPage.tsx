@@ -9,7 +9,7 @@ import { INTEREST_CATEGORIES } from '@/shared/config/constants';
 
 const MeetingListPage: React.FC = () => {
   const navigate = useNavigate();
-  const { meetings, isLoading, groupByCategory, toggleLikeMeeting } = useMeetings();
+  const { meetings, isLoading, groupByCategory, toggleLikeMeeting } = useMeetings({ size: 100 });
 
   const groupedMeetings = groupByCategory();
 
@@ -50,7 +50,7 @@ const MeetingListPage: React.FC = () => {
       </header>
 
       {/* 모임 목록 */}
-      <div className="flex-1 overflow-y-auto px-6 pt-4 pb-32 no-scrollbar">
+      <div className="flex-1 overflow-y-auto px-6 pt-4 pb-24 no-scrollbar">
         {isLoading ? (
           <div className="flex items-center justify-center h-full">
             <p className="text-sm text-gray-400">로딩 중...</p>
