@@ -111,6 +111,10 @@ public class SecurityConfig {
                                                 // Share
                                                 .requestMatchers(HttpMethod.GET, "/api/share/**").permitAll()
 
+                                                // Recommendations (testing)
+                                                .requestMatchers(HttpMethod.GET, "/api/recommendations").permitAll()
+                                                .requestMatchers(HttpMethod.GET, "/api/recommendations/shorts").permitAll()
+
                                                 .anyRequest().authenticated())
                                 .oauth2Login(oauth2 -> oauth2
                                                 .userInfoEndpoint(userInfo -> userInfo
