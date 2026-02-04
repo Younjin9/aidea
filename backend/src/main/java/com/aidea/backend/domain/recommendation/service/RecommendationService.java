@@ -27,6 +27,7 @@ public class RecommendationService {
     private final MeetingRepository meetingRepository;
     private final JdbcTemplate jdbcTemplate;
     private final com.aidea.backend.domain.recommendation.ai.TitanEmbeddingClient embeddingClient;
+    private final OptimizedRecommendationService optimizedService;
 
     /**
      * ✅ 정식 엔트리포인트 (email -> userId)
@@ -67,7 +68,7 @@ public class RecommendationService {
             case "vector":
                 return recommendByVector(userId, topK, limit);
             case "ai":
-                return recommendByAI(userId, topK, limit);
+                return recommendByOptimizedAI(userId, limit);
             case "mvp":
                 return recommendByMVP(userId, limit);
             default:
@@ -300,6 +301,21 @@ public class RecommendationService {
         } catch (Exception e) {
             log.error("[RECO-AI] 사용자 임베딩 생성 실패: {}", e.getMessage());
             return null;
+        }
+    }
+
+    /**
+     * ✅ 최적화된 AI 추천 (저장된 벡터 사용)
+     */
+    private List<RecommendedMeetingCardResponse> recommendByOptimizedAI(Long userId, int limit) {
+        log.info("[RECO-OPTIMIZED] 저장된 벡터 기반 AI 추천 시작. userId={}, limit={}", userId, limit);
+        
+        try {
+            return optimizedService.recommendByStoredVectors(userId, limit);
+        } catch (Exception e) {
+            log.error("[RECO-OPTIMIZED] 최적화된 추천 실패: {}", e.getMessage(), e);
+            log.warn("[RECO-OPTIMIZED] 기존 AI 방식으로 fallback");
+            return recommendByAI(userId, 10, limit); // 기존 방식으로 fallback
         }
     }
 

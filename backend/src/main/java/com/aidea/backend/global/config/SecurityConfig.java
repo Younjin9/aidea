@@ -108,10 +108,14 @@ public class SecurityConfig {
                                                                 "/api/groups/search", "/api/groups/{id}/members")
                                                 .permitAll()
 
-                                                // Share
+// Share
                                                 .requestMatchers(HttpMethod.GET, "/api/share/**").permitAll()
 
-                                                // Recommendations (testing)
+                                                // Vector Storage (for testing)
+                                                .requestMatchers(HttpMethod.GET, "/api/v1/vector-storage/**").permitAll()
+                                                .requestMatchers(HttpMethod.POST, "/api/v1/vector-storage/**").permitAll()
+
+                                                // Recommendations (for testing)
                                                 .requestMatchers(HttpMethod.GET, "/api/recommendations").permitAll()
                                                 .requestMatchers(HttpMethod.GET, "/api/recommendations/shorts").permitAll()
 
