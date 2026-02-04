@@ -3,6 +3,7 @@ package com.aidea.backend.domain.recommendation.controller;
 import com.aidea.backend.domain.recommendation.dto.RecommendedMeetingCardResponse;
 import com.aidea.backend.domain.recommendation.service.RecommendationService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
@@ -26,11 +27,16 @@ public class RecommendationController {
      */
     @GetMapping
     public List<RecommendedMeetingCardResponse> recommend(
-            @AuthenticationPrincipal String email,
+            Authentication authentication,
             @RequestParam(defaultValue = "10") int topK,
             @RequestParam(defaultValue = "10") int limit,
             @RequestParam(defaultValue = "vector") String mode
     ) {
+        // For testing: use test user if no authentication
+        String email = "test@test.com";
+        if (authentication != null && authentication.getPrincipal() instanceof String) {
+            email = (String) authentication.getPrincipal();
+        }
         return recommendationService.recommendMeetingsByEmail(email, topK, limit, mode);
     }
 
@@ -39,11 +45,16 @@ public class RecommendationController {
      */
     @GetMapping("/shorts")
     public List<RecommendedMeetingCardResponse> recommendShorts(
-            @AuthenticationPrincipal String email,
+            Authentication authentication,
             @RequestParam(defaultValue = "10") int topK,
             @RequestParam(defaultValue = "10") int limit,
             @RequestParam(defaultValue = "vector") String mode
     ) {
+        // For testing: use test user if no authentication
+        String email = "test@test.com";
+        if (authentication != null && authentication.getPrincipal() instanceof String) {
+            email = (String) authentication.getPrincipal();
+        }
         return recommendationService.recommendMeetingsByEmail(email, topK, limit, mode);
     }
 }

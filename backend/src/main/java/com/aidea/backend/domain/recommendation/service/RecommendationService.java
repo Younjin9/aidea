@@ -4,6 +4,7 @@ import com.aidea.backend.domain.meeting.entity.Meeting;
 import com.aidea.backend.domain.meeting.repository.MeetingRepository;
 import com.aidea.backend.domain.recommendation.dto.RecommendedMeetingCardResponse;
 import com.aidea.backend.domain.recommendation.repository.MySqlRecommendationRepository;
+import com.aidea.backend.domain.recommendation.ai.TitanEmbeddingClient;
 import lombok.RequiredArgsConstructor;
 import org.springframework.jdbc.core.JdbcTemplate;
 import lombok.extern.slf4j.Slf4j;
@@ -11,6 +12,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -24,6 +26,7 @@ public class RecommendationService {
     private final MySqlRecommendationRepository mySqlRepo;
     private final MeetingRepository meetingRepository;
     private final JdbcTemplate jdbcTemplate;
+    private final com.aidea.backend.domain.recommendation.ai.TitanEmbeddingClient embeddingClient;
 
     /**
      * ✅ 정식 엔트리포인트 (email -> userId)
@@ -63,6 +66,8 @@ public class RecommendationService {
                 return recommendByCategory(userId, limit);
             case "vector":
                 return recommendByVector(userId, topK, limit);
+            case "ai":
+                return recommendByAI(userId, topK, limit);
             case "mvp":
                 return recommendByMVP(userId, limit);
             default:
@@ -191,6 +196,163 @@ public class RecommendationService {
                 userId, userCategories, distinctMeetingIds.size(), result.size());
 
         return result;
+    }
+
+    /**
+     * AI 기반 추천 (Titan 임베딩 사용)
+     */
+    private List<RecommendedMeetingCardResponse> recommendByAI(Long userId, int topK, int limit) {
+        log.info("[RECO-AI] AI 기반 추천 시작. userId={}, topK={}, limit={}", userId, topK, limit);
+        
+        try {
+            // 1. 사용자 관심사 텍스트 벡터화
+            float[] userVector = createUserEmbedding(userId);
+            if (userVector == null) {
+                log.warn("[RECO-AI] 사용자 벡터 생성 실패, fallback to category");
+                return recommendByCategory(userId, limit);
+            }
+
+            // 2. 후보 모임 목록 조회
+            List<Long> candidateMeetingIds = mySqlRepo.findMeetingIdsByUserInterests(userId);
+            if (candidateMeetingIds.isEmpty()) {
+                log.info("[RECO-AI] 후보 모임 없음, fallback to category");
+                return recommendByCategory(userId, limit);
+            }
+
+            // 3. 모임 임베딩 계산
+            Map<Long, float[]> meetingEmbeddings = createMeetingEmbeddings(candidateMeetingIds);
+
+            // 4. Meeting 엔티티 조회
+            List<Meeting> meetings = meetingRepository.findAllById(candidateMeetingIds);
+            if (meetings.isEmpty()) {
+                log.info("[RECO-AI] 모임 엔티티 조회 실패, fallback to category");
+                return recommendByCategory(userId, limit);
+            }
+
+            // 5. 코사인 유사도 계산 및 추천
+            List<RecommendedMeetingCardResponse> result = meetings.stream()
+                    .map(meeting -> {
+                        float[] meetingVector = meetingEmbeddings.get(meeting.getId());
+                        if (meetingVector == null) {
+                            return null;
+                        }
+
+                        double similarity = calculateCosineSimilarity(userVector, meetingVector);
+                        double score = Math.max(0.0, Math.min(1.0, similarity));
+
+                        String reason = String.format("AI 유사도 %.1f%% (%.1f/5.0점)", 
+                            similarity * 100.0, score * 5.0);
+
+                        String imageUrl = meeting.getImageUrl();
+                        if (imageUrl == null || imageUrl.isBlank()) {
+                            imageUrl = "https://images.unsplash.com/photo-" + meeting.getId() + "?q=80&w=400&auto=format&fit=crop";
+                        }
+
+                        return new RecommendedMeetingCardResponse(
+                                meeting.getId(),
+                                meeting.getTitle(),
+                                meeting.getCategory().name(),
+                                meeting.getRegion().name(),
+                                meeting.getCurrentMembers(),
+                                meeting.getMaxMembers(),
+                                score,
+                                reason,
+                                imageUrl
+                        );
+                    })
+                    .filter(Objects::nonNull)
+                    .filter(card -> card.getScore() > 0.1) // 유사도 10% 이상만 추천
+                    .sorted((a, b) -> Double.compare(b.getScore(), a.getScore()))
+                    .limit(limit)
+                    .collect(Collectors.toList());
+
+            log.info("[RECO-AI] AI 추천 완료: {}개 (사용자 벡터 차원: {})", 
+                result.size(), userVector.length);
+
+            if (result.isEmpty()) {
+                log.info("[RECO-AI] AI 추천 결과가 없어 fallback to category");
+                return recommendByCategory(userId, limit);
+            }
+
+            return result;
+
+        } catch (Exception e) {
+            log.error("[RECO-AI] AI 추천 중 오류, fallback to category: {}", e.getMessage());
+            return recommendByCategory(userId, limit);
+        }
+    }
+
+    /**
+     * 사용자 관심사 임베딩 생성
+     */
+    private float[] createUserEmbedding(Long userId) {
+        try {
+            List<String> userInterests = mySqlRepo.findUserInterestNames(userId);
+            if (userInterests.isEmpty()) {
+                return null;
+            }
+
+            String userText = String.join(" ", userInterests);
+            log.info("[RECO-AI] 사용자 관심사 텍스트: {}", userText);
+
+            return embeddingClient.embedToFloatArray(userText);
+
+        } catch (Exception e) {
+            log.error("[RECO-AI] 사용자 임베딩 생성 실패: {}", e.getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * 모임 임베딩 생성
+     */
+    private Map<Long, float[]> createMeetingEmbeddings(List<Long> meetingIds) {
+        Map<Long, float[]> result = new HashMap<>();
+
+        for (Long meetingId : meetingIds) {
+            try {
+                String meetingText = mySqlRepo.getMeetingEmbeddingText(meetingId);
+                if (meetingText == null || meetingText.isBlank()) {
+                    continue;
+                }
+
+                float[] embedding = embeddingClient.embedToFloatArray(meetingText);
+                if (embedding != null) {
+                    result.put(meetingId, embedding);
+                }
+
+            } catch (Exception e) {
+                log.warn("[RECO-AI] 모임 {} 임베딩 생성 실패: {}", meetingId, e.getMessage());
+            }
+        }
+
+        log.info("[RECO-AI] 모임 임베딩 생성 완료: {}/{}개", result.size(), meetingIds.size());
+        return result;
+    }
+
+    /**
+     * 코사인 유사도 계산
+     */
+    private double calculateCosineSimilarity(float[] vectorA, float[] vectorB) {
+        if (vectorA == null || vectorB == null || 
+            vectorA.length == 0 || vectorB.length == 0) {
+            return 0.0;
+        }
+
+        double dotProduct = 0.0;
+        double normA = 0.0;
+        double normB = 0.0;
+
+        for (int i = 0; i < Math.min(vectorA.length, vectorB.length); i++) {
+            dotProduct += vectorA[i] * vectorB[i];
+            normA += vectorA[i] * vectorA[i];
+            normB += vectorB[i] * vectorB[i];
+        }
+
+        normA = Math.sqrt(normA);
+        normB = Math.sqrt(normB);
+
+        return (normA == 0.0 || normB == 0.0) ? 0.0 : (dotProduct / (normA * normB));
     }
 
     /**

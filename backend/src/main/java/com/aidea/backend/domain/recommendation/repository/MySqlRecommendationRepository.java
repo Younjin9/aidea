@@ -197,6 +197,40 @@ public class MySqlRecommendationRepository {
     }
 
     /**
+     * 사용자 관심사 이름 목록 조회
+     */
+    public List<String> findUserInterestNames(Long userId) {
+        String sql = """
+            SELECT DISTINCT i.interest_name
+            FROM user_interest ui
+            JOIN interest i ON ui.interest_id = i.interest_id
+            WHERE ui.user_id = ?
+            ORDER BY i.interest_name
+            """;
+        
+        return jdbcTemplate.query(sql, (rs, rowNum) -> rs.getString("interest_name"), userId);
+    }
+
+    /**
+     * 모임 임베딩용 텍스트 조회 (제목 + 설명)
+     */
+    public String getMeetingEmbeddingText(Long meetingId) {
+        String sql = """
+            SELECT CONCAT(title, ' ', COALESCE(description, ''), ' ', 
+                          COALESCE(location, ''), ' ', category) as embedding_text
+            FROM meeting 
+            WHERE id = ?
+            """;
+        
+        try {
+            return jdbcTemplate.queryForObject(sql, String.class, meetingId);
+        } catch (Exception e) {
+            log.error("모임 임베딩 텍스트 조회 실패: meetingId={}, error={}", meetingId, e.getMessage());
+            return null;
+        }
+    }
+
+    /**
      * 모든 interest ID 목록 조회
      */
     public List<Long> findAllHobbyIds() {
