@@ -2,9 +2,9 @@
 
 # 📍 Aidea
 
-### 위치 기반 AI 숏폼 모임 매칭 플랫폼
+### 위치 기반 숏폼 모임 매칭 플랫폼
 
-**내 주변의 즐거움, 숏폼으로 탐색하고 AI로 똑똑하게 연결하세요.**
+**내 주변의 즐거움, 숏폼으로 탐색하고 관심사에 맞게 연결하세요.**
 
 [![GitHub](https://img.shields.io/badge/GitHub-Repository-181717?style=for-the-badge&logo=github)](https://github.com/Younjin9/aidea)
 
@@ -14,17 +14,17 @@
 
 ## 📖 프로젝트 소개
 
-**Aidea**는 위치 기반 기술과 AI 추천 시스템을 결합한 **하이브리드 모임 플랫폼**입니다.
+**Aidea**는 위치 정보와 사용자 관심사를 활용한 추천 기능을 결합한 **하이브리드 모임 플랫폼**입니다.
 기존의 텍스트 중심 모임 탐색에서 벗어나 **숏폼(Short-form)** UI를 통해 모임의 분위기를 직관적으로 파악하고,
-개인화된 AI 알고리즘을 통해 최적의 커뮤니티를 매칭해 줍니다.
+관심사·지역·인기도·최신성을 반영한 규칙 기반 점수로 모임을 추천합니다.
 
 ### 개발 기간
 **2026.01.10 ~ 2026.02.28** (약 7주)
 
 ### 프로젝트 목표
-- 위치 기반 실시간 모임 탐색 및 매칭 시스템 구현
-- AWS Bedrock 기반 AI 추천 엔진 설계 및 적용
-- WebSocket 실시간 채팅 및 알림 시스템 구축
+- 위치 정보 기반 모임 탐색 및 매칭 시스템 구현
+- 사용자 관심사와 지역을 반영한 규칙 기반 추천 기능 구현
+- WebSocket/STOMP 기반 실시간 채팅 시스템 구축
 - 카카오 Maps API 연동을 통한 위치 서비스 구현
 
 ---
@@ -36,10 +36,10 @@
 <td width="50%">
 
 ### 📍 위치 기반 탐색
-- 🗺️ **실시간 위치 매칭**
-  - 현재 위치 기반 반경 내 모임 조회
+- 🗺️ **위치 정보 연동**
+  - 모임 주소와 위도·경도 저장
   - 카카오 Maps API 연동 지도 탐색
-  - 주소 검색 및 거리 기반 필터링
+  - 장소 검색 및 좌표 선택
 - 🎬 **숏폼 UI**
   - 카드 스와이프 방식의 모임 탐색
   - 모임 분위기 영상/이미지 미리보기
@@ -47,13 +47,13 @@
 </td>
 <td width="50%">
 
-### 🤖 AI 추천 시스템
+### 🎯 개인화 추천
 - 🧠 **개인화 추천**
-  - AWS Bedrock (Titan Embedding) 기반 벡터 검색
-  - 사용자 관심사 분석 및 취향 매칭
+  - 사용자 관심사와 모임 카테고리 매칭
+  - 지역·인기도·최신성 가중치 반영
 - 🎯 **스마트 매칭**
-  - 위치 + 관심사 복합 추천 알고리즘
-  - 실시간 추천 결과 업데이트
+  - 항목별 점수를 합산한 규칙 기반 추천
+  - 모집 중이고 정원이 남은 모임 우선 제공
 
 </td>
 </tr>
@@ -62,11 +62,11 @@
 
 ### 💬 실시간 소통
 - 📩 **실시간 채팅**
-  - WebSocket 기반 모임별 채팅방
+  - STOMP와 Spring Simple Broker 기반 모임별 채팅방
   - 채팅 기록 자동 저장 및 조회
-- 🔔 **알림 시스템**
-  - 모임 참가 신청/승인 알림
-  - 실시간 푸시 알림
+- 🔐 **채팅 접근 제어**
+  - STOMP 연결 단계 JWT 검증
+  - 모임 가입자만 메시지 전송·조회 허용
 
 </td>
 <td width="50%">
@@ -101,7 +101,7 @@
   - 좌표 기반 주소 변환
 - 🗺️ **지도 통합**
   - 모임 위치 마커 표시
-  - 뷰포트 기반 데이터 로딩 최적화
+  - 선택한 장소의 주소와 좌표를 모임 생성 화면에 반영
 
 </td>
 </tr>
@@ -133,14 +133,13 @@
 ### ⚙️ Backend
 | 분류 | 기술 스택 |
 |------|----------|
-| **Framework** | Spring Boot 3.3 |
+| **Framework** | Spring Boot 3.4 |
 | **Language** | Java 17 |
 | **Database** | MySQL 8.0 |
-| **Cache** | Redis |
+| **Token Store** | Redis |
 | **Security** | Spring Security, JWT |
-| **Real-time** | WebSocket |
-| **AI/Cloud** | AWS Bedrock (Titan Embedding) |
-| **Storage** | AWS S3, CloudFront |
+| **Real-time** | WebSocket, STOMP, Spring Simple Broker |
+| **Recommendation** | Rule-based weighted scoring |
 | **Docs** | Swagger |
 
 </td>
@@ -152,7 +151,7 @@
 | 분류 | 기술 스택 |
 |------|----------|
 | **Container** | Docker |
-| **Cloud** | AWS EC2, S3, CloudFront |
+| **Cloud** | AWS EC2, CloudFront |
 | **CI/CD** | GitHub Actions |
 
 </td>
@@ -190,15 +189,15 @@
 ┌─────────────────────────▼───────────────────────────────────────┐
 │                   Backend (Spring Boot)                          │
 │  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐        │
-│  │   Auth   │  │ Meeting  │  │   Chat   │  │   AI     │        │
+│  │   Auth   │  │ Meeting  │  │   Chat   │  │Recommend │        │
 │  │Controller│  │Controller│  │Controller│  │Controller│        │
 │  └────┬─────┘  └────┬─────┘  └────┬─────┘  └────┬─────┘        │
 │       └─────────────┴──────────────┴──────────────┘             │
 │                       Service Layer                              │
 │       ┌─────────────┬──────────────┬──────────────┐             │
 │  ┌────▼─────┐  ┌────▼─────┐  ┌────▼─────┐  ┌────▼──────┐       │
-│  │   JPA    │  │  Redis   │  │  Kakao   │  │  AWS      │       │
-│  │Repository│  │  Cache   │  │  API     │  │  Bedrock  │       │
+│  │   JPA    │  │  Redis   │  │  Kakao   │  │ Weighted  │       │
+│  │Repository│  │  Token   │  │ Maps SDK │  │  Scoring  │       │
 │  └────┬─────┘  └──────────┘  └──────────┘  └───────────┘       │
 └───────┼─────────────────────────────────────────────────────────┘
         │
@@ -213,29 +212,30 @@
 ## 🎯 주요 기능 설명
 
 ### 1. 위치 기반 모임 매칭
-- **카카오 Maps API**: 실시간 위치 좌표를 활용한 반경 내 모임 탐색
-- **카카오 로컬 API**: 키워드/주소 기반 위치 정보 조회
-- **뷰포트 최적화**: 지도 드래그 시 Debounce 처리로 API 호출 최소화
+- **카카오 Maps API**: 키워드로 장소를 검색하고 지도에서 위치 확인
+- **위치 데이터 저장**: 선택한 장소의 주소와 위도·경도를 모임 정보에 저장
+- **검색 최적화**: 모임 검색어 입력에 300ms Debounce 적용
 
-### 2. AI 추천 엔진
-- **AWS Bedrock (Titan Embedding)**: 사용자 관심사 벡터화 및 유사도 기반 매칭
-- **개인화 알고리즘**: 위치 + 관심사 복합 가중치 추천
-- **실시간 업데이트**: 관심사 변경 시 추천 결과 즉시 반영
+### 2. 규칙 기반 추천
+- **관심사 점수**: 관심 카테고리 및 제목·설명 키워드 일치 여부 반영
+- **지역 점수**: 사용자 지역과 모임 지역의 일치 여부 반영
+- **복합 가중치**: 관심사 40점, 지역 30점, 인기도 20점, 최신성 10점으로 합산
 
 ### 3. 실시간 채팅 시스템
-- **WebSocket**: 모임별 독립 채팅방 운영
-- **Redis**: 메시지 캐싱 및 빠른 조회
+- **WebSocket/STOMP**: Spring Simple Broker를 이용한 모임별 채팅방 운영
+- **접근 제어**: STOMP `CONNECT`에서 JWT를 검증하고 모임 가입 여부 확인
 - **채팅 기록**: MySQL 영구 저장 및 페이지네이션 조회
 
 ### 4. 모임 참가 프로세스
-- **신청 → 승인 흐름**: 참가 신청 저장 → 호스트 알림 → 승인/거절 처리
-- **멤버 상태 관리**: Pending → Active 상태 전환
-- **실시간 알림**: 승인 결과 즉시 통보
+- **신청 → 승인 흐름**: 참가 신청 저장 → 호스트 승인/거절 처리
+- **멤버 상태 관리**: `PENDING`, `APPROVED`, `REJECTED`, `LEFT` 상태 관리
+- **권한 검증**: 호스트만 참가 신청을 승인하거나 거절할 수 있도록 검증
 
-### 5. 성능 최적화
-- **N+1 쿼리 해결**: `@EntityGraph` 및 Fetch Join 도입으로 쿼리 수 감소
-- **지도 최적화**: 마커 클러스터링 + Debounce로 API 과부하 방지
-- **Redis 캐싱**: 자주 조회되는 모임 데이터 캐싱
+### 5. 채팅 부하 테스트
+- **k6 시나리오 자동화**: 사용자 생성부터 JWT 인증, STOMP 연결·구독·전송·수신까지 자동화
+- **성능 기준 설정**: 메시지 왕복 지연 p95 1초 미만, STOMP 연결 p95 2초 미만
+- **저하 구간 식별**: 300 VUs에서 왕복 p95 601ms, 350 VUs에서 1.14초로 기준 초과
+- **연결 검증**: 500 VUs까지 연결 및 메시지 수신 성공률 100% 확인
 
 ---
 
@@ -280,14 +280,14 @@
 </details>
 
 <details>
-<summary><b>💬 채팅 & AI API</b></summary>
+<summary><b>💬 채팅 & 추천 API</b></summary>
 
 | Method | Endpoint | Description | Auth |
 |--------|----------|-------------|------|
 | `GET` | `/api/chat/rooms` | 내 채팅방 목록 | ✅ |
 | `GET` | `/api/chat/meetings/{mId}/messages` | 메시지 조회 | ✅ |
 | `POST` | `/api/chat/rooms` | 채팅방 생성 | ✅ |
-| `GET` | `/api/recommendations` | AI 기반 모임 추천 | ✅ |
+| `GET` | `/api/recommendations` | 규칙 기반 모임 추천 | ✅ |
 
 </details>
 
@@ -338,65 +338,68 @@ npm run dev
 | `DB_PASSWORD` | 데이터베이스 비밀번호 | ✅ |
 | `JWT_SECRET` | JWT 서명 키 | ✅ |
 | `KAKAO_MAP_KEY` | 카카오 Maps API 키 | ✅ |
-| `AWS_ACCESS_KEY` | AWS 액세스 키 | ✅ |
-| `AWS_SECRET_KEY` | AWS 시크릿 키 | ✅ |
-| `AWS_S3_BUCKET` | S3 버킷명 | ✅ |
 
 ---
 
 ## 🔧 트러블슈팅
 
 <details>
-<summary><b>⚡ N+1 쿼리로 인한 OOM 장애</b></summary>
+<summary><b>⚡ STOMP 채팅 부하 테스트 및 병목 구간 분석</b></summary>
 
-**문제:** 모임 상세 조회 시 정모 목록과 참가자 조회가 중첩되어 쿼리 폭증 및 서버 다운 발생
+**목적:** 동시 접속자가 증가할 때 WebSocket 연결과 메시지 왕복 지연이 어떻게 변하는지 확인
 
-**원인 분석:**
-- `findAll()` 호출 시 연관 엔티티를 N번 추가 조회
-- 트래픽 증가 시 DB 커넥션 고갈
+**테스트 조건:**
+- k6, 로컬 단일 머신, 단일 채팅방
+- 연결 유지 40초, 사용자당 10초에 메시지 1회 전송
+- 메시지 왕복 지연 p95 1초 미만을 통과 기준으로 설정
 
-**해결:**
-```java
-@EntityGraph(attributePaths = {"members", "events"})
-List<Meeting> findAllWithDetails();
-```
-- `@EntityGraph` 및 Fetch Join 도입으로 쿼리 수를 1~2개로 감소
-- 서버 안정성 확보 및 응답 속도 개선
+**결과:**
+
+| 동시 접속 | 메시지 왕복 p95 | STOMP 연결 성공률 | 판정 |
+|---:|---:|---:|:---:|
+| 10 VUs | 26ms | 100% | 통과 |
+| 50 VUs | 78ms | 100% | 통과 |
+| 200 VUs | 492ms | 100% | 통과 |
+| 300 VUs | 601ms | 100% | 통과 |
+| 350 VUs | 1.14s | 100% | 기준 초과 |
+| 400 VUs | 1.33s | 100% | 기준 초과 |
+| 500 VUs | 1.82s | 100% | 기준 초과 |
+
+**분석:**
+- 500 VUs까지 연결과 메시지 수신은 모두 성공했지만 350 VUs부터 왕복 지연이 목표 기준을 초과
+- 연결 자체보다 DB 저장, Spring Simple Broker의 단일 채팅방 fan-out, executor 대기열을 우선 병목 후보로 식별
+- 운영 수용량이 아니라 제한된 로컬 테스트 조건에서 성능 저하가 시작되는 구간을 확인한 결과
+
+[상세 테스트 기록](docs/chat-load-test-post.md)
 
 </details>
 
 <details>
-<summary><b>🗺️ 지도 드래그 시 API 과부하</b></summary>
+<summary><b>🔎 모임 검색 중복 요청 제어</b></summary>
 
-**문제:** 모바일 환경에서 잦은 지도 이동 시 카카오 API 호출 과부하 발생
-
-**원인 분석:**
-- 지도 이동 이벤트마다 API 호출 발생
-- 짧은 시간 내 수십 번의 중복 요청
+**문제:** 사용자가 검색어를 입력할 때마다 요청하면 불필요한 API 호출이 연속으로 발생
 
 **해결:**
 ```javascript
-const debouncedSearch = useCallback(
-  debounce((bounds) => fetchMeetings(bounds), 500),
-  []
-);
+useEffect(() => {
+  const timer = setTimeout(() => setDebouncedQuery(searchQuery), 300);
+  return () => clearTimeout(timer);
+}, [searchQuery]);
 ```
-- 마커 클러스터링 + Debounce 처리로 뷰포트 변경 완료 시에만 데이터 동기화
-- API 호출 횟수 대폭 감소
+- 검색어 입력에 300ms Debounce 적용
+- 검색어가 비어 있을 때는 API를 호출하지 않도록 처리
 
 </details>
 
 <details>
-<summary><b>💬 WebSocket 한글 깨짐 문제</b></summary>
+<summary><b>💬 STOMP 채팅 인증 및 접근 제어</b></summary>
 
-**문제:** WebSocket 기반 채팅에서 한글 메시지 깨짐 및 데이터 불안정 발생
-
-**원인 분석:**
-- 서버 메시지 인코딩 과정에서 한글 처리 예외 누락
+**문제:** HTTP 인증과 별도로 WebSocket 연결과 메시지 전송 권한을 검증해야 함
 
 **해결:**
-- Redis 메시지 큐 구축 및 비동기 처리 도입
-- 인코딩 필터 추가 및 프론트엔드와 병행 테스트로 인터페이스 오류 최소화
+- STOMP `CONNECT` 프레임의 `Authorization` 헤더에서 JWT 검증
+- 검증한 사용자 이메일을 WebSocket `Principal`로 설정
+- 메시지 저장과 이력 조회 시 모임 가입 상태를 확인해 비가입자 접근 차단
 
 </details>
 
@@ -407,8 +410,8 @@ const debouncedSearch = useCallback(
 | 이름 | 역할 | 담당 기능 |
 |------|------|-----------|
 | **이세종** | BE (팀장) | DB 설계, DevOps, JWT/OAuth 보안 |
-| **김민규** | BE | AI 추천 알고리즘, 숏폼 데이터 최적화, 모임 CRUD |
-| **방영진** | BE | WebSocket 실시간 채팅, 알림 시스템, 카카오 API 연동 |
+| **김민규** | BE | 추천 기능 관련 기술 검토 및 프로젝트 환경 구성 |
+| **방영진** | BE | 모임 CRUD, 참가 신청·승인·거절, 멤버 관리, STOMP 채팅, 카카오맵 장소 검색 연동, k6 부하 테스트 |
 | **박영선** | FE | 숏폼 UI, 공통 컴포넌트, 채팅 UI, 지도 연동 |
 | **박유경** | FE | 카카오 맵/주소 검색, 검색 필터, 마이페이지 |
 
@@ -424,7 +427,7 @@ frontend/
 │   ├── chat/           # 채팅
 │   ├── map/            # 지도
 │   ├── meeting/        # 모임
-│   └── recommendation/ # AI 추천
+│   └── recommendation/ # 규칙 기반 추천
 ├── routes/             # 페이지 라우팅
 ├── shared/             # 공용 모듈 (API 클라이언트, 타입, 유틸)
 ├── store/              # 전역 상태 (Zustand)
